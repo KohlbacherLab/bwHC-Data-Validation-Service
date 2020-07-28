@@ -23,10 +23,16 @@ import de.bwhc.mtb.data.entry.dtos._
 
 class MTBDataServiceProviderImpl extends MTBDataServiceProvider
 {
+    
   def getInstance: MTBDataService = {
 
-    ???
+    val validator    = DataValidator.getInstance.getOrElse(DefaultDataValidator)
+    val db           = MTBDataDB.getInstance.get
+    val queryService = QueryService.getInstance.get
+    
+    new MTBDataServiceImpl(validator,db,queryService)
   }
+    
 }
 
 
@@ -69,6 +75,7 @@ with Logging
 
     cmd match {
 
+      //-----------------------------------------------------------------------
       case Upload(mtbfile) => {
 
         log.info("Handling data upload")
@@ -101,6 +108,7 @@ with Logging
 
       }
 
+      //-----------------------------------------------------------------------
       case Delete(patId) => {
 
         log.info(s"Handling Delete request for data of $patId")
@@ -149,6 +157,6 @@ with Logging
 
   }
 
-}
 
+}
 

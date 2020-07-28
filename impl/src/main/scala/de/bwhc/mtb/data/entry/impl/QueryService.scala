@@ -40,7 +40,6 @@ object QueryService extends SPILoader(classOf[QueryServiceProvider])
   object Command
   {
     final case class Upload(mtbfile: MTBFile) extends Command
- 
     final case class Delete(patient: Patient.Id) extends Command
   }
 

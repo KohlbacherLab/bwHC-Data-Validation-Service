@@ -4,7 +4,7 @@
 */
 
 
-name := "bwhc-data-validation-service"
+name := "bwhc-data-entry-service"
 organization in ThisBuild := "de.bwhc"
 scalaVersion in ThisBuild := "2.13.1"
 version := "0.1-SNAPSHOT"
@@ -22,13 +22,14 @@ lazy val global = project
   )
   .aggregate(
      api,
-     impl
+     impl,
+     deps
   )
 
 
 lazy val api = project
   .settings(
-    name := "data-validation-service-api",
+    name := "data-entry-service-api",
     settings,
     libraryDependencies ++= Seq(
       dependencies.play_json,
@@ -43,7 +44,7 @@ lazy val api = project
 
 lazy val impl = project
   .settings(
-    name := "data-validation-service-impl",
+    name := "data-entry-service-impl",
     settings
   )
   .dependsOn(
@@ -51,10 +52,10 @@ lazy val impl = project
   )
 
 
-/*
-lazy val fs_repositories = project
+lazy val deps = project
+  .in(file("dependencies"))
   .settings(
-    name := "user-service-fs-repos",
+    name := "data-entry-service-dependencies",
     settings,
     libraryDependencies ++= Seq(
       dependencies.repo_utils
@@ -63,6 +64,7 @@ lazy val fs_repositories = project
   .dependsOn(impl)
 
 
+/*
 lazy val tests = project
   .settings(
     name := "tests",
@@ -95,7 +97,7 @@ lazy val dependencies =
     val hgnc         = "de.bwhc"           %% "hgnc-api"                % "1.0-SNAPSHOT"
     val icd_catalogs = "de.bwhc"           %% "icd-catalogs-api"        % "1.0-SNAPSHOT"
     val med_catalog  = "de.bwhc"           %% "medication-catalog-api"  % "1.0-SNAPSHOT"
-//    val repo_utils  = "de.ekut.tbi"       %% "repository-utils"        % "1.0-SNAPSHOT"
+    val repo_utils   = "de.ekut.tbi"       %% "repository-utils"        % "1.0-SNAPSHOT"
   }
 
 
