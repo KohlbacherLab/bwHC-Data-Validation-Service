@@ -28,7 +28,7 @@ class MTBDataServiceProviderImpl extends MTBDataServiceProvider
 
     val validator    = DataValidator.getInstance.getOrElse(DefaultDataValidator)
     val db           = MTBDataDB.getInstance.get
-    val queryService = QueryService.getInstance.get
+    val queryService = QueryServiceProxy.getInstance.get
     
     new MTBDataServiceImpl(validator,db,queryService)
   }
@@ -56,7 +56,7 @@ class MTBDataServiceImpl
 (
   private val validator: DataValidator,
   private val db: MTBDataDB,
-  private val queryService: QueryService
+  private val queryService: QueryServiceProxy
 )
 extends MTBDataService
 with Logging
@@ -93,11 +93,11 @@ with Logging
               )
               .andThen {
                 case Success(Left(qc)) if (!qc.hasErrors) =>
-                  queryService ! QueryService.Command.Upload(mtbfile)
+                  queryService ! QueryServiceProxy.Command.Upload(mtbfile)
               }
 
             case Right(_) =>
-              (queryService ! QueryService.Command.Upload(mtbfile))
+              (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
                 .map(_ => mtbfile.asRight[DataQualityReport])
  
           }
@@ -115,7 +115,7 @@ with Logging
 
         (
           db.delete(patId),
-          queryService ! QueryService.Command.Delete(patId)
+          queryService ! QueryServiceProxy.Command.Delete(patId)
         )
         .mapN(
           (_,_) => Deleted(patId).asRight[String]

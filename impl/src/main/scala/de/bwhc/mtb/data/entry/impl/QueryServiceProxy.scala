@@ -17,23 +17,23 @@ import de.bwhc.mtb.data.entry.dtos._
 
 
 
-trait QueryService
+trait QueryServiceProxy
 {
 
   def process(
-    cmd: QueryService.Command
+    cmd: QueryServiceProxy.Command
   )(
     implicit ec: ExecutionContext
-  ): Future[Either[String,QueryService.Response]] 
+  ): Future[Either[String,QueryServiceProxy.Response]] 
 
-  def !(cmd: QueryService.Command)(implicit ec: ExecutionContext) = process(cmd) 
+  def !(cmd: QueryServiceProxy.Command)(implicit ec: ExecutionContext) = process(cmd) 
 
 }
 
 
-trait QueryServiceProvider extends SPI[QueryService]
+trait QueryServiceProxyProvider extends SPI[QueryServiceProxy]
 
-object QueryService extends SPILoader(classOf[QueryServiceProvider])
+object QueryServiceProxy extends SPILoader(classOf[QueryServiceProxyProvider])
 {
 
   sealed trait Command
