@@ -11,7 +11,8 @@ final case class RebiopsyRequest
 (
   id: RebiopsyRequest.Id,
   patient: Patient.Id,
-  specimen: Specimen.Id
+  specimen: Specimen.Id,
+  issuedOn: Option[LocalDate]
 )
 
 

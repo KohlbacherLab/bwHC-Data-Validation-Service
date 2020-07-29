@@ -7,7 +7,7 @@
 name := "bwhc-data-entry-service"
 organization in ThisBuild := "de.bwhc"
 scalaVersion in ThisBuild := "2.13.1"
-version := "0.1-SNAPSHOT"
+version in ThisBuild := "1.0-SNAPSHOT"
 
 
 //-----------------------------------------------------------------------------
@@ -35,9 +35,6 @@ lazy val api = project
       dependencies.play_json,
       dependencies.cats_core,
       dependencies.bwhc_utils,
-      dependencies.hgnc,
-      dependencies.icd_catalogs,
-      dependencies.med_catalog
     )
   )
 
@@ -45,7 +42,12 @@ lazy val api = project
 lazy val impl = project
   .settings(
     name := "data-entry-service-impl",
-    settings
+    settings,
+    libraryDependencies ++= Seq(
+      dependencies.hgnc_catalog,
+      dependencies.icd_catalogs,
+      dependencies.med_catalog
+    )
   )
   .dependsOn(
     api
@@ -94,7 +96,7 @@ lazy val dependencies =
     val cats_core    = "org.typelevel"     %% "cats-core"               % "2.1.1"
     val play_json    = "com.typesafe.play" %% "play-json"               % "2.8.0"
     val bwhc_utils   = "de.bwhc"           %% "utils"                   % "1.0-SNAPSHOT"
-    val hgnc         = "de.bwhc"           %% "hgnc-api"                % "1.0-SNAPSHOT"
+    val hgnc_catalog = "de.bwhc"           %% "hgnc-api"                % "1.0-SNAPSHOT"
     val icd_catalogs = "de.bwhc"           %% "icd-catalogs-api"        % "1.0-SNAPSHOT"
     val med_catalog  = "de.bwhc"           %% "medication-catalog-api"  % "1.0-SNAPSHOT"
     val repo_utils   = "de.ekut.tbi"       %% "repository-utils"        % "1.0-SNAPSHOT"

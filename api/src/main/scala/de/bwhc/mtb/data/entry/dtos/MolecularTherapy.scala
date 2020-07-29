@@ -3,8 +3,11 @@ package de.bwhc.mtb.data.entry.dtos
 
 import java.time.LocalDate
 
-import play.api.libs.json._
 
+import cats.data.NonEmptyList
+
+import play.api.libs.json._
+import de.bwhc.util.json._
 
 
 object Dosage extends Enumeration
@@ -137,7 +140,7 @@ final case class StoppedTherapy
   recordedOn: LocalDate,
   basedOn: TherapyRecommendation.Id,
   period: ClosedPeriod[LocalDate],
-  medication: Set[Medication],
+  medication: NonEmptyList[Medication],
   dosage: Option[Dosage.Value],
   reasonStopped: MolecularTherapy.StopReason.Value,
   note: Option[String]
@@ -155,7 +158,7 @@ final case class CompletedTherapy
   recordedOn: LocalDate,
   basedOn: TherapyRecommendation.Id,
   period: ClosedPeriod[LocalDate],
-  medication: Set[Medication],
+  medication: NonEmptyList[Medication],
   dosage: Option[Dosage.Value],
   note: Option[String]
 )
@@ -172,7 +175,7 @@ final case class OngoingTherapy
   recordedOn: LocalDate,
   basedOn: TherapyRecommendation.Id,
   period: OpenEndPeriod[LocalDate],
-  medication: Set[Medication],
+  medication: NonEmptyList[Medication],
   dosage: Option[Dosage.Value],
   note: Option[String]
 )

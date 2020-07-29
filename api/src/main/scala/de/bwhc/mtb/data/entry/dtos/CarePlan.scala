@@ -15,12 +15,11 @@ case class CarePlan
 (
   id: CarePlan.Id,
   patient: Patient.Id,
-  issuedOn: LocalDate,
+  issuedOn: Option[LocalDate],
   description: Option[String],
-//  recommendations: NonEmptyList[TherapyRecommendation],
   recommendations: NonEmptyList[TherapyRecommendation.Id],
   geneticCounselling: Option[Boolean],
-  rebiopsyRequests: List[RebiopsyRequest.Id]
+  rebiopsyRequests: Option[List[RebiopsyRequest.Id]]
 )
 
 

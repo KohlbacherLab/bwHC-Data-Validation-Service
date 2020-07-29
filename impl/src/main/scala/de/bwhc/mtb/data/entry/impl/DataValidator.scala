@@ -20,6 +20,7 @@ import de.bwhc.mtb.data.entry.api.DataQualityReport
 
 import de.bwhc.catalogs.icd
 import de.bwhc.catalogs.icd._
+import de.bwhc.catalogs.med.MedicationCatalog
 
 
 
@@ -44,13 +45,17 @@ object DataValidator extends SPILoader(classOf[DataValidatorProvider])
 object DefaultDataValidator extends DataValidator
 {
 
-  import cats.implicits._
+  import DataQualityReport._
+  import DataQualityReport.Issue._
 
   import cats.data.Validated
   import Validated._
 
-  import DataQualityReport._
-  import DataQualityReport.Issue._
+  import cats.syntax.apply._
+  import cats.syntax.traverse._
+  import cats.syntax.validated._
+  import cats.instances.list._
+  import cats.instances.set._
 
 
   def check(
@@ -115,13 +120,11 @@ object DefaultDataValidator extends DataValidator
 
   implicit def icd10Validator(
     implicit
-//    diagId: Diagnosis.Id,
     catalog: ICD10GMCatalogs
   ): DataQualityValidator[Coding[ICD10GM]] = {
 
-      case icd10 @ Coding(code,display,version) =>
+      case icd10 @ Coding(code,_,version) =>
 
-//        (version ifUndefined (Error("Missing ICD-10-GM Version") at Location("Diagnosis",diagId.value,"ICD-10 Coding")))
         (version ifUndefined (Error("Missing ICD-10-GM Version") at Location("ICD-10-GM Coding","","version")))
           .andThen (
             v =>
@@ -129,14 +132,12 @@ object DefaultDataValidator extends DataValidator
                 icd.ICD10GM.Version(v)
               )(
                 Error(s"Invalid ICD-10-GM Version $version") at Location("ICD-10-GM Coding","","version")
-//                Error(s"Invalid ICD-10-GM Version $version") at Location("Diagnosis",diagId.value,"ICD-10 Coding")
               )
           )
           .andThen (
             v =>
               code.value mustBeIn catalog.codings(v).map(_.code.value)
                 otherwise (Error(s"Invalid ICD-10-GM code $code") at Location("ICD-10-GM Coding","","code"))
-//                otherwise (Error(s"Invalid ICD-10-GM code $code") at Location("Diagnosis",diagId.value,"ICD-10 Coding"))
           )
           .map(c => icd10)
 
@@ -144,25 +145,62 @@ object DefaultDataValidator extends DataValidator
 
   implicit def icdO3TValidator(
     implicit
-    diagId: Diagnosis.Id,
     catalog: ICDO3Catalogs
   ): DataQualityValidator[Coding[ICDO3T]] = {
 
-      case icdo3t @ Coding(code,display,version) =>
+      case icdo3t @ Coding(code,_,version) =>
 
-        (version ifUndefined (Error("Missing ICD-O-3 Version") at Location("Diagnosis",diagId.value,"ICD-O-3-T Coding")))
+        (version ifUndefined (Error("Missing ICD-O-3 Version") at Location("ICD-O-3-T Coding","","version")))
           .andThen(
             v =>
-              ifThrows(icd.ICDO3.Version(v))(Error(s"Invalid ICD-O-3 Version $version") at Location("Diagnosis",diagId.value,"ICD-O-3-T Coding"))
+              ifThrows(icd.ICDO3.Version(v))(Error(s"Invalid ICD-O-3 Version $version") at Location("ICD-O-3-T Coding","","version"))
           )
           .andThen(
             v =>
               code.value mustBeIn catalog.topographyCodings(v).map(_.code.value)
-                otherwise (Error(s"Invalid ICD-O-3-T code $code") at Location("Diagnosis",diagId.value,"ICD-O-3-T Coding"))
+                otherwise (Error(s"Invalid ICD-O-3-T code $code") at Location("ICD-O-3-T Coding","","code"))
           )
           .map(c => icdo3t)
 
     }
+
+  implicit def icdO3MValidator(
+    implicit
+    catalog: ICDO3Catalogs
+  ): DataQualityValidator[Coding[ICDO3M]] = {
+
+      case icdo3m @ Coding(code,_,version) =>
+
+        (version ifUndefined (Error("Missing ICD-O-3 Version") at Location("ICD-O-3-M Coding","","version")))
+          .andThen(
+            v =>
+              ifThrows(icd.ICDO3.Version(v))(Error(s"Invalid ICD-O-3 Version $version") at Location("ICD-O-3-M Coding","","version"))
+          )
+          .andThen(
+            v =>
+              code.value mustBeIn catalog.morphologyCodings(v).map(_.code.value)
+                otherwise (Error(s"Invalid ICD-O-3-M code $code") at Location("ICD-O-3-M Coding","","code"))
+          )
+          .map(c => icdo3m)
+
+    }
+
+
+  implicit val medicationCatalog = MedicationCatalog.getInstance.get
+
+  implicit def medicationValidator(
+    implicit
+    catalog: MedicationCatalog
+  ): DataQualityValidator[Coding[Medication]] = {
+
+      case medication @ Coding(code,_,_) =>
+
+        (code.value mustBeIn catalog.entries.map(_.code.value)
+          otherwise (Error(s"Invalid ATC Medication code $code") at Location("Medication Coding","","code")))
+         .map(c => medication)
+
+    }
+
 
 /*
 final case class Diagnosis
@@ -181,10 +219,11 @@ final case class Diagnosis
   implicit def diagnosisValidator(
     implicit
     patId: Patient.Id,
+    specimenRefs: List[Specimen.Id],
     histologyRefs: List[HistologyResult.Id]
   ): DataQualityValidator[Diagnosis] = {
 
-    case diag @ Diagnosis(Diagnosis.Id(id),patient,date,icd10,icdO3T,_,optHistology,_) =>
+    case diag @ Diagnosis(Diagnosis.Id(id),patient,date,icd10,icdO3T,_,histologyResults,_) =>
 
       implicit val diagId = diag.id
 
@@ -193,20 +232,19 @@ final case class Diagnosis
 
         (date ifUndefined (Warning("Missing Recording Date") at Location("Diagnosis",id,"recordedOn"))),
 
-        (icd10 ifUndefined (Error("Missing ICD-10-GM Coding") at Location("Diagnosis",id,"ICD-10 Coding")))
+        (icd10 ifUndefined (Error("Missing ICD-10-GM Coding") at Location("Diagnosis",id,"icd10")))
           andThen (_ validate),
 
-        (icdO3T ifUndefined (Warning("Missing ICD-O-3-T Coding") at Location("Diagnosis",id,"ICD-O-3-T Coding")))
+        (icdO3T ifUndefined (Warning("Missing ICD-O-3-T Coding") at Location("Diagnosis",id,"icdO3T")))
           andThen (_ validate),
 
-        (optHistology ifUndefined (Warning("Missing Histology results") at Location("Diagnosis",id,"ICD-O-3-T Coding")))
-          andThen (
-            _.map( ref =>
-              ref mustBeIn histologyRefs
-                otherwise (Error(s"Invalid Reference HistologyResult/${ref.value}") at Location("Diagnosis",id,"histologyResults"))
-            ).sequence
-          ) 
-
+        histologyResults.map(
+          refs => refs traverse (
+            ref => ref mustBeIn histologyRefs
+              otherwise (Error(s"Invalid Reference HistologyResult/${ref.value}") at Location("Diagnosis",id,"histologyResults"))
+          )
+        )
+        .getOrElse(List.empty[HistologyResult.Id].validNel[Issue]) 
       )
       .mapN { case _: Product => diag}
 
@@ -242,7 +280,7 @@ case class PreviousGuidelineTherapy
           ),
 
         (medication ifUndefined (Warning("Missing Medication") at Location("PreviousGuidelineTherapy",id,"medication")))
-        //TODO: validate medication against catalog
+          andThen (_ validateEach)
         
       )
       .mapN { case _: Product => th }
@@ -277,8 +315,8 @@ case class LastGuidelineTherapy
             l mustBeIn therapyLines otherwise (Error(s"Invalid Therapy Line ${l.value}") at Location("LastGuidelineTherapy",id,"therapyLine"))
           ),
         
-        (medication ifUndefined (Warning("Missing Medication") at Location("LastGuidelineTherapy",id,"medication"))),
-        //TODO: validate medication against catalog
+        (medication ifUndefined (Warning("Missing Medication") at Location("LastGuidelineTherapy",id,"medication"))
+          andThen (_ validateEach)),
 
         (reasonStopped ifUndefined (Warning("Missing Stop Reason") at Location("LastGuidelineTherapy",id,"reasonStopped"))),
 
@@ -347,7 +385,160 @@ final case class Specimen
 
   }
 
+/*
+final case class HistologyResult
+(
+  id: HistologyResult.Id,
+  patient: Patient.Id,
+  specimen: Specimen.Id,
+  issuedOn: Option[LocalDate],
+//  icd10: Option[Coding[ICD10GM]],
+  icdO3M: Option[Coding[ICDO3M]],
+  note: Option[String]
+)
+*/
 
+  implicit def histologyValidator(
+    implicit
+    patId: Patient.Id,
+    specimens: Seq[Specimen.Id]
+  ): DataQualityValidator[HistologyResult] = {
+
+    case histo @ HistologyResult(HistologyResult.Id(id),patient,specimen,date,icdO3M,_) =>
+
+      (
+        (patient mustBe patId
+           otherwise (Error(s"Invalid Reference to Patient/${patId.value}") at Location("HistologyResult",id,"patient"))),
+
+        (specimen mustBeIn specimens
+           otherwise (Error(s"Invalid Reference to Specimen/${specimen.value}") at Location("HistologyResult",id,"specimen"))),
+
+        (date ifUndefined (Error("Missing issue date") at Location("HistologyResult",id,"issuedOn"))),
+
+        (icdO3M ifUndefined (Error("Missing ICD-O-3-M Coding") at Location("HistologyResult",id,"icdO3M")))
+          andThen ( _ validate)
+
+      )
+      .mapN { case _: Product => histo }
+
+  }
+
+
+/*
+case class CarePlan
+(
+  id: CarePlan.Id,
+  patient: Patient.Id,
+  issuedOn: LocalDate,
+  description: Option[String],
+  recommendations: NonEmptyList[TherapyRecommendation.Id],
+  geneticCounselling: Option[Boolean],
+  rebiopsyRequests: List[RebiopsyRequest.Id]
+)
+*/
+
+  implicit def carePlanValidator(
+    implicit
+    patId: Patient.Id,
+    recommendationRefs: Seq[TherapyRecommendation.Id],
+    rebiopsyRequestRefs: Seq[RebiopsyRequest.Id]
+  ): DataQualityValidator[CarePlan] = {
+
+    case cp @ CarePlan(CarePlan.Id(id),patient,date,_,recommendations,_,rebiopsyRequests) =>
+
+      (
+        (patient mustBe patId
+           otherwise (Error(s"Invalid Reference to Patient/${patId.value}") at Location("CarePlan",id,"patient"))),
+
+        (date ifUndefined (Warning("Missing Recording Date") at Location("CarePlan",id,"issuedOn"))),
+
+        recommendations traverse (
+          ref => ref mustBeIn recommendationRefs
+            otherwise (Error(s"Invalid Reference to TherapyRecommendation/${ref.value}") at Location("CarePlan",id,"recommendations"))
+        ),
+
+        rebiopsyRequests.map( refs =>
+          refs traverse (
+            ref => ref mustBeIn rebiopsyRequestRefs
+              otherwise (Error(s"Invalid Reference to RebiopsyRequest/${ref.value}") at Location("CarePlan",id,"rebiopsyRequests"))
+          )
+        )
+        .getOrElse(List.empty[RebiopsyRequest.Id].validNel[Issue]) 
+      )
+      .mapN { case _: Product => cp }
+
+  }
+
+/*
+case class TherapyRecommendation
+(
+  id: TherapyRecommendation.Id,
+  patient: Patient.Id,
+  issuedOn: Option[LocalDate],
+  medication: Set[Coding[Medication]],
+  priority: Option[TherapyRecommendation.Priority.Value],
+  levelOfEvidence: Option[LevelOfEvidence],
+  supportingVariant: Option[Variant.CosmicId]
+) 
+*/
+ 
+  implicit def recommendationValidator(
+    implicit
+    patId: Patient.Id
+  ): DataQualityValidator[TherapyRecommendation] = {
+
+    case rec @ TherapyRecommendation(TherapyRecommendation.Id(id),patient,date,medication,priority,loe,variant) =>
+
+      (
+        (patient mustBe patId
+           otherwise (Error(s"Invalid Reference to Patient/${patId.value}") at Location("TherapyRecommendation",id,"patient"))),
+
+        (date ifUndefined (Warning("Missing Recording Date") at Location("TherapyRecommendation",id,"issuedOn"))),
+
+        (medication validateEach),
+
+        (priority ifUndefined (Warning("Missing Priority") at Location("TherapyRecommendation",id,"priority"))),
+
+        (loe ifUndefined (Warning("Missing Level of Evidence") at Location("TherapyRecommendation",id,"levelOfEvidence"))),
+
+        (variant ifUndefined (Warning("Missing supporting Variant") at Location("TherapyRecommendation",id,"supportingVariant"))),
+
+      )
+      .mapN { case _: Product => rec }
+
+  }
+
+
+/*
+final case class RebiopsyRequest
+(
+  id: RebiopsyRequest.Id,
+  patient: Patient.Id,
+  specimen: Specimen.Id,
+  issuedOn: Option[LocalDate]
+)
+*/
+
+  implicit def rebiopsyRequestValidator(
+    implicit
+    patId: Patient.Id,
+    specimens: Seq[Specimen.Id]
+  ): DataQualityValidator[RebiopsyRequest] = {
+
+    case req @ RebiopsyRequest(RebiopsyRequest.Id(id),patient,specimen,date) =>
+
+      (
+        (patient mustBe patId
+           otherwise (Error(s"Invalid Reference to Patient/${patId.value}") at Location("RebiopsyRequest",id,"patient"))),
+
+        (date ifUndefined (Warning("Missing Recording Date") at Location("TherapyRecommendation",id,"issuedOn"))),
+
+        (specimen mustBeIn specimens
+           otherwise (Error(s"Invalid Reference to Specimen/${specimen.value}") at Location("RebiopsyRequest",id,"specimen"))),
+      )
+      .mapN { case _: Product => req }
+
+  }
 
 /*
 final case class MTBFile
@@ -384,11 +575,11 @@ final case class MTBFile
       previousGuidelineTherapies,
       lastGuidelineTherapy,
       ecogStatus,
-      _,
+      specimens,
       histologyResults,
-      _,
-      _,
-      _,
+      carePlans,
+      recommendations,
+      rebiopsyRequests,
       _,
       _,
       _,
@@ -403,16 +594,20 @@ final case class MTBFile
           .filter(_.isDefined)
           .map(_.get.code)
 
-
       implicit val histoRefs =
-        histologyResults.getOrElse(List.empty[HistologyResult])
-          .map(_.id)
+        histologyResults.getOrElse(List.empty[HistologyResult]).map(_.id)
 
+      implicit val specimenRefs =
+        specimens.getOrElse(List.empty[Specimen]).map(_.id)
 
       implicit val therapyRefs =
-        responses.getOrElse(List.empty[Response])
-          .map(_.therapy)
+        responses.getOrElse(List.empty[Response]).map(_.therapy)
 
+      implicit val recommendationRefs =
+        recommendations.getOrElse(List.empty[TherapyRecommendation]).map(_.id)
+
+      implicit val rebiopsyRequestRefs =
+        rebiopsyRequests.getOrElse(List.empty[RebiopsyRequest]).map(_.id)
 
       (
         patient.validate,
@@ -423,18 +618,37 @@ final case class MTBFile
 
         (diagnoses ifUndefined (Error("Missing diagnosis records") at Location("MTBFile",patId.value,"diagnoses")))
           andThen (_ ifEmpty (Error("Missing diagnoses records") at Location("MTBFile",patId.value,"diagnoses")))
-          andThen (_ validate),
+          andThen (_ validateEach),
 
         (previousGuidelineTherapies ifUndefined (Warning("Missing previous Guideline Therapies") at Location("MTBFile",patId.value,"previousGuidelineTherapies")))
           andThen (_ ifEmpty (Warning("Missing previous Guideline Therapies") at Location("MTBFile",patId.value,"previousGuidelineTherapies")))
-          andThen (_ validate),
+          andThen (_ validateEach),
 
         (lastGuidelineTherapy ifUndefined (Error("Missing last Guideline Therapy") at Location("MTBFile",patId.value,"lastGuidelineTherapies")))
           andThen (_ validate),
 
         (ecogStatus ifUndefined (Warning("Missing ECOG Performance Status records") at Location("MTBFile",patId.value,"ecogStatus")))
           andThen (_ ifEmpty (Warning("Missing ECOG Performance Status records") at Location("MTBFile",patId.value,"ecogStatus")))
-          andThen (_ validate),
+          andThen (_ validateEach),
+
+        (specimens ifUndefined (Warning("Missing Specimen records") at Location("MTBFile",patId.value,"specimens")))
+          andThen (_ ifEmpty (Warning("Missing Specimen records") at Location("MTBFile",patId.value,"specimens")))
+          andThen (_ validateEach),
+
+        (histologyResults ifUndefined (Warning("Missing HistologyResult records") at Location("MTBFile",patId.value,"histologyResults")))
+          andThen (_ ifEmpty (Warning("Missing HistologyResult records") at Location("MTBFile",patId.value,"histologyResults")))
+          andThen (_ validateEach),
+
+        (carePlans ifUndefined (Warning("Missing CarePlan records") at Location("MTBFile",patId.value,"carePlans")))
+          andThen (_ ifEmpty (Warning("Missing CarePlan records") at Location("MTBFile",patId.value,"carePlans")))
+          andThen (_ validateEach),
+
+        (recommendations ifUndefined (Warning("Missing TherapyRecommendation records") at Location("MTBFile",patId.value,"recommendations")))
+          andThen (_ ifEmpty (Warning("Missing TherapyRecommendation records") at Location("MTBFile",patId.value,"recommendations")))
+          andThen (_ validateEach),
+
+        rebiopsyRequests.map(_ validateEach)
+          .getOrElse(List.empty[RebiopsyRequest].validNel[Issue])
 
       )
       .mapN { case _: Product => mtbfile}

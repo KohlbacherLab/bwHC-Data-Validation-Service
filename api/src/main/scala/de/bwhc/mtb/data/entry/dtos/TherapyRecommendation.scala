@@ -3,9 +3,12 @@ package de.bwhc.mtb.data.entry.dtos
 
 import java.time.LocalDate
 
+import cats.data.NonEmptyList
+
 import play.api.libs.json.Json
 
-import cats.data.NonEmptySet
+import de.bwhc.util.json._
+
 
 
 case class LevelOfEvidence
@@ -43,7 +46,7 @@ case class TherapyRecommendation
   id: TherapyRecommendation.Id,
   patient: Patient.Id,
   issuedOn: Option[LocalDate],
-  medication: Set[Coding[Medication]],
+  medication: NonEmptyList[Coding[Medication]],
   priority: Option[TherapyRecommendation.Priority.Value],
   levelOfEvidence: Option[LevelOfEvidence],
   supportingVariant: Option[Variant.CosmicId]

@@ -5,6 +5,8 @@ import java.time.LocalDate
 
 import play.api.libs.json.Json
 
+import cats.data.NonEmptyList
+
 
 
 final case class TherapyLine(value: Int) extends AnyVal
@@ -40,7 +42,7 @@ sealed trait GuidelineTherapy
   val id: TherapyId
   val patient: Patient.Id
   val therapyLine: Option[TherapyLine]
-  val medication: Option[Set[Coding[Medication]]]
+  val medication: Option[List[Coding[Medication]]]
 }
 
 
@@ -49,7 +51,7 @@ case class PreviousGuidelineTherapy
   id: TherapyId,
   patient: Patient.Id,
   therapyLine: Option[TherapyLine],
-  medication: Option[Set[Coding[Medication]]],
+  medication: Option[List[Coding[Medication]]],
 ) extends GuidelineTherapy
 
 object PreviousGuidelineTherapy
@@ -64,7 +66,7 @@ case class LastGuidelineTherapy
   patient: Patient.Id,
   therapyLine: Option[TherapyLine],
   period: Option[OpenEndPeriod[LocalDate]],
-  medication: Option[Set[Coding[Medication]]],
+  medication: Option[List[Coding[Medication]]],
   reasonStopped: Option[GuidelineTherapy.StopReason.Value]
 ) extends GuidelineTherapy
   
