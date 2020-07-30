@@ -11,7 +11,9 @@ import scala.concurrent.{
 }
 
 import cats.data.NonEmptyList
-import cats.implicits._
+import cats.instances.future._
+import cats.syntax.apply._
+import cats.syntax.either._
 
 import de.bwhc.util.Logging
 
@@ -26,11 +28,17 @@ class MTBDataServiceProviderImpl extends MTBDataServiceProvider
     
   def getInstance: MTBDataService = {
 
+    val localSite    = Option(System.getProperty("bwhc.zpm.site")).map(ZPM(_)).get  //TODO: improve configurability
     val validator    = DataValidator.getInstance.getOrElse(DefaultDataValidator)
     val db           = MTBDataDB.getInstance.get
     val queryService = QueryServiceProxy.getInstance.get
     
-    new MTBDataServiceImpl(validator,db,queryService)
+    new MTBDataServiceImpl(
+      localSite,
+      validator,
+      db,
+      queryService
+    )
   }
     
 }
@@ -54,6 +62,7 @@ object Helpers
 
 class MTBDataServiceImpl
 (
+  private val localSite: ZPM,
   private val validator: DataValidator,
   private val db: MTBDataDB,
   private val queryService: QueryServiceProxy
@@ -76,9 +85,12 @@ with Logging
     cmd match {
 
       //-----------------------------------------------------------------------
-      case Upload(mtbfile) => {
+      case Upload(data) => {
 
-        log.info("Handling data upload")
+        log.info(s"Handling MTBFile upload for Patient ${data.patient.id.value}")
+
+        //: Assign managingZPM to Patient
+        val mtbfile = data.copy(patient = data.patient.copy(managingZPM = Some(localSite)))       
 
         validator.check(mtbfile)
           .flatMap {
@@ -99,6 +111,9 @@ with Logging
             case Right(_) =>
               (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
                 .map(_ => mtbfile.asRight[DataQualityReport])
+                .andThen {
+                  case Success(_) => db.deleteAll(mtbfile.patient.id)
+                }
  
           }
           .map(Imported(_).asRight[String])
@@ -114,7 +129,7 @@ with Logging
         log.info(s"Handling Delete request for data of $patId")
 
         (
-          db.delete(patId),
+          db.deleteAll(patId),
           queryService ! QueryServiceProxy.Command.Delete(patId)
         )
         .mapN(

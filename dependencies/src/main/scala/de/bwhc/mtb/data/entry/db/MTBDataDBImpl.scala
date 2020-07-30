@@ -8,6 +8,9 @@ import scala.concurrent.{
   Future
 }
 
+import cats.instances.future._
+import cats.syntax.apply._
+
 import de.ekut.tbi.repo.AsyncRepository
 import de.ekut.tbi.repo.fs.AsyncFSBackedInMemRepository
 
@@ -17,7 +20,6 @@ import de.bwhc.mtb.data.entry.impl.{
   MTBDataDB,
   MTBDataDBProvider
 }
-
 
 
 class MTBDataDBProviderImpl extends MTBDataDBProvider
@@ -32,7 +34,7 @@ class MTBDataDBProviderImpl extends MTBDataDBProvider
 
     val mtbfileDB: AsyncRepository[MTBFile,Patient.Id] =
       AsyncFSBackedInMemRepository(
-        dataDir,
+        new File(dataDir,"mtbfiles/"),
         "MTBFile",
         _.patient.id,
         _.value
@@ -40,7 +42,7 @@ class MTBDataDBProviderImpl extends MTBDataDBProvider
 
     val dataReportDB: AsyncRepository[DataQualityReport,Patient.Id] =
       AsyncFSBackedInMemRepository(
-        dataDir,
+        new File(dataDir,"dataQualityReports/"),
         "DataQualityReport",
         _.patient,
         _.value
@@ -70,20 +72,13 @@ extends MTBDataDB
     mtbfileDB.save(mtbfile)
   }
 
+
   def mtbfile(
     id: Patient.Id,
   )(
     implicit ec: ExecutionContext
   ): Future[Option[MTBFile]] = {
     mtbfileDB.get(id)
-  }
-
-  def delete(
-    id: Patient.Id,
-  )(
-    implicit ec: ExecutionContext
-  ): Future[Option[MTBFile]] = {
-    mtbfileDB.delete(id)
   }
 
 
@@ -94,6 +89,7 @@ extends MTBDataDB
   ): Future[DataQualityReport] = {
     dataReportDB.save(report)
   }
+
 
   def dataQcReports(
     implicit ec: ExecutionContext
@@ -108,5 +104,21 @@ extends MTBDataDB
   ): Future[Option[DataQualityReport]] = {
     dataReportDB.get(patId)
   }
+
+
+  def deleteAll(
+    id: Patient.Id,
+  )(
+    implicit ec: ExecutionContext
+  ): Future[Option[MTBFile]] = {
+
+    (
+      mtbfileDB.delete(id),
+      dataReportDB.delete(id)
+    )
+    .mapN((deleted,_) => deleted)
+  }
+
+
 
 }

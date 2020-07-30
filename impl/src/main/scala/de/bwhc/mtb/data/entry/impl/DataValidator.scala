@@ -541,6 +541,71 @@ final case class RebiopsyRequest
   }
 
 /*
+final case class Claim
+(
+  id: Claim.Id,
+  patient: Patient.Id,
+  issuedOn: LocalDate,
+  therapy: TherapyRecommendation.Id
+)
+*/
+
+  implicit def claimValidator(
+    implicit
+    patId: Patient.Id,
+    recommendationRefs: Seq[TherapyRecommendation.Id],
+  ): DataQualityValidator[Claim] = {
+
+    case cl @ Claim(Claim.Id(id),patient,_,therapy) =>
+
+      (
+        (patient mustBe patId
+           otherwise (Error(s"Invalid Reference to Patient/${patId.value}") at Location("Claim",id,"patient"))),
+
+        (therapy mustBeIn recommendationRefs
+          otherwise (Error(s"Invalid Reference to TherapyRecommendation/${therapy.value}") at Location("Claim",id,"therapy")))
+
+      )
+      .mapN { case _: Product => cl }
+
+  }
+
+/*
+final case class ClaimResponse
+(
+  id: ClaimResponse.Id,
+  issuedOn: LocalDate,
+  claim: Claim.Id,
+  patient: Patient.Id,
+  status: ClaimResponse.Status.Value,
+  reason: Option[ClaimResponse.Reason.Value]
+)
+*/
+
+  implicit def claimResponseValidator(
+    implicit
+    patId: Patient.Id,
+    claimRefs: Seq[Claim.Id],
+  ): DataQualityValidator[ClaimResponse] = {
+
+    case cl @ ClaimResponse(ClaimResponse.Id(id),_,claim,patient,_,reason) =>
+
+      (
+        (patient mustBe patId
+           otherwise (Error(s"Invalid Reference to Patient/${patId.value}") at Location("ClaimResponse",id,"patient"))),
+
+        (claim mustBeIn claimRefs
+          otherwise (Error(s"Invalid Reference to Claim/${claim.value}") at Location("ClaimResponse",id,"claim"))),
+
+        (reason ifUndefined (Warning("Missing Reason for ClaimResponse Status") at Location("ClaimResponse",id,"reason")))
+      )
+      .mapN { case _: Product => cl }
+
+  }
+
+
+
+/*
 final case class MTBFile
 (
   patient: Patient,
@@ -580,8 +645,8 @@ final case class MTBFile
       carePlans,
       recommendations,
       rebiopsyRequests,
-      _,
-      _,
+      claims,
+      claimResponses,
       _,
       responses
     ) =>
@@ -608,6 +673,9 @@ final case class MTBFile
 
       implicit val rebiopsyRequestRefs =
         rebiopsyRequests.getOrElse(List.empty[RebiopsyRequest]).map(_.id)
+
+      implicit val claimRefs =
+        claims.getOrElse(List.empty[Claim]).map(_.id)
 
       (
         patient.validate,
@@ -648,7 +716,15 @@ final case class MTBFile
           andThen (_ validateEach),
 
         rebiopsyRequests.map(_ validateEach)
-          .getOrElse(List.empty[RebiopsyRequest].validNel[Issue])
+          .getOrElse(List.empty[RebiopsyRequest].validNel[Issue]),
+
+        (claims ifUndefined (Warning("Missing Insurance Claim records") at Location("MTBFile",patId.value,"claims")))
+          andThen (_ ifEmpty (Warning("Missing Insurance Claim records") at Location("MTBFile",patId.value,"claims")))
+          andThen (_ validateEach),
+
+        (claimResponses ifUndefined (Warning("Missing ClaimResponse records") at Location("MTBFile",patId.value,"claimResponses")))
+          andThen (_ ifEmpty (Warning("Missing ClaimResponse records") at Location("MTBFile",patId.value,"claimResponses")))
+          andThen (_ validateEach),
 
       )
       .mapN { case _: Product => mtbfile}

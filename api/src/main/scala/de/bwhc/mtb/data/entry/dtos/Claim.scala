@@ -36,7 +36,7 @@ final case class ClaimResponse
   claim: Claim.Id,
   patient: Patient.Id,
   status: ClaimResponse.Status.Value,
-  reason: ClaimResponse.Reason.Value 
+  reason: Option[ClaimResponse.Reason.Value] 
 )
 
 object ClaimResponse

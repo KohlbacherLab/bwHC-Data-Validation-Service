@@ -30,7 +30,7 @@ trait MTBDataDB
   ): Future[Option[MTBFile]]
 
 
-  def delete(
+  def deleteAll(
     id: Patient.Id,
   )(
     implicit ec: ExecutionContext
