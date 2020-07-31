@@ -140,7 +140,7 @@ final case class StoppedTherapy
   recordedOn: LocalDate,
   basedOn: TherapyRecommendation.Id,
   period: ClosedPeriod[LocalDate],
-  medication: NonEmptyList[Medication],
+  medication: NonEmptyList[Coding[Medication]],
   dosage: Option[Dosage.Value],
   reasonStopped: MolecularTherapy.StopReason.Value,
   note: Option[String]
@@ -158,7 +158,7 @@ final case class CompletedTherapy
   recordedOn: LocalDate,
   basedOn: TherapyRecommendation.Id,
   period: ClosedPeriod[LocalDate],
-  medication: NonEmptyList[Medication],
+  medication: NonEmptyList[Coding[Medication]],
   dosage: Option[Dosage.Value],
   note: Option[String]
 )
@@ -175,7 +175,7 @@ final case class OngoingTherapy
   recordedOn: LocalDate,
   basedOn: TherapyRecommendation.Id,
   period: OpenEndPeriod[LocalDate],
-  medication: NonEmptyList[Medication],
+  medication: NonEmptyList[Coding[Medication]],
   dosage: Option[Dosage.Value],
   note: Option[String]
 )
