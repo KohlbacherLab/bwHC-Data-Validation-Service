@@ -27,6 +27,7 @@ object RECIST extends Enumeration
 final case class Response
 (
   id: Response.Id,
+  patient: Patient.Id,
   therapy: TherapyId,
   effectiveDate: LocalDate,
   value: Coding[RECIST.Value]

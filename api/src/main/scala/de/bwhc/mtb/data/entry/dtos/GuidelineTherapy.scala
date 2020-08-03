@@ -12,6 +12,9 @@ import cats.data.NonEmptyList
 final case class TherapyLine(value: Int) extends AnyVal
 object TherapyLine
 {
+
+  val values = (1 to 9).map(TherapyLine(_)).toList
+
   implicit val format = Json.valueFormat[TherapyLine]
 }
 

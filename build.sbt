@@ -22,6 +22,7 @@ lazy val global = project
   )
   .aggregate(
      api,
+     generators,
      impl,
      deps
   )
@@ -36,6 +37,19 @@ lazy val api = project
       dependencies.cats_core,
       dependencies.bwhc_utils,
     )
+  )
+
+
+lazy val generators = project
+  .settings(
+    name := "mtb-dto-generators",
+    settings,
+    libraryDependencies ++= Seq(
+      dependencies.generators
+    )
+  )
+  .dependsOn(
+    api
   )
 
 
@@ -97,6 +111,7 @@ lazy val dependencies =
     val cats_core      = "org.typelevel"     %% "cats-core"               % "2.1.1"
     val play_json      = "com.typesafe.play" %% "play-json"               % "2.8.0"
     val bwhc_utils     = "de.bwhc"           %% "utils"                   % "1.0-SNAPSHOT"
+    val generators     = "de.ekut.tbi"       %% "generators"              % "0.1-SNAPSHOT"
     val hgnc_catalog   = "de.bwhc"           %% "hgnc-api"                % "1.0-SNAPSHOT"
     val icd_catalogs   = "de.bwhc"           %% "icd-catalogs-api"        % "1.0-SNAPSHOT"
     val med_catalog    = "de.bwhc"           %% "medication-catalog-api"  % "1.0-SNAPSHOT"

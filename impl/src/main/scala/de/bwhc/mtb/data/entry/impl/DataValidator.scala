@@ -441,10 +441,11 @@ case class CarePlan
     implicit
     patId: Patient.Id,
     recommendationRefs: Seq[TherapyRecommendation.Id],
+    counsellingRequestRefs: Seq[GeneticCounsellingRequest.Id],
     rebiopsyRequestRefs: Seq[RebiopsyRequest.Id]
   ): DataQualityValidator[CarePlan] = {
 
-    case cp @ CarePlan(CarePlan.Id(id),patient,date,_,recommendations,_,rebiopsyRequests) =>
+    case cp @ CarePlan(CarePlan.Id(id),patient,date,_,recommendations,counsellingReq,rebiopsyRequests) =>
 
       (
         (patient mustBe patId
@@ -457,6 +458,12 @@ case class CarePlan
             otherwise (Error(s"Invalid Reference to TherapyRecommendation/${ref.value}") at Location("CarePlan",id,"recommendations"))
         ),
 
+        counsellingReq.map(
+          ref => ref mustBeIn counsellingRequestRefs
+           otherwise (Error(s"Invalid Reference to GeneticCounsellingRequest/${ref.value}") at Location("CarePlan",id,"geneticCounsellingRequest"))
+        )
+        .getOrElse(None.validNel[Issue]),
+ 
         rebiopsyRequests.map( refs =>
           refs traverse (
             ref => ref mustBeIn rebiopsyRequestRefs
@@ -509,6 +516,24 @@ case class TherapyRecommendation
   }
 
 
+  implicit def counsellingRequestValidator(
+    implicit
+    patId: Patient.Id
+  ): DataQualityValidator[GeneticCounsellingRequest] = {
+
+    case req @ GeneticCounsellingRequest(GeneticCounsellingRequest.Id(id),patient,date) =>
+
+      (
+        (patient mustBe patId
+           otherwise (Error(s"Invalid Reference to Patient/${patId.value}") at Location("GeneticCounsellingRequest",id,"patient"))),
+
+        (date ifUndefined (Warning("Missing Recording Date") at Location("GeneticCounsellingRequest",id,"issuedOn"))),
+
+      )
+      .mapN { case _: Product => req }
+
+  }
+
 /*
 final case class RebiopsyRequest
 (
@@ -531,7 +556,7 @@ final case class RebiopsyRequest
         (patient mustBe patId
            otherwise (Error(s"Invalid Reference to Patient/${patId.value}") at Location("RebiopsyRequest",id,"patient"))),
 
-        (date ifUndefined (Warning("Missing Recording Date") at Location("TherapyRecommendation",id,"issuedOn"))),
+        (date ifUndefined (Warning("Missing Recording Date") at Location("RebiopsyRequest",id,"issuedOn"))),
 
         (specimen mustBeIn specimens
            otherwise (Error(s"Invalid Reference to Specimen/${specimen.value}") at Location("RebiopsyRequest",id,"specimen"))),
@@ -588,7 +613,7 @@ final case class ClaimResponse
     claimRefs: Seq[Claim.Id],
   ): DataQualityValidator[ClaimResponse] = {
 
-    case cl @ ClaimResponse(ClaimResponse.Id(id),_,claim,patient,_,reason) =>
+    case cl @ ClaimResponse(ClaimResponse.Id(id),claim,patient,_,_,reason) =>
 
       (
         (patient mustBe patId
@@ -644,6 +669,7 @@ final case class MTBFile
       histologyResults,
       carePlans,
       recommendations,
+      counsellingRequests,
       rebiopsyRequests,
       claims,
       claimResponses,
@@ -670,6 +696,9 @@ final case class MTBFile
 
       implicit val recommendationRefs =
         recommendations.getOrElse(List.empty[TherapyRecommendation]).map(_.id)
+
+      implicit val counsellingRequestRefs =
+        counsellingRequests.getOrElse(List.empty[GeneticCounsellingRequest]).map(_.id)
 
       implicit val rebiopsyRequestRefs =
         rebiopsyRequests.getOrElse(List.empty[RebiopsyRequest]).map(_.id)
@@ -715,6 +744,9 @@ final case class MTBFile
           andThen (_ ifEmpty (Warning("Missing TherapyRecommendation records") at Location("MTBFile",patId.value,"recommendations")))
           andThen (_ validateEach),
 
+        counsellingRequests.map(_ validateEach)
+          .getOrElse(List.empty[GeneticCounsellingRequest].validNel[Issue]),
+
         rebiopsyRequests.map(_ validateEach)
           .getOrElse(List.empty[RebiopsyRequest].validNel[Issue]),
 
@@ -725,6 +757,8 @@ final case class MTBFile
         (claimResponses ifUndefined (Warning("Missing ClaimResponse records") at Location("MTBFile",patId.value,"claimResponses")))
           andThen (_ ifEmpty (Warning("Missing ClaimResponse records") at Location("MTBFile",patId.value,"claimResponses")))
           andThen (_ validateEach),
+
+        //TODO: validate Responses
 
       )
       .mapN { case _: Product => mtbfile}

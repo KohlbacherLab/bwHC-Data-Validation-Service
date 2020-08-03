@@ -22,7 +22,7 @@ object ECOG extends Enumeration
 }
 
 
-case class ECOGStatus
+final case class ECOGStatus
 (
   id: ECOGStatus.Id,
   patient: Patient.Id,

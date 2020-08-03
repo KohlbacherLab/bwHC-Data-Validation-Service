@@ -18,7 +18,8 @@ case class CarePlan
   issuedOn: Option[LocalDate],
   description: Option[String],
   recommendations: NonEmptyList[TherapyRecommendation.Id],
-  geneticCounselling: Option[Boolean],
+  geneticCounsellingRequest: Option[GeneticCounsellingRequest.Id],
+//  geneticCounselling: Option[Boolean],
   rebiopsyRequests: Option[List[RebiopsyRequest.Id]]
 )
 

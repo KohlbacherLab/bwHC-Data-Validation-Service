@@ -32,9 +32,9 @@ object Claim
 final case class ClaimResponse
 (
   id: ClaimResponse.Id,
-  issuedOn: LocalDate,
   claim: Claim.Id,
   patient: Patient.Id,
+  issuedOn: LocalDate,
   status: ClaimResponse.Status.Value,
   reason: Option[ClaimResponse.Reason.Value] 
 )

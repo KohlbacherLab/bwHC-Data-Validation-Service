@@ -21,6 +21,7 @@ final case class MTBFile
   //TODO: NGS reports
   carePlans: Option[List[CarePlan]],
   recommendations: Option[List[TherapyRecommendation]],
+  geneticCounsellingRequests: Option[List[GeneticCounsellingRequest]],
   rebiopsyRequests: Option[List[RebiopsyRequest]],
   claims: Option[List[Claim]],
   claimResponses: Option[List[ClaimResponse]],
