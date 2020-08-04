@@ -203,7 +203,7 @@ package object gens
   ): Gen[FamilyMemberDiagnosis] =
     for {
       id  <- Gen.uuidStrings.map(FamilyMemberDiagnosis.Id)
-      rel <- Gen.enum(FamilyMember.Relationship)
+      rel <- Gen.enum(FamilyMember.Relationship).map(Coding(_,None))
     } yield FamilyMemberDiagnosis(id,pat.id,rel)
 
 
@@ -243,7 +243,7 @@ package object gens
       thl        <- Gen.oneOf(TherapyLine.values)
       period     =  OpenEndPeriod(LocalDate.now)
       meds       <- Gen.of[List[Coding[Medication]]]
-      stopReason <- Gen.of[GuidelineTherapy.StopReason.Value]
+      stopReason <- Gen.of[GuidelineTherapy.StopReason.Value].map(Coding(_,None))
     } yield LastGuidelineTherapy(id,patId,Some(thl),Some(period),Some(meds),Some(stopReason))
 
 
@@ -272,9 +272,9 @@ package object gens
 
   implicit val genLOE: Gen[LevelOfEvidence] =
     for {
-      grade <- Gen.enum(LevelOfEvidence.Grading)
+      grade <- Gen.enum(LevelOfEvidence.Grading).map(Coding(_,None))
       adds  <- Gen.subsets(LevelOfEvidence.Addendum.values.toSet)
-    } yield LevelOfEvidence(grade,Some(adds))
+    } yield LevelOfEvidence(grade,Some(adds.map(Coding(_,None))))
 
 
   def genTherapyRecommendationFor(
@@ -316,7 +316,7 @@ package object gens
   def genCarePlanFor(
     pat: Patient,
     specimens: List[Specimen]
-  ): Gen[(CarePlan,NonEmptyList[TherapyRecommendation],Option[GeneticCounsellingRequest],Option[List[RebiopsyRequest]])] =
+  ): Gen[(CarePlan,NonEmptyList[TherapyRecommendation],Option[GeneticCounsellingRequest],List[RebiopsyRequest])] =
     for {
       id          <- Gen.uuidStrings.map(CarePlan.Id)
       patId       =  pat.id
@@ -335,7 +335,7 @@ package object gens
       CarePlan(id,patId,Some(date),Some(descr),recRefs,Some(counsellingReq.id),Some(rebiopyReqRefs)),
       recs,
       Some(counsellingReq), 
-      Some(rebiopyReqs)
+      rebiopyReqs
     )
 
 
@@ -383,59 +383,6 @@ package object gens
   implicit val genDosage: Gen[Dosage.Value] =
     Gen.enum(Dosage)
 
-//  implicit val genMolThStopReason: Gen[MolecularTherapy.StopReason.Value] =
-//    Gen.enum(MolecularTherapy.StopReason)
-
-
-/*
-final case class NotDoneTherapy
-(
-  id: TherapyId,
-  patient: Patient.Id,
-  recordedOn: LocalDate,
-  basedOn: TherapyRecommendation.Id,
-  notDoneReason: MolecularTherapy.NotDoneReason.Value,
-  note: Option[String]
-)
-
-final case class OngoingTherapy
-(
-  id: TherapyId,
-  patient: Patient.Id,
-  recordedOn: LocalDate,
-  basedOn: TherapyRecommendation.Id,
-  period: OpenEndPeriod[LocalDate],
-  medication: NonEmptyList[Coding[Medication]],
-  dosage: Option[Dosage.Value],
-  note: Option[String]
-)
-
-final case class StoppedTherapy
-(
-  id: TherapyId,
-  patient: Patient.Id,
-  recordedOn: LocalDate,
-  basedOn: TherapyRecommendation.Id,
-  period: ClosedPeriod[LocalDate],
-  medication: NonEmptyList[Coding[Medication]],
-  dosage: Option[Dosage.Value],
-  reasonStopped: MolecularTherapy.StopReason.Value,
-  note: Option[String]
-)
-
-final case class CompletedTherapy
-(
-  id: TherapyId,
-  patient: Patient.Id,
-  recordedOn: LocalDate,
-  basedOn: TherapyRecommendation.Id,
-  period: ClosedPeriod[LocalDate],
-  medication: NonEmptyList[Coding[Medication]],
-  dosage: Option[Dosage.Value],
-  note: Option[String]
-)
-*/
-
 
   def getNotDoneTherapyFor(
     rec: TherapyRecommendation
@@ -445,7 +392,7 @@ final case class CompletedTherapy
       patId   =  rec.patient
       date    =  LocalDate.now
       basedOn =  rec.id
-      reason  <- Gen.enum(MolecularTherapy.NotDoneReason)
+      reason  <- Gen.enum(MolecularTherapy.NotDoneReason).map(Coding(_,None))
       note    =  "Notes on the Therapy..."
     } yield NotDoneTherapy(id,patId,date,basedOn,reason,Some(note))
 
@@ -461,7 +408,7 @@ final case class CompletedTherapy
       period  =  ClosedPeriod(LocalDate.now,LocalDate.now)
       meds    =  rec.medication
       dosage  <- Gen.of[Dosage.Value]
-      reason  <- Gen.enum(MolecularTherapy.StopReason)
+      reason  <- Gen.enum(MolecularTherapy.StopReason).map(Coding(_,None))
       note    =  "Notes on the Therapy..."
     } yield StoppedTherapy(id,patId,date,basedOn,period,meds,Some(dosage),reason,Some(note))
 
@@ -496,7 +443,127 @@ final case class CompletedTherapy
     } yield CompletedTherapy(id,patId,date,basedOn,period,meds,Some(dosage),Some(note))
 
 
+  def genMolecularTherapyDocFor(
+    rec: TherapyRecommendation
+  ): Gen[MolecularTherapyDocumentation] =
+    for {
+      notDone <- getNotDoneTherapyFor(rec)
+      ongoing <- getOngoingTherapyFor(rec)
+      stopped <- getStoppedTherapyFor(rec)
+      compl   <- getCompletedTherapyFor(rec)
+      seq     =  List(notDone,ongoing,stopped,compl)
+    } yield MolecularTherapyDocumentation(seq)
 
+
+  //---------------------------------------------------------------------------
+  // MTBFile
+  //---------------------------------------------------------------------------
+
+  implicit val genMTBFile: Gen[MTBFile] =
+    for {
+      patient   <- Gen.of[Patient]
+      consent   <- genConsentFor(patient)
+      episode   <- genEpisodeFor(patient)
+      specimens <- Gen.list(
+                     Gen.intsBetween(1,4),
+                     genSpecimenFor(patient)
+                   )
+      histology <- Gen.oneOfEach(
+                     specimens.map(
+                       sp => Gen.list(
+                         Gen.intsBetween(1,3),
+                         genHistologyResultFor(sp)
+                       )
+                     )
+
+                   ) 
+      diagnoses <- Gen.oneOfEach(
+                     (specimens zip histology).map { case (sp,hs) => genDiagnosisFor(sp,hs)}
+                   )
+
+      familyMemberDiagnoses <- Gen.listOf(2, genFamilyMemberDiagnosisFor(patient))
+
+
+      previousGL <- Gen.listOf(3,genPreviousGLTherapyFor(patient))
+
+      lastGL     <- genLastGLTherapyFor(patient)
+
+      ecogs     <- Gen.list(
+                     Gen.intsBetween(2,4),
+                     genECOGStatusFor(patient)
+                   )
+
+      cpBatches  <- Gen.list(
+                      Gen.intsBetween(1,3),
+                      genCarePlanFor(patient,specimens)
+                    )
+
+      cpData    <- genCarePlanFor(patient,specimens)
+
+      (carePlan,
+       recommendations,
+       counsellingReq,
+       rebiopsyReqs) = cpData
+
+      claimData <- Gen.oneOfEach(
+                     recommendations.toList.map(genClaimWithResponseFor)
+                   ) 
+
+      (claims,claimResponses) = claimData.unzip    
+
+      molThDocs <- Gen.oneOfEach(
+                     recommendations.toList.map(genMolecularTherapyDocFor)
+                   )
+
+      responses <- Gen.oneOfEach(
+                     molThDocs.map(_.history.head.id).map(genResponseFor(patient,_))
+                   )
+
+/*
+final case class MTBFile
+(
+  patient: Patient,
+  consent: Consent,
+  episode: MTBEpisode,
+  diagnoses: Option[List[Diagnosis]],
+  familyMemberDiagnoses: Option[List[FamilyMemberDiagnosis]],
+  previousGuidelineTherapies: Option[List[PreviousGuidelineTherapy]],
+  lastGuidelineTherapy: Option[LastGuidelineTherapy],
+  ecogStatus: Option[List[ECOGStatus]],
+  specimens: Option[List[Specimen]],
+  histologyResults: Option[List[HistologyResult]],
+  //TODO: NGS reports
+  carePlans: Option[List[CarePlan]],
+  recommendations: Option[List[TherapyRecommendation]],
+  geneticCounsellingRequests: Option[List[GeneticCounsellingRequest]],
+  rebiopsyRequests: Option[List[RebiopsyRequest]],
+  claims: Option[List[Claim]],
+  claimResponses: Option[List[ClaimResponse]],
+  molecularTherapies: Option[List[MolecularTherapyDocumentation]],
+  responses: Option[List[Response]]
+)
+*/
+
+    } yield MTBFile(
+      patient,
+      consent,
+      episode,
+      Some(diagnoses),
+      Some(familyMemberDiagnoses),
+      Some(previousGL),
+      Some(lastGL),
+      Some(ecogs),
+      Some(specimens),
+      Some(histology.flatten),
+      Some(List(carePlan)),
+      Some(recommendations.toList),
+      counsellingReq.map(List(_)),
+      Some(rebiopsyReqs),
+      Some(claims),
+      Some(claimResponses),
+      Some(molThDocs),
+      Some(responses)
+    )
 
 
 

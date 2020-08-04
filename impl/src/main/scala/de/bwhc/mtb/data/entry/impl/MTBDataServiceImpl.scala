@@ -29,10 +29,13 @@ class MTBDataServiceProviderImpl extends MTBDataServiceProvider
   def getInstance: MTBDataService = {
 
     val localSite    = Option(System.getProperty("bwhc.zpm.site")).map(ZPM(_)).get  //TODO: improve configurability
-    val validator    = DataValidator.getInstance.getOrElse(DefaultDataValidator)
+
     val db           = MTBDataDB.getInstance.get
+
     val queryService = QueryServiceProxy.getInstance.get
     
+    val validator    = DataValidator.getInstance.getOrElse(DefaultDataValidator)
+
     new MTBDataServiceImpl(
       localSite,
       validator,
@@ -77,10 +80,10 @@ with Logging
     cmd: MTBDataService.Command
   )(
     implicit ec: ExecutionContext
-  ): Future[Either[String,MTBDataService.Event]] = {
+  ): Future[Either[String,MTBDataService.Response]] = {
 
     import MTBDataService.Command._
-    import MTBDataService.Event._
+    import MTBDataService.Response._
 
     cmd match {
 
@@ -118,7 +121,7 @@ with Logging
           }
           .map(Imported(_).asRight[String])
           .recover {
-            case t => t.getMessage.asLeft[MTBDataService.Event]
+            case t => t.getMessage.asLeft[MTBDataService.Response]
           }
 
       }
@@ -136,7 +139,7 @@ with Logging
           (_,_) => Deleted(patId).asRight[String]
         )
         .recover {
-          case t => t.getMessage.asLeft[MTBDataService.Event]
+          case t => t.getMessage.asLeft[MTBDataService.Response]
         }
       }
     }

@@ -113,9 +113,9 @@ object DefaultDataValidator extends DataValidator
 
 
 
-  implicit val icd10gm = ICD10GMCatalogs.getInstance.get
+  implicit lazy val icd10gm = ICD10GMCatalogs.getInstance.get
 
-  implicit val icdO3   = ICDO3Catalogs.getInstance.get
+  implicit lazy val icdO3   = ICDO3Catalogs.getInstance.get
 
 
   implicit def icd10Validator(

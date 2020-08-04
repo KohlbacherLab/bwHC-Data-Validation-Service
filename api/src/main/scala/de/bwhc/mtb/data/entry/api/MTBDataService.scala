@@ -29,7 +29,7 @@ trait MTBDataService
     cmd: MTBDataService.Command
   )(
     implicit ec: ExecutionContext
-  ): Future[Either[String,MTBDataService.Event]]  //TODO: re-think better error modelling
+  ): Future[Either[String,MTBDataService.Response]]  //TODO: re-think better error modelling
 
   def !(cmd: MTBDataService.Command)(implicit ec: ExecutionContext) = process(cmd)
 
@@ -65,19 +65,19 @@ object MTBDataService extends SPILoader(classOf[MTBDataServiceProvider])
     case class Delete(patient: Patient.Id) extends Command
   }
 
-  sealed abstract class Event
-  object Event
+  sealed abstract class Response extends Event
+  object Response
   {
     case class Imported
     (
       result: Either[DataQualityReport,MTBFile],
       timestamp: Instant = Instant.now
-    ) extends Event
+    ) extends Response
   
     case class Deleted(
       patient: Patient.Id,
       timestamp: Instant = Instant.now
-    ) extends Event
+    ) extends Response
   }
 
 }

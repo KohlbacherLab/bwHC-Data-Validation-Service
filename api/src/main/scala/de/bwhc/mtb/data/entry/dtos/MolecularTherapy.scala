@@ -50,6 +50,8 @@ object MolecularTherapy
     val Unknown             = Value("unknown")
   
     implicit val format = Json.formatEnum(this)
+
+    implicit val system = Coding.System[NotDoneReason.Value]("MTB-CDS:MolecularTherapy:NotDoneReason")
   }
 
 
@@ -71,6 +73,8 @@ object MolecularTherapy
     val Unknown             = Value("unknown")
   
     implicit val format = Json.formatEnum(this)
+
+    implicit val system = Coding.System[StopReason.Value]("MTB-CDS:MolecularTherapy:StopReason")
   }
 
 
@@ -124,7 +128,7 @@ final case class NotDoneTherapy
   patient: Patient.Id,
   recordedOn: LocalDate,
   basedOn: TherapyRecommendation.Id,
-  notDoneReason: MolecularTherapy.NotDoneReason.Value,
+  notDoneReason: Coding[MolecularTherapy.NotDoneReason.Value],
   note: Option[String]
 )
   extends MolecularTherapy
@@ -142,7 +146,7 @@ final case class StoppedTherapy
   period: ClosedPeriod[LocalDate],
   medication: NonEmptyList[Coding[Medication]],
   dosage: Option[Dosage.Value],
-  reasonStopped: MolecularTherapy.StopReason.Value,
+  reasonStopped: Coding[MolecularTherapy.StopReason.Value],
   note: Option[String]
 )
   extends MolecularTherapy

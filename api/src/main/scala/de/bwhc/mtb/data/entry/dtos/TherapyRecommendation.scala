@@ -13,8 +13,8 @@ import de.bwhc.util.json._
 
 case class LevelOfEvidence
 (
-  grading: LevelOfEvidence.Grading.Value,
-  addendums: Option[Set[LevelOfEvidence.Addendum.Value]]
+  grading: Coding[LevelOfEvidence.Grading.Value],
+  addendums: Option[Set[Coding[LevelOfEvidence.Addendum.Value]]]
 )
 
 object LevelOfEvidence
@@ -25,6 +25,8 @@ object LevelOfEvidence
     val m1A,m1B,m1C,m2A,m2B,m2C,m3,m4 = Value
 
     implicit val format = Json.formatEnum(this)
+
+    implicit val system = Coding.System[Grading.Value]("MTB-CDS:Level-of-Evidence:Grading")
   } 
   
   object Addendum extends Enumeration
@@ -35,6 +37,9 @@ object LevelOfEvidence
     val R  = Value("R")
 
     implicit val format = Json.formatEnum(this)
+    
+    implicit val system = Coding.System[Addendum.Value]("MTB-CDS:Level-of-Evidence:Addendum")
+
   }
 
   implicit val format = Json.format[LevelOfEvidence]

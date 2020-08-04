@@ -35,6 +35,8 @@ object GuidelineTherapy
     val Unknown            = Value("unknown")
 
     implicit val format = Json.formatEnum(this)
+
+    implicit val system = Coding.System[StopReason.Value]("MTB-CDS:GuidelineTherapy-StopReason")
   }
 
 }
@@ -70,7 +72,8 @@ case class LastGuidelineTherapy
   therapyLine: Option[TherapyLine],
   period: Option[OpenEndPeriod[LocalDate]],
   medication: Option[List[Coding[Medication]]],
-  reasonStopped: Option[GuidelineTherapy.StopReason.Value]
+  reasonStopped: Option[Coding[GuidelineTherapy.StopReason.Value]]
+//  reasonStopped: Option[GuidelineTherapy.StopReason.Value]
 ) extends GuidelineTherapy
   
 object LastGuidelineTherapy

@@ -19,6 +19,8 @@ object FamilyMember
     val ExtendFamilyMember = Value("EXT")
 
     implicit val format    = Json.formatEnum(this)
+
+    implicit val system = Coding.System[Relationship.Value]("http://terminology.hl7.org/ValueSet/v3-FamilyMember")
   }
 }
 
@@ -27,7 +29,7 @@ final case class FamilyMemberDiagnosis
 (
   id: FamilyMemberDiagnosis.Id,
   patient: Patient.Id,
-  relationship: FamilyMember.Relationship.Value  
+  relationship: Coding[FamilyMember.Relationship.Value]
 )
 
 object FamilyMemberDiagnosis
