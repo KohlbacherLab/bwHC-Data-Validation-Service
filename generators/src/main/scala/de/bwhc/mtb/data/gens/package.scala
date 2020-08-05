@@ -46,7 +46,7 @@ package object gens
                    LocalDate.of(1980,12,31)
                  )
       diedAge <- Gen.intsBetween(55,75)
-      dod     =  Option(bd.plusYears(diedAge)).filterNot(_.isBefore(LocalDate.now.minusDays(1)))
+      dod     =  Option(bd.plusYears(diedAge)).filterNot(_.isAfter(LocalDate.now.minusDays(1)))
       ik      <- Gen.of[HealthInsurance.Id]
     } yield Patient(id,g,Some(bd),None,Some(ik),dod)
 

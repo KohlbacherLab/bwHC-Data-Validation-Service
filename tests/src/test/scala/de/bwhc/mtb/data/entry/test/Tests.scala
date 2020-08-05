@@ -3,8 +3,12 @@ package de.bwhc.mtb.data.entry.test
 
 import java.nio.file.Files.createTempDirectory
 
+import scala.util.Left
+import scala.concurrent.Future
+
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.must.Matchers._
+import org.scalatest.OptionValues._
 
 import de.ekut.tbi.generators.Gen
 
@@ -30,6 +34,9 @@ class Tests extends AsyncFlatSpec
 {
 
   import Setup._
+  import Invalidators._
+  import MTBDataService.Command._
+  import MTBDataService.Response._
 
   implicit val rnd = new scala.util.Random(42)
 
@@ -45,13 +52,41 @@ class Tests extends AsyncFlatSpec
 
 
   "Importing MTBFile" should "succeed" in {
-
-    import MTBDataService.Command._
     
     for {
-      resp <- service ! Upload(Gen.of[MTBFile].next)
-      ok   <- resp.isRight mustBe true
+      response <- service ! Upload(Gen.of[MTBFile].next)
+      ok       <- response.isRight mustBe true
     } yield ok
+
+  }
+
+
+  "Importing MTBFile" should "return detected Issues" in {
+   
+    val mtbfile = Gen.of[MTBFile].next.invalidate
+    val patId = mtbfile.patient.id
+
+    for {
+
+      response <- service ! Upload(mtbfile)
+
+      Imported(result,_) = response.toOption.value 
+
+      issuesDetected = result.isLeft mustBe true
+
+      Left(qcReport) = result
+
+      _ = qcReport.patient mustBe patId
+
+      patients <- service.patientsWithIncompleteData 
+
+      _ = patients must not be empty
+
+      fetchedQCReport <- service.dataQualityReport(patId)
+
+      _ = fetchedQCReport.value mustBe qcReport
+
+    } yield issuesDetected
 
   }
 

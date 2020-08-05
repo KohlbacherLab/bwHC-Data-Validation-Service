@@ -11,6 +11,8 @@ import scala.concurrent.{
 }
 
 import cats.data.NonEmptyList
+import cats.data.Validated._
+
 import cats.instances.future._
 import cats.syntax.apply._
 import cats.syntax.either._
@@ -34,7 +36,7 @@ class MTBDataServiceProviderImpl extends MTBDataServiceProvider
 
     val queryService = QueryServiceProxy.getInstance.get
     
-    val validator    = DataValidator.getInstance.getOrElse(DefaultDataValidator)
+    val validator    = DataValidator.getInstance.getOrElse(new DefaultDataValidator)
 
     new MTBDataServiceImpl(
       localSite,
@@ -95,34 +97,48 @@ with Logging
         //: Assign managingZPM to Patient
         val mtbfile = data.copy(patient = data.patient.copy(managingZPM = Some(localSite)))       
 
-        validator.check(mtbfile)
-          .flatMap {
-
-            case Left(qcReport) =>
-              (
-                db.save(mtbfile),
-                db.save(qcReport)
-              )
-              .mapN(
-                (_,_) => qcReport.asLeft[MTBFile]
-              )
-              .andThen {
-                case Success(Left(qc)) if (!qc.hasErrors) =>
-                  queryService ! QueryServiceProxy.Command.Upload(mtbfile)
-              }
-
-            case Right(_) =>
-              (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
-                .map(_ => mtbfile.asRight[DataQualityReport])
-                .andThen {
-                  case Success(_) => db.deleteAll(mtbfile.patient.id)
+        val result =
+          for {
+            checked <- validator check mtbfile
+            issuesOrOk <-
+              checked match {
+  
+                case Invalid(qcReport) =>
+                  (
+                    db.save(mtbfile),
+                    db.save(qcReport)
+                  )
+                  .mapN(
+                    (_,_) => qcReport.asLeft[MTBFile]
+                  )
+                  .andThen {
+                    case Success(Left(qc)) if (!qc.hasErrors) => {
+  
+                      log.info(s"Forwarding data to QueryService")
+  
+                      queryService ! QueryServiceProxy.Command.Upload(mtbfile)
+                    }
+                  }
+  
+                case Valid(_) => {
+  
+                  log.info(s"Forwarding data to QueryService")
+  
+                  (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
+                    .map(_ => mtbfile.asRight[DataQualityReport])
+                    .andThen {
+                      case Success(_) => db.deleteAll(mtbfile.patient.id)
+                    }
                 }
- 
-          }
-          .map(Imported(_).asRight[String])
-          .recover {
-            case t => t.getMessage.asLeft[MTBDataService.Response]
-          }
+              }
+  
+            response = Imported(issuesOrOk).asRight[String]
+  
+          } yield response
+
+        result.recover {
+          case t => t.getMessage.asLeft[MTBDataService.Response]
+        }
 
       }
 
@@ -177,4 +193,3 @@ with Logging
 
 
 }
-

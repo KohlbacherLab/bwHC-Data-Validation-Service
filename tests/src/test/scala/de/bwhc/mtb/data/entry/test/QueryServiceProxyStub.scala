@@ -9,6 +9,8 @@ import scala.concurrent.{
   Future
 }
 
+import de.bwhc.util.Logging
+
 import de.bwhc.mtb.data.entry.impl.{
   QueryServiceProxy,
   QueryServiceProxyProvider
@@ -32,6 +34,7 @@ class QueryServiceProxyStubProvider extends QueryServiceProxyProvider
 
 class QueryServiceProxyStub
 extends QueryServiceProxy
+with Logging
 {
 
 
@@ -46,9 +49,17 @@ extends QueryServiceProxy
     
     cmd match {
 
-      case Upload(mtbfile) => Future.successful(Right(Imported))
+      case Upload(mtbfile) => { 
 
-      case Delete(patId) => Future.successful(Right(Deleted))
+        log.info(s"Handling Upload request for ${mtbfile.patient.id}")
+        Future.successful(Right(Imported))
+
+      }
+
+      case Delete(patId) => { 
+        log.info(s"Handling Delete request for $patId")
+        Future.successful(Right(Deleted))
+      }
 
     }
 

@@ -11,6 +11,7 @@ import scala.concurrent.{
 }
 
 import cats.data.NonEmptyList
+import cats.data.Validated
 
 import de.bwhc.util.spi._
 import de.bwhc.util.data.Validation._
@@ -31,7 +32,7 @@ trait DataValidator
     mtbfile: MTBFile
   )(
     implicit ec: ExecutionContext
-  ): Future[Either[DataQualityReport,MTBFile]]
+  ): Future[Validated[DataQualityReport,MTBFile]]
 
 }
 
@@ -42,14 +43,30 @@ object DataValidator extends SPILoader(classOf[DataValidatorProvider])
 
 
 
-object DefaultDataValidator extends DataValidator
+class DefaultDataValidator extends DataValidator
+{
+
+  import DefaultDataValidator._
+
+  def check(
+    mtbfile: MTBFile
+  )(
+    implicit ec: ExecutionContext
+  ): Future[Validated[DataQualityReport,MTBFile]] = {
+    Future.successful(
+      mtbfile.validate
+        .leftMap(DataQualityReport(mtbfile.patient.id,_))
+    )
+  }
+
+}
+
+
+object DefaultDataValidator
 {
 
   import DataQualityReport._
   import DataQualityReport.Issue._
-
-  import cats.data.Validated
-  import Validated._
 
   import cats.syntax.apply._
   import cats.syntax.traverse._
@@ -57,18 +74,6 @@ object DefaultDataValidator extends DataValidator
   import cats.instances.list._
   import cats.instances.set._
 
-
-  def check(
-    mtbfile: MTBFile
-  )(
-    implicit ec: ExecutionContext
-  ): Future[Either[DataQualityReport,MTBFile]] = {
-    Future.successful(
-      mtbfile.validate
-        .leftMap(DataQualityReport(mtbfile.patient.id,_))
-        .toEither
-    )
-  }
 
 
   type DataQualityValidator[T] = Validator[DataQualityReport.Issue,T]
@@ -83,7 +88,8 @@ object DefaultDataValidator extends DataValidator
 
         insurance ifUndefined (Warning("Missing Health Insurance") at Location("Patient",id,"insurance")),
 
-        dod ifUndefined (Info("Undefined date of death. Ensure if up to date") at Location("Patient",id,"dateOfDeath"))
+        (dod ifUndefined (Info("Undefined date of death. Ensure if up to date") at Location("Patient",id,"dateOfDeath")))
+          .andThen(_ mustBeLess LocalDate.now otherwise (Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath")))
       )
       .mapN { case _: Product => pat}
   }
@@ -202,20 +208,6 @@ object DefaultDataValidator extends DataValidator
     }
 
 
-/*
-final case class Diagnosis
-(
-  id: Diagnosis.Id,
-  patient: Patient.Id,
-  recordedOn: Option[LocalDate],
-  icd10: Option[Coding[ICD10GM]],
-  icdO3T: Option[Coding[ICDO3T]],
-  whoGrade: Option[Coding[WHOGrade.Value]],
-  histologyResults: Option[List[HistologyResult.Id]],
-  statusHistory: Option[List[Diagnosis.StatusOnDate]]
-)
-*/
-
   implicit def diagnosisValidator(
     implicit
     patId: Patient.Id,
@@ -251,16 +243,6 @@ final case class Diagnosis
   }
 
 
-/*
-case class PreviousGuidelineTherapy
-(
-  id: TherapyId,
-  patient: Patient.Id,
-  therapyLine: Option[TherapyLine],
-  medication: Option[Set[Coding[Medication]]],
-) extends GuidelineTherapy
-*/
-
   implicit val therapyLines = (0 to 9).map(TherapyLine(_))
   
   implicit def prevGuidelineTherapyValidator(
@@ -286,17 +268,6 @@ case class PreviousGuidelineTherapy
       .mapN { case _: Product => th }
   }
 
-/*
-case class LastGuidelineTherapy
-(
-  id: TherapyId,
-  patient: Patient.Id,
-  therapyLine: Option[TherapyLine],
-  period: Option[OpenEndPeriod[LocalDate]],
-  medication: Option[Set[Coding[Medication]]],
-  reasonStopped: Option[GuidelineTherapy.StopReason.Value]
-) extends GuidelineTherapy
-*/
 
   implicit def lastGuidelineTherapyValidator(
     implicit
@@ -327,15 +298,6 @@ case class LastGuidelineTherapy
 
   }
 
-/*
-case class ECOGStatus
-(
-  id: ECOGStatus.Id,
-  patient: Patient.Id,
-  effectiveDate: Option[LocalDate],
-  value: Coding[ECOG.Value]
-)
-*/
 
   implicit def ecogStatusValidator(
     implicit
@@ -349,17 +311,6 @@ case class ECOGStatus
 
   }
 
-
-/*
-final case class Specimen
-(
-  id: Specimen.Id,
-  patient: Patient.Id,
-  icd10: Coding[ICD10GM],
-  `type`: Option[Specimen.Type.Value],
-  collection: Option[Specimen.Collection]
-)
-*/
 
   implicit def specimenValidator(
     implicit
@@ -385,18 +336,6 @@ final case class Specimen
 
   }
 
-/*
-final case class HistologyResult
-(
-  id: HistologyResult.Id,
-  patient: Patient.Id,
-  specimen: Specimen.Id,
-  issuedOn: Option[LocalDate],
-//  icd10: Option[Coding[ICD10GM]],
-  icdO3M: Option[Coding[ICDO3M]],
-  note: Option[String]
-)
-*/
 
   implicit def histologyValidator(
     implicit
@@ -423,19 +362,6 @@ final case class HistologyResult
 
   }
 
-
-/*
-case class CarePlan
-(
-  id: CarePlan.Id,
-  patient: Patient.Id,
-  issuedOn: LocalDate,
-  description: Option[String],
-  recommendations: NonEmptyList[TherapyRecommendation.Id],
-  geneticCounselling: Option[Boolean],
-  rebiopsyRequests: List[RebiopsyRequest.Id]
-)
-*/
 
   implicit def carePlanValidator(
     implicit
@@ -476,18 +402,6 @@ case class CarePlan
 
   }
 
-/*
-case class TherapyRecommendation
-(
-  id: TherapyRecommendation.Id,
-  patient: Patient.Id,
-  issuedOn: Option[LocalDate],
-  medication: Set[Coding[Medication]],
-  priority: Option[TherapyRecommendation.Priority.Value],
-  levelOfEvidence: Option[LevelOfEvidence],
-  supportingVariant: Option[Variant.CosmicId]
-) 
-*/
  
   implicit def recommendationValidator(
     implicit
@@ -508,7 +422,7 @@ case class TherapyRecommendation
 
         (loe ifUndefined (Warning("Missing Level of Evidence") at Location("TherapyRecommendation",id,"levelOfEvidence"))),
 
-        (variant ifUndefined (Warning("Missing supporting Variant") at Location("TherapyRecommendation",id,"supportingVariant"))),
+//        (variant ifUndefined (Warning("Missing supporting Variant") at Location("TherapyRecommendation",id,"supportingVariant"))),
 
       )
       .mapN { case _: Product => rec }
@@ -534,15 +448,6 @@ case class TherapyRecommendation
 
   }
 
-/*
-final case class RebiopsyRequest
-(
-  id: RebiopsyRequest.Id,
-  patient: Patient.Id,
-  specimen: Specimen.Id,
-  issuedOn: Option[LocalDate]
-)
-*/
 
   implicit def rebiopsyRequestValidator(
     implicit
@@ -565,15 +470,6 @@ final case class RebiopsyRequest
 
   }
 
-/*
-final case class Claim
-(
-  id: Claim.Id,
-  patient: Patient.Id,
-  issuedOn: LocalDate,
-  therapy: TherapyRecommendation.Id
-)
-*/
 
   implicit def claimValidator(
     implicit
@@ -595,17 +491,6 @@ final case class Claim
 
   }
 
-/*
-final case class ClaimResponse
-(
-  id: ClaimResponse.Id,
-  issuedOn: LocalDate,
-  claim: Claim.Id,
-  patient: Patient.Id,
-  status: ClaimResponse.Status.Value,
-  reason: Option[ClaimResponse.Reason.Value]
-)
-*/
 
   implicit def claimResponseValidator(
     implicit
@@ -628,31 +513,6 @@ final case class ClaimResponse
 
   }
 
-
-
-/*
-final case class MTBFile
-(
-  patient: Patient,
-  consent: Consent,
-  episode: MTBEpisode,
-  diagnoses: Option[List[Diagnosis]],
-  familyMemberDiagnoses: Option[List[FamilyMemberDiagnosis]],
-  previousGuidelineTherapies: Option[List[PreviousGuidelineTherapy]],
-  lastGuidelineTherapy: Option[LastGuidelineTherapy],
-  ecogStatus: Option[List[ECOGStatus]],
-  specimens: Option[List[Specimen]],
-  histologyResults: Option[List[HistologyResult]],
-  //TODO: NGS reports
-  carePlans: Option[List[CarePlan]],
-  recommendations: Option[List[TherapyRecommendation]],
-  rebiopsyRequests: Option[List[RebiopsyRequest]],
-  claims: Option[List[Claim]],
-  claimResponses: Option[List[ClaimResponse]],
-  molecularTherapies: Option[List[MolecularTherapyDocumentation]],
-  responses: Option[List[Response]]
-)
-*/
 
   implicit val mtbFileValidator: DataQualityValidator[MTBFile] = {
 
