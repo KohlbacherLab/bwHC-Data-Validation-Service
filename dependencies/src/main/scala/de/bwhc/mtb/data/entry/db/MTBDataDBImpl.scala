@@ -26,31 +26,38 @@ class MTBDataDBProviderImpl extends MTBDataDBProvider
 {
 
   def getInstance: MTBDataDB = {
-
-    val dataDir =
-      Option(System.getProperty("bwhc.data.entry.dir"))
-        .map(new File(_))
-        .get
-
-    val mtbfileDB: AsyncRepository[MTBFile,Patient.Id] =
-      AsyncFSBackedInMemRepository(
-        new File(dataDir,"mtbfiles/"),
-        "MTBFile",
-        _.patient.id,
-        _.value
-      )
-
-    val dataReportDB: AsyncRepository[DataQualityReport,Patient.Id] =
-      AsyncFSBackedInMemRepository(
-        new File(dataDir,"dataQualityReports/"),
-        "DataQualityReport",
-        _.patient,
-        _.value
-      )
-
-    new MTBDataDBImpl(mtbfileDB,dataReportDB)
-
+    MTBDataDBImpl.instance
   }
+
+}
+
+
+
+object MTBDataDBImpl
+{
+
+  private val dataDir =
+    Option(System.getProperty("bwhc.data.entry.dir"))
+      .map(new File(_))
+      .get
+
+  private lazy val mtbfileDB: AsyncRepository[MTBFile,Patient.Id] =
+    AsyncFSBackedInMemRepository(
+      new File(dataDir,"mtbfiles/"),
+      "MTBFile",
+      _.patient.id,
+      _.value
+    )
+
+  private lazy val dataReportDB: AsyncRepository[DataQualityReport,Patient.Id] =
+    AsyncFSBackedInMemRepository(
+      new File(dataDir,"dataQualityReports/"),
+      "DataQualityReport",
+      _.patient,
+      _.value
+    )
+
+  lazy val instance = new MTBDataDBImpl(mtbfileDB,dataReportDB)
 
 }
 
