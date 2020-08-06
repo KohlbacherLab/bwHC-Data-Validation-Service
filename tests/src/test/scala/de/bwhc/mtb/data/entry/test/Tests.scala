@@ -37,6 +37,7 @@ class Tests extends AsyncFlatSpec
   import Invalidators._
   import MTBDataService.Command._
   import MTBDataService.Response._
+  import MTBDataService.Error._
 
   implicit val rnd = new scala.util.Random(42)
 
@@ -70,11 +71,7 @@ class Tests extends AsyncFlatSpec
 
       response <- service ! Upload(mtbfile)
 
-      Imported(result,_) = response.toOption.value 
-
-      issuesDetected = result.isLeft mustBe true
-
-      Left(qcReport) = result
+      IssuesDetected(qcReport,_) = response.toOption.value
 
       _ = qcReport.patient mustBe patId
 
@@ -84,9 +81,9 @@ class Tests extends AsyncFlatSpec
 
       fetchedQCReport <- service.dataQualityReport(patId)
 
-      _ = fetchedQCReport.value mustBe qcReport
+      ok = fetchedQCReport.value mustBe qcReport
 
-    } yield issuesDetected
+    } yield ok
 
   }
 

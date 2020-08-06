@@ -39,6 +39,7 @@ object DataQualityReport
       val Info    = Value("info")
       val Warning = Value("warning")
       val Error   = Value("error")
+      val Fatal   = Value("fatal")
     
       implicit val format = Json.formatEnum(this)
     }
@@ -76,6 +77,9 @@ object DataQualityReport
 
     def Error(msg: String): Builder =
       BuilderImpl(Severity.Error,msg)
+
+    def Fatal(msg: String): Builder =
+      BuilderImpl(Severity.Fatal,msg)
 
 
     implicit val formatLocation = Json.format[Location]

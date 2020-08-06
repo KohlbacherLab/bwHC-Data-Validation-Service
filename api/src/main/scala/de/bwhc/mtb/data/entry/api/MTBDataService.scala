@@ -29,7 +29,8 @@ trait MTBDataService
     cmd: MTBDataService.Command
   )(
     implicit ec: ExecutionContext
-  ): Future[Either[String,MTBDataService.Response]]  //TODO: re-think better error modelling
+  ): Future[Either[MTBDataService.Error,MTBDataService.Response]]
+//  ): Future[Either[String,MTBDataService.Response]]  //TODO: re-think better error modelling
 
   def !(cmd: MTBDataService.Command)(implicit ec: ExecutionContext) = process(cmd)
 
@@ -60,24 +61,41 @@ object MTBDataService extends SPILoader(classOf[MTBDataServiceProvider])
   sealed abstract class Command
   object Command
   {
-    case class Upload(mtbfile: MTBFile) extends Command
+    final case class Upload(mtbfile: MTBFile) extends Command
 
-    case class Delete(patient: Patient.Id) extends Command
+    final case class Delete(patient: Patient.Id) extends Command
   }
 
   sealed abstract class Response extends Event
   object Response
   {
-    case class Imported
+
+    final case class Imported
     (
-      result: Either[DataQualityReport,MTBFile],
+      result: MTBFile,
       timestamp: Instant = Instant.now
     ) extends Response
   
-    case class Deleted(
+    final case class IssuesDetected
+    (
+      result: DataQualityReport,
+      timestamp: Instant = Instant.now
+    ) extends Response
+  
+    final case class Deleted(
       patient: Patient.Id,
       timestamp: Instant = Instant.now
     ) extends Response
   }
+
+  sealed abstract class Error
+  object Error
+  {
+    final case class InvalidData(qc: DataQualityReport) extends Error
+
+    final case class UnspecificError(msg: String) extends Error
+  }
+
+
 
 }

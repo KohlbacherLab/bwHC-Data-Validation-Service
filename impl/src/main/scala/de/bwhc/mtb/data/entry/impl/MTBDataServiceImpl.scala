@@ -54,11 +54,22 @@ object Helpers
 
   implicit class DataQualityReportOps(val qc: DataQualityReport) extends AnyVal
   {
+
+    def hasFatalErrors: Boolean = {
+      qc.issues
+        .map(_.severity)
+        .toList
+        .contains(DataQualityReport.Issue.Severity.Fatal)
+    }
+
     def hasErrors: Boolean = {
       qc.issues
         .map(_.severity)
         .toList
-        .contains(DataQualityReport.Issue.Severity.Error)
+        .exists(s =>
+          s == DataQualityReport.Issue.Severity.Fatal ||
+          s == DataQualityReport.Issue.Severity.Error
+        )
     }
   }
 
@@ -82,10 +93,11 @@ with Logging
     cmd: MTBDataService.Command
   )(
     implicit ec: ExecutionContext
-  ): Future[Either[String,MTBDataService.Response]] = {
+  ): Future[Either[MTBDataService.Error,MTBDataService.Response]] = {
 
     import MTBDataService.Command._
     import MTBDataService.Response._
+    import MTBDataService.Error._
 
     cmd match {
 
@@ -100,44 +112,54 @@ with Logging
         val result =
           for {
             checked <- validator check mtbfile
-            issuesOrOk <-
+
+            response <-
+
               checked match {
-  
-                case Invalid(qcReport) =>
+
+                case Invalid(qcReport) if (qcReport.hasFatalErrors) =>
+                  Future successful InvalidData(qcReport).asLeft[MTBDataService.Response]
+
+
+                case Invalid(qcReport) => {
+
+                  log.info(s"Non-fatal issues detected, storing DataQualityReport")
+
                   (
                     db.save(mtbfile),
                     db.save(qcReport)
                   )
                   .mapN(
-                    (_,_) => qcReport.asLeft[MTBFile]
+                    (_,qc) => qc
                   )
                   .andThen {
-                    case Success(Left(qc)) if (!qc.hasErrors) => {
-  
-                      log.info(s"Forwarding data to QueryService")
-  
+                    case Success(qc) if (!qc.hasErrors) => {
+                      log.info(s"No 'Error' level issues present, forwarding data to QueryService")
                       queryService ! QueryServiceProxy.Command.Upload(mtbfile)
                     }
                   }
-  
+                  .map(IssuesDetected(_).asRight[MTBDataService.Error])
+
+                }
+
                 case Valid(_) => {
   
-                  log.info(s"Forwarding data to QueryService")
+                  log.info(s"No issues detected, forwarding data to QueryService")
   
                   (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
-                    .map(_ => mtbfile.asRight[DataQualityReport])
                     .andThen {
                       case Success(_) => db.deleteAll(mtbfile.patient.id)
                     }
+                    .map(_ => Imported(mtbfile).asRight[MTBDataService.Error])
                 }
-              }
   
-            response = Imported(issuesOrOk).asRight[String]
+  
+              }
   
           } yield response
 
         result.recover {
-          case t => t.getMessage.asLeft[MTBDataService.Response]
+          case t => UnspecificError(t.getMessage).asLeft[MTBDataService.Response]
         }
 
       }
@@ -152,10 +174,10 @@ with Logging
           queryService ! QueryServiceProxy.Command.Delete(patId)
         )
         .mapN(
-          (_,_) => Deleted(patId).asRight[String]
+          (_,_) => Deleted(patId).asRight[MTBDataService.Error]
         )
         .recover {
-          case t => t.getMessage.asLeft[MTBDataService.Response]
+          case t => UnspecificError(t.getMessage).asLeft[MTBDataService.Response]
         }
       }
     }

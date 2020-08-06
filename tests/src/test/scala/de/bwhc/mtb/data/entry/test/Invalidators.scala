@@ -2,11 +2,15 @@ package de.bwhc.mtb.data.entry.test
 
 
 
+import java.util.UUID.randomUUID
+
 import de.bwhc.mtb.data.entry.dtos._
 
 
 object Invalidators
 {
+
+  
 
 
   implicit class InvalidationOps[T](val t: T) extends AnyVal
@@ -37,7 +41,10 @@ object Invalidators
       responses
     ) =>
 
-      mtbfile.copy(patient = patient.copy(birthDate = None))
+      mtbfile.copy(
+        patient = patient.copy(birthDate = None)
+//        diagnoses = diagnoses.map(_.map(_.copy(patient = Patient.Id(randomUUID.toString))))
+      )
 
   }
 
