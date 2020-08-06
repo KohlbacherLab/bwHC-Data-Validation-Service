@@ -9,6 +9,8 @@ import de.ekut.tbi.generators.{
   Gen, DateTimeGens
 }
 
+//import de.bwhc.util.data.Interval
+
 import de.bwhc.mtb.data.entry.dtos._
 
 
@@ -158,7 +160,121 @@ package object gens
       note   =  Some("Histology finding notes...")
     } yield HistologyResult(id,specimen.patient,specimen.id,Some(LocalDate.now),Some(icdO3M),note)
 
-  
+
+  //---------------------------------------------------------------------------
+  // NGS
+  //---------------------------------------------------------------------------
+
+  def genTumorContentFor(
+    specimen: Specimen
+  ): Gen[List[TumorContent]] = 
+    for {
+      path   <- Gen.doubles
+      bioinf <- Gen.doubles
+    } yield List(
+      TumorContent(specimen.id,TumorContent.Method.Pathologic,path),
+      TumorContent(specimen.id,TumorContent.Method.Bioinformatic,bioinf)
+    )
+ 
+  implicit val genSomaticNGSReportId: Gen[SomaticNGSReport.Id] =
+    Gen.uuidStrings.map(SomaticNGSReport.Id)
+
+  import SomaticNGSReport._
+
+  implicit val genMSI: Gen[MSI] =
+    Gen.doublesBetween(0,2).map(MSI)
+
+  implicit val genTMB: Gen[TMB] =
+    Gen.doublesBetween(0,1000000).map(TMB)
+
+  implicit val genBRCAness: Gen[BRCAness] =
+    Gen.doubles.map(BRCAness)
+
+  implicit val genAverageReadDepth: Gen[AverageReadDepth] =
+    Gen.doublesBetween(0,40).map(AverageReadDepth)
+
+  import Variant._
+  import SimpleVariant._
+
+
+  implicit val genGeneCoding: Gen[Coding[Gene]] =
+    Gen.oneOf(Genes.entries)
+
+  implicit val genCosmicId: Gen[CosmicId] =
+    Gen.uuidStrings.map(CosmicId(_))
+
+  implicit val genDbSNPId: Gen[Coding[DbSNPId]] =
+    Gen.uuidStrings.map(DbSNPId(_)).map(Coding(_,None))
+
+  private val alleles = List("A","C","G","T").map(Allele)
+
+  implicit val genAllelicFreq: Gen[AllelicFrequency] =
+    Gen.doubles.map(AllelicFrequency)
+
+  implicit val genAllelicReadDepth: Gen[AllelicReadDepth] =
+    Gen.intsBetween(3,40).map(AllelicReadDepth)
+
+  implicit val genStartEnd: Gen[StartEnd] =
+    for {
+      start <- Gen.longs 
+    } yield StartEnd(start,Some(start+1))
+
+  implicit val genChromosome: Gen[Chromosome] =
+    Gen.oneOf(Chromosome.instances)
+
+  implicit val genInterpretation: Gen[Coding[Interpretation]] =
+    Gen.oneOf(
+      "Activating",
+      "Inactivating",
+      "Function Changed",
+      "Probably Activating",
+      "Probably Inactivating",
+      "Probably Function Changed",
+      "Ambiguous",
+      "Benign",
+      "NotAvailable"
+    )
+    .map(Interpretation(_))
+    .map(Coding(_,None))
+
+   implicit val genSimpleVariant: Gen[SimpleVariant] =
+     for {
+       chr       <- Gen.of[Chromosome]
+       gene      <- Gen.of[Coding[Gene]]
+       se        <- Gen.of[StartEnd]
+       refAllele <- Gen.oneOf(alleles)
+       altAllele <- Gen.oneOf(alleles.filterNot(_ == refAllele))
+       dnaChg    =  Coding(DNAChange(s"${refAllele.value}>${altAllele.value}"), None)
+       aaChg     =  Coding(AminoAcidChange(s"${refAllele.value}>${altAllele.value}"), None)
+       readDpth  <- Gen.of[AllelicReadDepth]
+       allelicFreq <- Gen.of[AllelicFrequency]
+       cosmicId  <- Gen.of[CosmicId]
+       dbSNPId   <- Gen.of[Coding[DbSNPId]]
+       interpr   <- Gen.of[Coding[Interpretation]]
+     } yield SimpleVariant(
+       chr,gene,se,refAllele,altAllele,dnaChg,aaChg,readDpth,allelicFreq,cosmicId,dbSNPId,interpr
+     )
+
+  def genSomaticNGSReportFor(
+    specimen: Specimen
+  ): Gen[SomaticNGSReport] =
+    for {
+      id    <- Gen.of[SomaticNGSReport.Id]
+      patId =  specimen.patient
+      spId  =  specimen.id
+      date  = LocalDate.now
+      tc    <- genTumorContentFor(specimen)
+      brcaness <- Gen.of[BRCAness]
+      msi      <- Gen.of[MSI]
+      tmb      <- Gen.of[TMB]
+      variants <- Gen.list(
+                    Gen.intsBetween(5,20),
+                    Gen.of[SimpleVariant]
+                  )
+    } yield SomaticNGSReport(
+      id,patId,spId,date,tc,brcaness,msi,tmb,variants
+    )
+
 
   //---------------------------------------------------------------------------
   // Diagnosis
@@ -484,6 +600,10 @@ package object gens
       familyMemberDiagnoses <- Gen.listOf(2, genFamilyMemberDiagnosisFor(patient))
 
 
+      ngsReports <- Gen.oneOfEach(
+                      specimens.map(genSomaticNGSReportFor)
+                    )
+
       previousGL <- Gen.listOf(3,genPreviousGLTherapyFor(patient))
 
       lastGL     <- genLastGLTherapyFor(patient)
@@ -555,6 +675,7 @@ final case class MTBFile
       Some(ecogs),
       Some(specimens),
       Some(histology.flatten),
+      Some(ngsReports),
       Some(List(carePlan)),
       Some(recommendations.toList),
       counsellingReq.map(List(_)),

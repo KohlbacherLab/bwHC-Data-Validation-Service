@@ -10,7 +10,6 @@ import cats.data.NonEmptyList
 
 import play.api.libs.json.Json
 
-import scala.language.implicitConversions
 
 
 case class ICD10GM(value: String) extends AnyVal
@@ -18,8 +17,6 @@ object ICD10GM
 {
   implicit val format = Json.valueFormat[ICD10GM]
   implicit val system = Coding.System[ICD10GM]("ICD-10-GM")
-
-  implicit def toString(icd10: ICD10GM): String = icd10.value
 }
 
 case class ICDO3T(value: String) extends AnyVal
@@ -27,8 +24,6 @@ object ICDO3T
 {
   implicit val format = Json.valueFormat[ICDO3T]
   implicit val system = Coding.System[ICDO3T]("ICD-O-3-T")
-
-  implicit def toString(icdo3t: ICD10GM): String = icdo3t.value
 }
 
 

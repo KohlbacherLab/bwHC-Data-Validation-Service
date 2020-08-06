@@ -31,6 +31,7 @@ object Invalidators
       ecogStatus,
       specimens,
       histologyResults,
+      ngsReports,
       carePlans,
       recommendations,
       counsellingRequests,

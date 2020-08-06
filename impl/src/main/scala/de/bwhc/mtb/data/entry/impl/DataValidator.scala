@@ -14,6 +14,8 @@ import cats.data.NonEmptyList
 import cats.data.Validated
 
 import de.bwhc.util.spi._
+import de.bwhc.util.data.Interval
+import de.bwhc.util.data.Interval._
 import de.bwhc.util.data.Validation._
 
 import de.bwhc.mtb.data.entry.dtos._
@@ -364,6 +366,68 @@ object DefaultDataValidator
   }
 
 
+  import scala.math.Ordering.Double.TotalOrdering
+
+  implicit def tumorContentValidator: DataQualityValidator[TumorContent] = {
+
+    case tc @ TumorContent(specimenId,method,value) => {
+
+      val tcRange = Interval.Closed(0.0,1.0)
+
+      (value mustBeIn tcRange
+        otherwise (Error(s"Tumor content value $value not in reference range $tcRange") at Location("TumorContent",specimenId.value,"value")))
+        .map(_ => tc)
+
+    }
+     
+  }
+
+
+  implicit def ngsReportValidator(
+    implicit
+    patId: Patient.Id,
+    specimens: Seq[Specimen.Id]
+  ): DataQualityValidator[SomaticNGSReport] = {
+
+    case ngs @ SomaticNGSReport(SomaticNGSReport.Id(id),patient,specimen,date,tumorContents,brcaness,msi,tmb,_) => {
+
+      val brcanessRange = Interval.Closed(0.0,1.0)
+      val msiRange      = Interval.Closed(0.0,2.0)
+      val tmbRange      = Interval.Closed(0.0,1e6)  // TMB in mut/MBase, so [0,1000000]
+
+      (
+        (patient mustBe patId
+           otherwise (Fatal(s"Invalid Reference to Patient/${patId.value}") at Location("SomaticNGSReport",id,"patient"))),
+
+        (specimen mustBeIn specimens
+           otherwise (Fatal(s"Invalid Reference to Specimen/${specimen.value}") at Location("SomaticNGSReport",id,"specimen"))),
+
+        (TumorContent.Method.Pathologic mustBeIn tumorContents.map(_.method)
+          otherwise (Warning(s"Missing pathologic TumorContent finding") at Location("SomaticNGSReport",id,"tumorContent"))),
+           
+        (TumorContent.Method.Bioinformatic mustBeIn tumorContents.map(_.method)
+          otherwise (Warning(s"Missing bio-informatic TumorContent finding") at Location("SomaticNGSReport",id,"tumorContent"))),
+           
+        (tumorContents validateEach),
+       
+        (brcaness.value mustBeIn brcanessRange
+           otherwise (Error(s"BRCAness value ${brcaness.value} not in reference range $brcanessRange") at Location("SomaticNGSReport",id,"brcaness"))),
+             
+        (msi.value mustBeIn msiRange
+           otherwise (Error(s"MSI value ${msi.value} not in reference range $msiRange") at Location("SomaticNGSReport",id,"msi"))),
+             
+        (tmb.value mustBeIn tmbRange
+           otherwise (Error(s"TMB value ${tmb.value} not in reference range $tmbRange") at Location("SomaticNGSReport",id,"tmb")))
+             
+      )
+      .mapN { case _: Product => ngs }
+
+    }
+
+  }
+
+
+
   implicit def carePlanValidator(
     implicit
     patId: Patient.Id,
@@ -528,6 +592,7 @@ object DefaultDataValidator
       ecogStatus,
       specimens,
       histologyResults,
+      ngsReports,
       carePlans,
       recommendations,
       counsellingRequests,
@@ -595,6 +660,10 @@ object DefaultDataValidator
 
         (histologyResults ifUndefined (Warning("Missing HistologyResult records") at Location("MTBFile",patId.value,"histologyResults")))
           andThen (_ ifEmpty (Warning("Missing HistologyResult records") at Location("MTBFile",patId.value,"histologyResults")))
+          andThen (_ validateEach),
+
+        (ngsReports ifUndefined (Warning("Missing SomaticNGSReport records") at Location("MTBFile",patId.value,"ngsReports")))
+          andThen (_ ifEmpty (Warning("Missing SomaticNGSReport records") at Location("MTBFile",patId.value,"ngsReports")))
           andThen (_ validateEach),
 
         (carePlans ifUndefined (Warning("Missing CarePlan records") at Location("MTBFile",patId.value,"carePlans")))
