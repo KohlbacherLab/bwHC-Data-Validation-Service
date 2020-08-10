@@ -90,17 +90,17 @@ lazy val tests = project
     libraryDependencies ++= Seq(
       dependencies.scalatest,
       dependencies.logback,
-      dependencies.hgnc_catalog_impl % "test",
-      dependencies.icd_catalogs_impl % "test",
-      dependencies.med_catalog_impl % "test"
+      dependencies.hgnc_catalog_impl % Test,
+      dependencies.icd_catalogs_impl % Test,
+      dependencies.med_catalog_impl % Test
     ),
     publish / skip := true
   )
   .dependsOn(
     api,
-    generators % "test",
-    impl % "test",
-    deps % "test",
+    generators % Test,
+    impl % Test,
+    deps % Test,
   )
 
 
@@ -110,9 +110,9 @@ lazy val tests = project
 
 lazy val dependencies =
   new {
-    val scalatest          = "org.scalatest"     %% "scalatest"               % "3.1.1" % "test"
+    val scalatest          = "org.scalatest"     %% "scalatest"               % "3.1.1" % Test
     val slf4j              = "org.slf4j"         %  "slf4j-api"               % "1.7.26"
-    val logback            = "ch.qos.logback"    %  "logback-classic"         % "1.0.13" % "test"
+    val logback            = "ch.qos.logback"    %  "logback-classic"         % "1.0.13" % Test
     val cats_core          = "org.typelevel"     %% "cats-core"               % "2.1.1"
     val play_json          = "com.typesafe.play" %% "play-json"               % "2.8.0"
     val bwhc_utils         = "de.bwhc"           %% "utils"                   % "1.0-SNAPSHOT"
@@ -123,7 +123,7 @@ lazy val dependencies =
     val hgnc_catalog_impl  = "de.bwhc"           %% "hgnc-impl"               % "1.0-SNAPSHOT"
     val icd_catalogs_impl  = "de.bwhc"           %% "icd-catalogs-impl"       % "1.0-SNAPSHOT"
     val med_catalog_impl   = "de.bwhc"           %% "medication-catalog-impl" % "1.0-SNAPSHOT"
-    val repo_utils         = "de.ekut.tbi"       %% "repository-utils"        % "1.0-SNAPSHOT"
+    val repo_utils         = "de.ekut.tbi"       %% "repository-utils"        % "1.0-SNAPSHOT" 
     val bwhc_query_api     = "de.bwhc"           %% "query-service-api"       % "1.0-SNAPSHOT"
   }
 

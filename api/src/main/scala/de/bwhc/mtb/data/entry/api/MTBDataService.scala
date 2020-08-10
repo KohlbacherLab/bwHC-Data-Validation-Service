@@ -30,14 +30,13 @@ trait MTBDataService
   )(
     implicit ec: ExecutionContext
   ): Future[Either[MTBDataService.Error,MTBDataService.Response]]
-//  ): Future[Either[String,MTBDataService.Response]]  //TODO: re-think better error modelling
 
   def !(cmd: MTBDataService.Command)(implicit ec: ExecutionContext) = process(cmd)
 
 
   def patientsWithIncompleteData(
     implicit ec: ExecutionContext
-  ): Future[Iterable[Patient.Id]]
+  ): Future[Iterable[Patient]]
 
 
   def mtbfile(

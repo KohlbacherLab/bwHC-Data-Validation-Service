@@ -16,7 +16,7 @@ object FamilyMember
     type Relationship = Value
   
     val FamilyMember       = Value("FAMMEMB")
-    val ExtendFamilyMember = Value("EXT")
+    val ExtendedFamilyMember = Value("EXT")
 
     implicit val format    = Json.formatEnum(this)
 

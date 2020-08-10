@@ -187,9 +187,10 @@ with Logging
 
   def patientsWithIncompleteData(
     implicit ec: ExecutionContext
-  ): Future[Iterable[Patient.Id]] = {
-    
-    db.dataQcReports.map(_.map(_.patient))
+  ): Future[Iterable[Patient]] = {
+  
+    db.mtbfiles.map(_.map(_.patient))  
+//    db.dataQcReports.map(_.map(_.patient))
 
   }
 

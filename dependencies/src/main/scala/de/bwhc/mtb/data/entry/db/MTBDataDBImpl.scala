@@ -80,6 +80,12 @@ extends MTBDataDB
   }
 
 
+  def mtbfiles(
+    implicit ec: ExecutionContext
+  ): Future[Iterable[MTBFile]] = {
+    mtbfileDB.query(_ => true)
+  }
+
   def mtbfile(
     id: Patient.Id,
   )(
