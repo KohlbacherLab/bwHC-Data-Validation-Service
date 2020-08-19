@@ -602,98 +602,107 @@ object DefaultDataValidator
       _,
       responses
     ) =>
-    
-      implicit val patId = patient.id  
 
-      implicit val icd10codes =
-        diagnoses.getOrElse(List.empty[Diagnosis])
-          .map(_.icd10)
-          .filter(_.isDefined)
-          .map(_.get.code)
+    implicit val patId = patient.id  
 
-      implicit val histoRefs =
-        histologyResults.getOrElse(List.empty[HistologyResult]).map(_.id)
+    consent.status match {
 
-      implicit val specimenRefs =
-        specimens.getOrElse(List.empty[Specimen]).map(_.id)
+      case Consent.Status.Rejected => {
+        (patient.validate, consent.validate, episode.validate).mapN { case _: Product => mtbfile }
+      }
 
-      implicit val therapyRefs =
-        responses.getOrElse(List.empty[Response]).map(_.therapy)
+      case Consent.Status.Active => {
+        
+        implicit val icd10codes =
+          diagnoses.getOrElse(List.empty[Diagnosis])
+            .map(_.icd10)
+            .filter(_.isDefined)
+            .map(_.get.code)
+  
+        implicit val histoRefs =
+          histologyResults.getOrElse(List.empty[HistologyResult]).map(_.id)
+  
+        implicit val specimenRefs =
+          specimens.getOrElse(List.empty[Specimen]).map(_.id)
+  
+        implicit val therapyRefs =
+          responses.getOrElse(List.empty[Response]).map(_.therapy)
+  
+        implicit val recommendationRefs =
+          recommendations.getOrElse(List.empty[TherapyRecommendation]).map(_.id)
+  
+        implicit val counsellingRequestRefs =
+          counsellingRequests.getOrElse(List.empty[GeneticCounsellingRequest]).map(_.id)
+  
+        implicit val rebiopsyRequestRefs =
+          rebiopsyRequests.getOrElse(List.empty[RebiopsyRequest]).map(_.id)
+  
+        implicit val claimRefs =
+          claims.getOrElse(List.empty[Claim]).map(_.id)
+  
+        (
+          patient.validate,
+          consent.validate,
+          episode.validate,
+  
+          (diagnoses ifUndefined (Error("Missing diagnosis records") at Location("MTBFile",patId.value,"diagnoses")))
+            andThen (_ ifEmpty (Error("Missing diagnoses records") at Location("MTBFile",patId.value,"diagnoses")))
+            andThen (_ validateEach),
+  
+          (previousGuidelineTherapies ifUndefined (Warning("Missing previous Guideline Therapies") at Location("MTBFile",patId.value,"previousGuidelineTherapies")))
+            andThen (_ ifEmpty (Warning("Missing previous Guideline Therapies") at Location("MTBFile",patId.value,"previousGuidelineTherapies")))
+            andThen (_ validateEach),
+  
+          (lastGuidelineTherapy ifUndefined (Error("Missing last Guideline Therapy") at Location("MTBFile",patId.value,"lastGuidelineTherapies")))
+            andThen (_ validate),
+  
+          (ecogStatus ifUndefined (Warning("Missing ECOG Performance Status records") at Location("MTBFile",patId.value,"ecogStatus")))
+            andThen (_ ifEmpty (Warning("Missing ECOG Performance Status records") at Location("MTBFile",patId.value,"ecogStatus")))
+            andThen (_ validateEach),
+  
+          (specimens ifUndefined (Warning("Missing Specimen records") at Location("MTBFile",patId.value,"specimens")))
+            andThen (_ ifEmpty (Warning("Missing Specimen records") at Location("MTBFile",patId.value,"specimens")))
+            andThen (_ validateEach),
+  
+          (histologyResults ifUndefined (Warning("Missing HistologyResult records") at Location("MTBFile",patId.value,"histologyResults")))
+            andThen (_ ifEmpty (Warning("Missing HistologyResult records") at Location("MTBFile",patId.value,"histologyResults")))
+            andThen (_ validateEach),
+  
+          (ngsReports ifUndefined (Warning("Missing SomaticNGSReport records") at Location("MTBFile",patId.value,"ngsReports")))
+            andThen (_ ifEmpty (Warning("Missing SomaticNGSReport records") at Location("MTBFile",patId.value,"ngsReports")))
+            andThen (_ validateEach),
+  
+          (carePlans ifUndefined (Warning("Missing CarePlan records") at Location("MTBFile",patId.value,"carePlans")))
+            andThen (_ ifEmpty (Warning("Missing CarePlan records") at Location("MTBFile",patId.value,"carePlans")))
+            andThen (_ validateEach),
+  
+          (recommendations ifUndefined (Warning("Missing TherapyRecommendation records") at Location("MTBFile",patId.value,"recommendations")))
+            andThen (_ ifEmpty (Warning("Missing TherapyRecommendation records") at Location("MTBFile",patId.value,"recommendations")))
+            andThen (_ validateEach),
+  
+          counsellingRequests.map(_ validateEach)
+            .getOrElse(List.empty[GeneticCounsellingRequest].validNel[Issue]),
+  
+          rebiopsyRequests.map(_ validateEach)
+            .getOrElse(List.empty[RebiopsyRequest].validNel[Issue]),
+  
+          (claims ifUndefined (Warning("Missing Insurance Claim records") at Location("MTBFile",patId.value,"claims")))
+            andThen (_ ifEmpty (Warning("Missing Insurance Claim records") at Location("MTBFile",patId.value,"claims")))
+            andThen (_ validateEach),
+  
+          (claimResponses ifUndefined (Warning("Missing ClaimResponse records") at Location("MTBFile",patId.value,"claimResponses")))
+            andThen (_ ifEmpty (Warning("Missing ClaimResponse records") at Location("MTBFile",patId.value,"claimResponses")))
+            andThen (_ validateEach),
+  
+          //TODO: validate Responses
+  
+        )
+        .mapN { case _: Product => mtbfile}
 
-      implicit val recommendationRefs =
-        recommendations.getOrElse(List.empty[TherapyRecommendation]).map(_.id)
-
-      implicit val counsellingRequestRefs =
-        counsellingRequests.getOrElse(List.empty[GeneticCounsellingRequest]).map(_.id)
-
-      implicit val rebiopsyRequestRefs =
-        rebiopsyRequests.getOrElse(List.empty[RebiopsyRequest]).map(_.id)
-
-      implicit val claimRefs =
-        claims.getOrElse(List.empty[Claim]).map(_.id)
-
-      (
-        patient.validate,
-
-        consent.validate,
-
-        episode.validate,
-
-        (diagnoses ifUndefined (Error("Missing diagnosis records") at Location("MTBFile",patId.value,"diagnoses")))
-          andThen (_ ifEmpty (Error("Missing diagnoses records") at Location("MTBFile",patId.value,"diagnoses")))
-          andThen (_ validateEach),
-
-        (previousGuidelineTherapies ifUndefined (Warning("Missing previous Guideline Therapies") at Location("MTBFile",patId.value,"previousGuidelineTherapies")))
-          andThen (_ ifEmpty (Warning("Missing previous Guideline Therapies") at Location("MTBFile",patId.value,"previousGuidelineTherapies")))
-          andThen (_ validateEach),
-
-        (lastGuidelineTherapy ifUndefined (Error("Missing last Guideline Therapy") at Location("MTBFile",patId.value,"lastGuidelineTherapies")))
-          andThen (_ validate),
-
-        (ecogStatus ifUndefined (Warning("Missing ECOG Performance Status records") at Location("MTBFile",patId.value,"ecogStatus")))
-          andThen (_ ifEmpty (Warning("Missing ECOG Performance Status records") at Location("MTBFile",patId.value,"ecogStatus")))
-          andThen (_ validateEach),
-
-        (specimens ifUndefined (Warning("Missing Specimen records") at Location("MTBFile",patId.value,"specimens")))
-          andThen (_ ifEmpty (Warning("Missing Specimen records") at Location("MTBFile",patId.value,"specimens")))
-          andThen (_ validateEach),
-
-        (histologyResults ifUndefined (Warning("Missing HistologyResult records") at Location("MTBFile",patId.value,"histologyResults")))
-          andThen (_ ifEmpty (Warning("Missing HistologyResult records") at Location("MTBFile",patId.value,"histologyResults")))
-          andThen (_ validateEach),
-
-        (ngsReports ifUndefined (Warning("Missing SomaticNGSReport records") at Location("MTBFile",patId.value,"ngsReports")))
-          andThen (_ ifEmpty (Warning("Missing SomaticNGSReport records") at Location("MTBFile",patId.value,"ngsReports")))
-          andThen (_ validateEach),
-
-        (carePlans ifUndefined (Warning("Missing CarePlan records") at Location("MTBFile",patId.value,"carePlans")))
-          andThen (_ ifEmpty (Warning("Missing CarePlan records") at Location("MTBFile",patId.value,"carePlans")))
-          andThen (_ validateEach),
-
-        (recommendations ifUndefined (Warning("Missing TherapyRecommendation records") at Location("MTBFile",patId.value,"recommendations")))
-          andThen (_ ifEmpty (Warning("Missing TherapyRecommendation records") at Location("MTBFile",patId.value,"recommendations")))
-          andThen (_ validateEach),
-
-        counsellingRequests.map(_ validateEach)
-          .getOrElse(List.empty[GeneticCounsellingRequest].validNel[Issue]),
-
-        rebiopsyRequests.map(_ validateEach)
-          .getOrElse(List.empty[RebiopsyRequest].validNel[Issue]),
-
-        (claims ifUndefined (Warning("Missing Insurance Claim records") at Location("MTBFile",patId.value,"claims")))
-          andThen (_ ifEmpty (Warning("Missing Insurance Claim records") at Location("MTBFile",patId.value,"claims")))
-          andThen (_ validateEach),
-
-        (claimResponses ifUndefined (Warning("Missing ClaimResponse records") at Location("MTBFile",patId.value,"claimResponses")))
-          andThen (_ ifEmpty (Warning("Missing ClaimResponse records") at Location("MTBFile",patId.value,"claimResponses")))
-          andThen (_ validateEach),
-
-        //TODO: validate Responses
-
-      )
-      .mapN { case _: Product => mtbfile}
+      }
 
     }
 
+  }
 
 }
