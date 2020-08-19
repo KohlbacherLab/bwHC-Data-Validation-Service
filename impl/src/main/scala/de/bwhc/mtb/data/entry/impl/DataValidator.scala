@@ -17,6 +17,7 @@ import de.bwhc.util.spi._
 import de.bwhc.util.data.Interval
 import de.bwhc.util.data.Interval._
 import de.bwhc.util.data.Validation._
+import de.bwhc.util.data.Validation.matchers._
 
 import de.bwhc.mtb.data.entry.dtos._
 import de.bwhc.mtb.data.entry.api.DataQualityReport
@@ -114,7 +115,8 @@ object DefaultDataValidator
   ): DataQualityValidator[MTBEpisode] = {
     case episode @ MTBEpisode(id,patient,period) =>
 
-      (patient mustBe patId otherwise (Fatal(s"Invalid Reference to Patient/${patId.value}") at Location("MTBEpisode",id.value,"patient")))
+      (patient mustBe patId
+        otherwise (Fatal(s"Invalid Reference to Patient/${patId.value}") at Location("MTBEpisode",id.value,"patient")))
         .map(_ => episode)
 
   }
@@ -144,7 +146,8 @@ object DefaultDataValidator
           )
           .andThen (
             v =>
-              code.value mustBeIn catalog.codings(v).map(_.code.value)
+//              code.value mustBeIn catalog.codings(v).map(_.code.value)
+              code.value mustBe in (catalog.codings(v).map(_.code.value))
                 otherwise (Error(s"Invalid ICD-10-GM code $code") at Location("ICD-10-GM Coding","","code"))
           )
           .map(c => icd10)
@@ -165,7 +168,8 @@ object DefaultDataValidator
           )
           .andThen(
             v =>
-              code.value mustBeIn catalog.topographyCodings(v).map(_.code.value)
+//              code.value mustBeIn catalog.topographyCodings(v).map(_.code.value)
+              code.value mustBe in(catalog.topographyCodings(v).map(_.code.value))
                 otherwise (Error(s"Invalid ICD-O-3-T code $code") at Location("ICD-O-3-T Coding","","code"))
           )
           .map(c => icdo3t)
@@ -186,7 +190,8 @@ object DefaultDataValidator
           )
           .andThen(
             v =>
-              code.value mustBeIn catalog.morphologyCodings(v).map(_.code.value)
+//              code.value mustBeIn catalog.morphologyCodings(v).map(_.code.value)
+              code.value mustBe in(catalog.morphologyCodings(v).map(_.code.value))
                 otherwise (Error(s"Invalid ICD-O-3-M code $code") at Location("ICD-O-3-M Coding","","code"))
           )
           .map(c => icdo3m)
@@ -203,7 +208,8 @@ object DefaultDataValidator
 
       case medication @ Coding(code,_,_) =>
 
-        (code.value mustBeIn catalog.entries.map(_.code.value)
+        (code.value mustBe in (catalog.entries.map(_.code.value))
+//        (code.value mustBeIn catalog.entries.map(_.code.value)
           otherwise (Error(s"Invalid ATC Medication code $code") at Location("Medication Coding","","code")))
          .map(c => medication)
 
@@ -293,7 +299,8 @@ object DefaultDataValidator
 
         (reasonStopped ifUndefined (Warning("Missing Stop Reason") at Location("LastGuidelineTherapy",id,"reasonStopped"))),
 
-        (th.id mustBeIn therapyRefs
+//        (th.id mustBeIn therapyRefs
+        (th.id mustBe in (therapyRefs)
            otherwise (Warning("Missing Response") at Location("LastGuidelineTherapy",id,"response")))
       )
       .mapN { case _: Product => th }
@@ -327,7 +334,8 @@ object DefaultDataValidator
 
         icd10.validate
           andThen (
-            icd => icd.code mustBeIn icd10codes otherwise (Fatal(s"Invalid Reference to Diagnosis $icd") at Location("Specimen",id,"icd10"))
+            icd => icd.code mustBe in(icd10codes) otherwise (Fatal(s"Invalid Reference to Diagnosis $icd") at Location("Specimen",id,"icd10"))
+//            icd => icd.code mustBeIn icd10codes otherwise (Fatal(s"Invalid Reference to Diagnosis $icd") at Location("Specimen",id,"icd10"))
           ),
   
         (typ ifUndefined (Warning(s"Missing Specimen type") at Location("Specimen",id,"type"))),
@@ -352,7 +360,8 @@ object DefaultDataValidator
         (patient mustBe patId
            otherwise (Fatal(s"Invalid Reference to Patient/${patId.value}") at Location("HistologyResult",id,"patient"))),
 
-        (specimen mustBeIn specimens
+//        (specimen mustBeIn specimens
+        (specimen mustBe in (specimens)
            otherwise (Fatal(s"Invalid Reference to Specimen/${specimen.value}") at Location("HistologyResult",id,"specimen"))),
 
         (date ifUndefined (Error("Missing issue date") at Location("HistologyResult",id,"issuedOn"))),
@@ -374,7 +383,7 @@ object DefaultDataValidator
 
       val tcRange = Interval.Closed(0.0,1.0)
 
-      (value mustBeIn tcRange
+      (value mustBe in (tcRange)
         otherwise (Error(s"Tumor content value $value not in reference range $tcRange") at Location("TumorContent",specimenId.value,"value")))
         .map(_ => tc)
 
@@ -399,24 +408,30 @@ object DefaultDataValidator
         (patient mustBe patId
            otherwise (Fatal(s"Invalid Reference to Patient/${patId.value}") at Location("SomaticNGSReport",id,"patient"))),
 
-        (specimen mustBeIn specimens
+//        (specimen mustBeIn specimens
+        (specimen mustBe in(specimens)
            otherwise (Fatal(s"Invalid Reference to Specimen/${specimen.value}") at Location("SomaticNGSReport",id,"specimen"))),
 
-        (TumorContent.Method.Pathologic mustBeIn tumorContents.map(_.method)
+//        (TumorContent.Method.Pathologic mustBeIn tumorContents.map(_.method)
+        (TumorContent.Method.Pathologic mustBe in (tumorContents.map(_.method))
           otherwise (Warning(s"Missing pathologic TumorContent finding") at Location("SomaticNGSReport",id,"tumorContent"))),
            
-        (TumorContent.Method.Bioinformatic mustBeIn tumorContents.map(_.method)
+//        (TumorContent.Method.Bioinformatic mustBeIn tumorContents.map(_.method)
+        (TumorContent.Method.Bioinformatic mustBe in (tumorContents.map(_.method))
           otherwise (Warning(s"Missing bio-informatic TumorContent finding") at Location("SomaticNGSReport",id,"tumorContent"))),
            
         (tumorContents validateEach),
        
-        (brcaness.value mustBeIn brcanessRange
+//        (brcaness.value mustBeIn brcanessRange
+        (brcaness.value mustBe in (brcanessRange)
            otherwise (Error(s"BRCAness value ${brcaness.value} not in reference range $brcanessRange") at Location("SomaticNGSReport",id,"brcaness"))),
              
-        (msi.value mustBeIn msiRange
+//        (msi.value mustBeIn msiRange
+        (msi.value mustBe in (msiRange)
            otherwise (Error(s"MSI value ${msi.value} not in reference range $msiRange") at Location("SomaticNGSReport",id,"msi"))),
              
-        (tmb.value mustBeIn tmbRange
+//        (tmb.value mustBeIn tmbRange
+        (tmb.value mustBe in (tmbRange)
            otherwise (Error(s"TMB value ${tmb.value} not in reference range $tmbRange") at Location("SomaticNGSReport",id,"tmb")))
              
       )
@@ -445,19 +460,22 @@ object DefaultDataValidator
         (date ifUndefined (Warning("Missing Recording Date") at Location("CarePlan",id,"issuedOn"))),
 
         recommendations traverse (
-          ref => ref mustBeIn recommendationRefs
+//          ref => ref mustBeIn recommendationRefs
+          ref => ref mustBe in (recommendationRefs)
             otherwise (Fatal(s"Invalid Reference to TherapyRecommendation/${ref.value}") at Location("CarePlan",id,"recommendations"))
         ),
 
         counsellingReq.map(
-          ref => ref mustBeIn counsellingRequestRefs
+//          ref => ref mustBeIn counsellingRequestRefs
+          ref => ref mustBe in (counsellingRequestRefs)
            otherwise (Fatal(s"Invalid Reference to GeneticCounsellingRequest/${ref.value}") at Location("CarePlan",id,"geneticCounsellingRequest"))
         )
         .getOrElse(None.validNel[Issue]),
  
         rebiopsyRequests.map( refs =>
           refs traverse (
-            ref => ref mustBeIn rebiopsyRequestRefs
+//            ref => ref mustBeIn rebiopsyRequestRefs
+            ref => ref mustBe in (rebiopsyRequestRefs)
               otherwise (Fatal(s"Invalid Reference to RebiopsyRequest/${ref.value}") at Location("CarePlan",id,"rebiopsyRequests"))
           )
         )
@@ -528,7 +546,8 @@ object DefaultDataValidator
 
         (date ifUndefined (Warning("Missing Recording Date") at Location("RebiopsyRequest",id,"issuedOn"))),
 
-        (specimen mustBeIn specimens
+//        (specimen mustBeIn specimens
+        (specimen mustBe in (specimens)
            otherwise (Fatal(s"Invalid Reference to Specimen/${specimen.value}") at Location("RebiopsyRequest",id,"specimen"))),
       )
       .mapN { case _: Product => req }
@@ -548,7 +567,8 @@ object DefaultDataValidator
         (patient mustBe patId
            otherwise (Fatal(s"Invalid Reference to Patient/${patId.value}") at Location("Claim",id,"patient"))),
 
-        (therapy mustBeIn recommendationRefs
+//        (therapy mustBeIn recommendationRefs
+        (therapy mustBe in (recommendationRefs)
           otherwise (Fatal(s"Invalid Reference to TherapyRecommendation/${therapy.value}") at Location("Claim",id,"therapy")))
 
       )
@@ -569,7 +589,8 @@ object DefaultDataValidator
         (patient mustBe patId
            otherwise (Fatal(s"Invalid Reference to Patient/${patId.value}") at Location("ClaimResponse",id,"patient"))),
 
-        (claim mustBeIn claimRefs
+//        (claim mustBeIn claimRefs
+        (claim mustBe in (claimRefs)
           otherwise (Fatal(s"Invalid Reference to Claim/${claim.value}") at Location("ClaimResponse",id,"claim"))),
 
         (reason ifUndefined (Warning("Missing Reason for ClaimResponse Status") at Location("ClaimResponse",id,"reason")))

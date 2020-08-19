@@ -71,6 +71,16 @@ object Helpers
           s == DataQualityReport.Issue.Severity.Error
         )
     }
+
+    def hasOnlyInfos: Boolean = {
+      val severities =
+        qc.issues
+          .map(_.severity)
+          .toList
+          .toSet 
+
+      (severities & (DataQualityReport.Issue.Severity.values - DataQualityReport.Issue.Severity.Info)).isEmpty
+    }
   }
 
 }
@@ -120,7 +130,17 @@ with Logging
                 case Invalid(qcReport) if (qcReport.hasFatalErrors) =>
                   Future successful InvalidData(qcReport).asLeft[MTBDataService.Response]
 
-
+                case Invalid(qcReport) if (qcReport.hasOnlyInfos) => {
+  
+                  log.info(s"Only 'Info' issues detected, forwarding data to QueryService")
+  
+                  (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
+                    .andThen {
+                      case Success(_) => db.deleteAll(mtbfile.patient.id)
+                    }
+                    .map(_ => Imported(mtbfile).asRight[MTBDataService.Error])
+                }
+  
                 case Invalid(qcReport) => {
 
                   log.info(s"Non-fatal issues detected, storing DataQualityReport")
@@ -152,7 +172,6 @@ with Logging
                     }
                     .map(_ => Imported(mtbfile).asRight[MTBDataService.Error])
                 }
-  
   
               }
   
@@ -190,7 +209,6 @@ with Logging
   ): Future[Iterable[Patient]] = {
   
     db.mtbfiles.map(_.map(_.patient))  
-//    db.dataQcReports.map(_.map(_.patient))
 
   }
 
