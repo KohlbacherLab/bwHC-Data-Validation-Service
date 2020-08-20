@@ -19,7 +19,7 @@ final case class MTBFile
   specimens: Option[List[Specimen]],
   histologyResults: Option[List[HistologyResult]],
   //TODO: NGS reports
-  ngsReport: Option[List[SomaticNGSReport]],
+  ngsReports: Option[List[SomaticNGSReport]],
   carePlans: Option[List[CarePlan]],
   recommendations: Option[List[TherapyRecommendation]],
   geneticCounsellingRequests: Option[List[GeneticCounsellingRequest]],

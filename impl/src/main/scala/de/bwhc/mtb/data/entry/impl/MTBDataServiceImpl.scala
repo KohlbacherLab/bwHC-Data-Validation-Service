@@ -13,6 +13,7 @@ import scala.concurrent.{
 import cats.data.NonEmptyList
 import cats.data.Validated._
 
+import cats.Apply
 import cats.instances.future._
 import cats.syntax.apply._
 import cats.syntax.either._
@@ -127,8 +128,13 @@ with Logging
 
               checked match {
 
-                case Invalid(qcReport) if (qcReport.hasFatalErrors) =>
+                case Invalid(qcReport) if (qcReport.hasFatalErrors) => {
+
+                  log.error(s"Fatal issues detected, refusing data upload")
+
                   Future successful InvalidData(qcReport).asLeft[MTBDataService.Response]
+
+                }
 
                 case Invalid(qcReport) if (qcReport.hasOnlyInfos) => {
   
@@ -143,8 +149,9 @@ with Logging
   
                 case Invalid(qcReport) => {
 
-                  log.info(s"Non-fatal issues detected, storing DataQualityReport")
+                  log.warn(s"Issues detected, storing DataQualityReport")
 
+/*
                   (
                     db.save(mtbfile),
                     db.save(qcReport)
@@ -158,8 +165,15 @@ with Logging
                       queryService ! QueryServiceProxy.Command.Upload(mtbfile)
                     }
                   }
-                  .map(IssuesDetected(_).asRight[MTBDataService.Error])
+                    .map(IssuesDetected(_).asRight[MTBDataService.Error])
+*/
 
+                  Apply[Future].*>(
+                    db.save(mtbfile)
+                  )(
+                    db.save(qcReport)
+                  )
+                  .map(IssuesDetected(_).asRight[MTBDataService.Error])
                 }
 
                 case Valid(_) => {
