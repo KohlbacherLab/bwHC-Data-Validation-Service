@@ -128,12 +128,12 @@ with Logging
 
               checked match {
 
+/*
                 case Invalid(qcReport) if (qcReport.hasFatalErrors) => {
 
                   log.error(s"Fatal issues detected, refusing data upload")
 
                   Future successful InvalidData(qcReport).asLeft[MTBDataService.Response]
-
                 }
 
                 case Invalid(qcReport) if (qcReport.hasOnlyInfos) => {
@@ -151,29 +151,52 @@ with Logging
 
                   log.warn(s"Issues detected, storing DataQualityReport")
 
-/*
-                  (
-                    db.save(mtbfile),
-                    db.save(qcReport)
-                  )
-                  .mapN(
-                    (_,qc) => qc
-                  )
-                  .andThen {
-                    case Success(qc) if (!qc.hasErrors) => {
-                      log.info(s"No 'Error' level issues present, forwarding data to QueryService")
-                      queryService ! QueryServiceProxy.Command.Upload(mtbfile)
-                    }
-                  }
-                    .map(IssuesDetected(_).asRight[MTBDataService.Error])
-*/
-
                   Apply[Future].*>(
                     db.save(mtbfile)
                   )(
                     db.save(qcReport)
                   )
                   .map(IssuesDetected(_).asRight[MTBDataService.Error])
+                }
+*/
+
+                case Invalid(qcReport) => {
+
+                  import DataQualityReport.Issue.Severity._
+
+                  val severities = qcReport.issues.map(_.severity).toList 
+
+                  severities match {
+
+                    case s if (s contains Fatal) => {
+                      log.error(s"Fatal issues detected, refusing data upload")
+                      Future successful InvalidData(qcReport).asLeft[MTBDataService.Response]
+                    }
+
+                    case s if (s forall (_ == Info)) => {
+
+                      log.info(s"Only 'Info' issues detected, forwarding data to QueryService")
+                      
+                      (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
+                        .andThen {
+                          case Success(_) => db.deleteAll(mtbfile.patient.id)
+                        }
+                        .map(_ => Imported(mtbfile).asRight[MTBDataService.Error])
+                        }
+
+                    case _ => {
+
+                      log.warn(s"Issues detected, storing DataQualityReport")
+                      Apply[Future].*>(
+                        db.save(mtbfile)
+                      )(
+                        db.save(qcReport)
+                      )
+                      .map(IssuesDetected(_).asRight[MTBDataService.Error])
+                    }
+
+                  }
+
                 }
 
                 case Valid(_) => {
