@@ -17,7 +17,7 @@ import de.bwhc.util.spi._
 import de.bwhc.util.data.Interval
 import de.bwhc.util.data.Interval._
 import de.bwhc.util.data.Validation._
-import de.bwhc.util.data.Validation.matchers._
+import de.bwhc.util.data.Validation.dsl._
 
 import de.bwhc.mtb.data.entry.dtos._
 import de.bwhc.mtb.data.entry.api.DataQualityReport
@@ -87,12 +87,12 @@ object DefaultDataValidator
     case pat @ Patient(Patient.Id(id),_,birthDate,_,insurance,dod) =>
 
       (
-        birthDate ifUndefined (Error("Missing BirthDate") at Location("Patient",id,"birthdate")),
+        birthDate mustBe defined otherwise (Error("Missing BirthDate") at Location("Patient",id,"birthdate")),
 
-        insurance ifUndefined (Warning("Missing Health Insurance") at Location("Patient",id,"insurance")),
+        insurance shouldBe defined otherwise (Warning("Missing Health Insurance") at Location("Patient",id,"insurance")),
 
         (dod ifUndefined (Info("Undefined date of death. Ensure if up to date") at Location("Patient",id,"dateOfDeath")))
-          .andThen(_ mustBeLess LocalDate.now otherwise (Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath")))
+          .andThen (_ mustBe before (LocalDate.now) otherwise (Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath")))
       )
       .mapN { case _: Product => pat}
   }
@@ -184,7 +184,7 @@ object DefaultDataValidator
           )
           .andThen(
             v =>
-              code.value mustBe in(catalog.topographyCodings(v).map(_.code.value))
+              code.value mustBe in (catalog.topographyCodings(v).map(_.code.value))
                 otherwise (Error(s"Invalid ICD-O-3-T code $code") at Location("ICD-O-3-T Coding","","code"))
           )
           .map(c => icdo3t)
@@ -254,7 +254,7 @@ object DefaultDataValidator
 
         histologyResults.map(
           refs => refs traverse (
-            ref => ref mustBeIn histologyRefs
+            ref => ref mustBe in (histologyRefs)
               otherwise (Fatal(s"Invalid Reference HistologyResult/${ref.value}") at Location("Diagnosis",id,"histologyResults"))
           )
         )
@@ -280,7 +280,7 @@ object DefaultDataValidator
 
         (therapyLine ifUndefined (Warning("Missing Therapy Line") at Location("PreviousGuidelineTherapy",id,"therapyLine")))
           andThen ( l =>
-            l mustBeIn therapyLines otherwise (Error(s"Invalid Therapy Line ${l.value}") at Location("PreviousGuidelineTherapy",id,"therapyLine"))
+            l mustBe in (therapyLines) otherwise (Error(s"Invalid Therapy Line ${l.value}") at Location("PreviousGuidelineTherapy",id,"therapyLine"))
           ),
 
         (medication ifUndefined (Warning("Missing Medication") at Location("PreviousGuidelineTherapy",id,"medication")))
@@ -305,7 +305,7 @@ object DefaultDataValidator
 
         (therapyLine ifUndefined (Warning("Missing Therapy Line") at Location("LastGuidelineTherapy",id,"therapyLine")))
           andThen ( l =>
-            l mustBeIn therapyLines otherwise (Error(s"Invalid Therapy Line ${l.value}") at Location("LastGuidelineTherapy",id,"therapyLine"))
+            l mustBe in (therapyLines) otherwise (Error(s"Invalid Therapy Line ${l.value}") at Location("LastGuidelineTherapy",id,"therapyLine"))
           ),
         
         (medication ifUndefined (Warning("Missing Medication") at Location("LastGuidelineTherapy",id,"medication"))
