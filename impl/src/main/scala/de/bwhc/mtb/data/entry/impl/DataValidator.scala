@@ -19,6 +19,7 @@ import de.bwhc.util.data.Interval._
 import de.bwhc.util.data.Validation._
 import de.bwhc.util.data.Validation.dsl._
 
+import de.bwhc.mtb.data.entry.dtos
 import de.bwhc.mtb.data.entry.dtos._
 import de.bwhc.mtb.data.entry.api.DataQualityReport
 
@@ -91,8 +92,10 @@ object DefaultDataValidator
 
         insurance shouldBe defined otherwise (Warning("Missing Health Insurance") at Location("Patient",id,"insurance")),
 
-        (dod ifUndefined (Info("Undefined date of death. Ensure if up to date") at Location("Patient",id,"dateOfDeath")))
-          .andThen (_ must be (before (LocalDate.now)) otherwise (Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath")))
+        (dod couldBe defined otherwise (Info("Undefined date of death. Ensure if up to date") at Location("Patient",id,"dateOfDeath")))
+          .andThen (_.get must be (before (LocalDate.now)) otherwise (Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath")))
+//        (dod ifUndefined (Info("Undefined date of death. Ensure if up to date") at Location("Patient",id,"dateOfDeath")))
+//          .andThen (_ must be (before (LocalDate.now)) otherwise (Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath")))
       )
       .mapN { case _: Product => pat}
   }
@@ -132,7 +135,7 @@ object DefaultDataValidator
     catalog: ICD10GMCatalogs
   ): DataQualityValidator[Coding[ICD10GM]] = {
 
-      case icd10 @ Coding(code,_,version) =>
+      case icd10 @ Coding(dtos.ICD10GM(code),_,version) =>
 
         version.map(
           v =>
@@ -146,8 +149,8 @@ object DefaultDataValidator
         .andThen (
           v =>
 //            code.value mustBe in (catalog.codings(v).map(_.code.value))
-//            code.value must be (in (catalog.codings(v).map(_.code.value)))
-            catalog.codings(v).map(_.code.value) must contain (code.value)
+            code must be (in (catalog.codings(v).map(_.code.value)))
+//            catalog.codings(v).map(_.code.value) must contain (code.value)
               otherwise (Error(s"Invalid ICD-10-GM code $code") at Location("ICD-10-GM Coding","","code"))
         )
         .map(c => icd10)
@@ -177,16 +180,16 @@ object DefaultDataValidator
     catalog: ICDO3Catalogs
   ): DataQualityValidator[Coding[ICDO3T]] = {
 
-      case icdo3t @ Coding(code,_,version) =>
+      case icdo3t @ Coding(ICDO3T(code),_,version) =>
 
-        (version ifUndefined (Error("Missing ICD-O-3 Version") at Location("ICD-O-3-T Coding","","version")))
+        (version mustBe defined otherwise (Error("Missing ICD-O-3 Version") at Location("ICD-O-3-T Coding","","version")))
           .andThen(
-            v =>
-              ifThrows(icd.ICDO3.Version(v))(Error(s"Invalid ICD-O-3 Version $version") at Location("ICD-O-3-T Coding","","version"))
+            v =>           
+              ifThrows(icd.ICDO3.Version(v.get))(Error(s"Invalid ICD-O-3 Version $version") at Location("ICD-O-3-T Coding","","version"))
           )
           .andThen(
             v =>
-              code.value must be (in (catalog.topographyCodings(v).map(_.code.value)))
+              code must be (in (catalog.topographyCodings(v).map(_.code.value)))
                 otherwise (Error(s"Invalid ICD-O-3-T code $code") at Location("ICD-O-3-T Coding","","code"))
           )
           .map(c => icdo3t)
