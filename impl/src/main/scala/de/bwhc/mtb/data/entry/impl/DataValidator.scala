@@ -93,9 +93,10 @@ object DefaultDataValidator
         insurance shouldBe defined otherwise (Warning("Missing Health Insurance") at Location("Patient",id,"insurance")),
 
         (dod couldBe defined otherwise (Info("Undefined date of death. Ensure if up to date") at Location("Patient",id,"dateOfDeath")))
-          .andThen (_.get must be (before (LocalDate.now)) otherwise (Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath")))
-//        (dod ifUndefined (Info("Undefined date of death. Ensure if up to date") at Location("Patient",id,"dateOfDeath")))
-//          .andThen (_ must be (before (LocalDate.now)) otherwise (Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath")))
+//          .andThen (_.get must be (before (LocalDate.now)) otherwise (Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath")))
+          .andThen (
+            _.get must be (before (LocalDate.now) and (after (birthDate.get))) otherwise (Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath"))
+          )
       )
       .mapN { case _: Product => pat}
   }

@@ -28,11 +28,11 @@ object Specimen
 
   object Type extends Enumeration
   {
-    val FreshTissue  = Value("Fresh Tissue")
-    val CryoFrozen   = Value("Cryo-frozen")
+    val FreshTissue  = Value("fresh-tissue")
+    val CryoFrozen   = Value("cryo-frozen")
     val FFPE         = Value("FFPE")
-    val LiquidBiopsy = Value("Liquid Biopsy")
-    val Unknown      = Value("Unknown")
+    val LiquidBiopsy = Value("liquid-biopsy")
+    val Unknown      = Value("unknown")
 
     implicit val format = Json.formatEnum(this)
   }
@@ -59,11 +59,11 @@ object Specimen
 
     object Method extends Enumeration
     {
-      val Biopsy       = Value("Biopsy")
-      val Resection    = Value("Resection")
-      val LiquidBiopsy = Value("Liquid Biopsy")
-      val Cytology     = Value("Cytology")
-      val Unknown      = Value("Unknown")
+      val Biopsy       = Value("biopsy")
+      val Resection    = Value("resection")
+      val LiquidBiopsy = Value("liquid-biopsy")
+      val Cytology     = Value("cytology")
+      val Unknown      = Value("unknown")
     
       implicit val format = Json.formatEnum(this)
     }
