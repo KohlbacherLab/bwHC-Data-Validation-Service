@@ -255,5 +255,27 @@ object ValueSets
 
 
 
+  val all =
+    (
+      ValueSet[Gender.Value],
+      ValueSet[Diagnosis.Status.Value],
+      ValueSet[FamilyMember.Relationship.Value],
+      ValueSet[TherapyLine],
+      ValueSet[GuidelineTherapy.StopReason.Value],
+      ValueSet[Specimen.Type.Value],
+      ValueSet[Specimen.Collection.Localization.Value],
+      ValueSet[Specimen.Collection.Method.Value],
+      ValueSet[MolecularTherapy.NotDoneReason.Value],
+      ValueSet[MolecularTherapy.StopReason.Value],
+      ValueSet[MolecularTherapy.Status.Value],
+      ValueSet[ECOG.Value],
+      ValueSet[RECIST.Value],
+      ValueSet[WHOGrade.Value],
+      ValueSet[LevelOfEvidence.Grading.Value],
+      ValueSet[LevelOfEvidence.Addendum.Value],
+      ValueSet[ClaimResponse.Status.Value],
+      ValueSet[ClaimResponse.Reason.Value]
+    )
+
 
 }
