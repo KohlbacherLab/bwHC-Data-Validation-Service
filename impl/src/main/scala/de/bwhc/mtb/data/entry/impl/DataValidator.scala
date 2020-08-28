@@ -76,6 +76,7 @@ object DefaultDataValidator
   import cats.syntax.traverse._
   import cats.syntax.validated._
   import cats.instances.list._
+  import cats.instances.option._
   import cats.instances.set._
 
 
@@ -93,10 +94,15 @@ object DefaultDataValidator
         insurance shouldBe defined otherwise (Warning("Missing Health Insurance") at Location("Patient",id,"insurance")),
 
         (dod couldBe defined otherwise (Info("Undefined date of death. Ensure if up to date") at Location("Patient",id,"dateOfDeath")))
-//          .andThen (_.get must be (before (LocalDate.now)) otherwise (Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath")))
           .andThen (
-            _.get must be (before (LocalDate.now) and (after (birthDate.get))) otherwise (Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath"))
-          )
+            _.get must be (before (LocalDate.now)) otherwise (Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath"))
+          ),
+
+        (birthDate, dod)
+          .mapN(
+            (b,d) => d must be (after (b)) otherwise (Error("Invalid Date of death before birthDate") at Location("Patient",id,"dateOfDeath"))
+           )
+          .getOrElse(LocalDate.now.validNel[Issue])
       )
       .mapN { case _: Product => pat}
   }
@@ -108,7 +114,8 @@ object DefaultDataValidator
 
     case consent @ Consent(id,patient,_) =>
 
-      (patient must be (patId) otherwise (Fatal(s"Invalid Reference to Patient/${patId.value}") at Location("Consent",id.value,"patient")))
+      (patient must be (patId)
+        otherwise (Fatal(s"Invalid Reference to Patient/${patId.value}") at Location("Consent",id.value,"patient")))
         .map(_ => consent)
 
   }

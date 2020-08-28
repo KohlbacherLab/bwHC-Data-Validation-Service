@@ -200,6 +200,36 @@ object ValueSets
     )
 
 
+  import LevelOfEvidence._
+
+  implicit val levelOfEvidenceGrading: ValueSet[LevelOfEvidence.Grading.Value] =
+    ValueSet(
+      "LevelOfEvidence-Graduierung",
+      List(
+        Concept(Grading.m1A ,"In der gleichen Tumorentität wurde der prädiktive Wert des Biomarkers oder die klinische Wirksamkeit in einer Biomarker-stratifizierten Kohorte einer adäquat gepowerten prospektiven Studie oder Metaanalyse gezeigt."),
+        Concept(Grading.m1B ,"In der gleichen Tumorentität wurde der prädiktive Wert des Biomarkers oder die klinische Wirksamkeit in einer retrospektiven Kohorte oder Fall-Kontroll-Studie gezeigt."),
+        Concept(Grading.m1C ,"Ein oder mehrere Fallberichte in der gleichen Tumorentität."),
+        Concept(Grading.m2A ,"In einer anderen Tumorentität wurde der prädiktive Wert des Biomarkers oder die klinische Wirksamkeit in einer Biomarker-stratifizierten Kohorte einer adäquat gepowerten prospektiven Studie oder Metaanalyse gezeigt."),
+        Concept(Grading.m2B ,"In einer anderen Tumorentität wurde der prädiktive Wert des Biomarkers oder die Klinische Wirksamkeit in einer retrospektiven Kohorte oder Fall-Kontroll-Studie gezeigt."),
+        Concept(Grading.m2C ,"Unabhängig von der Tumorentität wurde beim Vorliegen des Biomarkers eine klinische Wirksamkeit in einem oder mehreren Fallberichten gezeigt."),
+        Concept(Grading.m3  ,"Präklinische Daten (in-vitro-/in-vivo-Modelle, funktionelle Untersuchungen) zeigen eine Assoziation des Biomarkers mit der Wirksamkeit der Medikation, welche durch eine wissenschaftliche Rationale gestützt wird."),
+        Concept(Grading.m4  ,"Eine wissenschaftliche, biologische Rationale legt eine Assoziation des Biomarkers mit der Wirksamkeit der Medikation nahe, welche bisher nicht durch (prä)klinische Daten gestützt wird.")
+      )
+    )
+
+
+  implicit val levelOfEvidenceAddendum: ValueSet[LevelOfEvidence.Addendum.Value] =
+    ValueSet(
+      "LevelOfEvidence-Zusatzverweise",
+      List(
+        Concept(Addendum.IS ,"in situ Daten aus Untersuchungen an Patientenmaterial (z.B. IHC, FISH) unterstützen den Evidenzgrad. Die unterstützende Methode kann in Klammern zusätzlich angegeben werden, z.B. Evidenzgrad 3 is (IHC)"),
+        Concept(Addendum.IV ,"in vitro Daten/ in vivo-Modelle (z.B. PDX-Modelle) derselben Tumorentität unterstützen den Evidenzgrad. Die unterstützende Methode kann in Klammern angegeben werden, z.B. Evidenzgrad 2 iv (PDX)"),
+        Concept(Addendum.Z ,"Zusatzverweis für Zulassungsstatus (Z= EMA-Zulassung liegt vor; Z(FDA)= nur FDA-Zulassung vorhanden)"),
+        Concept(Addendum.R ,"Verweis, dass es sich hierbei um einen Resistenzmarker für eine bestimmte Therapie handelt"),
+      )
+    )
+
+
 
 
 
@@ -222,8 +252,6 @@ object ValueSets
         ValueSet.Concept(ClaimResponse.Reason.Other,                      "Weitere Gründe")
       )
     )
-
-
 
 
 
