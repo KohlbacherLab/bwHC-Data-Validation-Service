@@ -89,6 +89,7 @@ object DefaultDataValidator
     case pat @ Patient(Patient.Id(id),_,birthDate,_,insurance,dod) =>
 
       (
+//        birthDate must (be (defined)) otherwise (Error("Missing BirthDate") at Location("Patient",id,"birthdate")),
         birthDate mustBe defined otherwise (Error("Missing BirthDate") at Location("Patient",id,"birthdate")),
 
         insurance shouldBe defined otherwise (Warning("Missing Health Insurance") at Location("Patient",id,"insurance")),
@@ -104,7 +105,7 @@ object DefaultDataValidator
            )
           .getOrElse(LocalDate.now.validNel[Issue])
       )
-      .mapN { case _: Product => pat}
+      .mapN { case _: Product => pat }
   }
 
 
@@ -296,8 +297,9 @@ object DefaultDataValidator
             l must be (in (therapyLines)) otherwise (Error(s"Invalid Therapy Line ${l.value}") at Location("PreviousGuidelineTherapy",id,"therapyLine"))
           ),
 
-        (medication ifUndefined (Warning("Missing Medication") at Location("PreviousGuidelineTherapy",id,"medication")))
-          andThen (_ validateEach)
+//        (medication ifUndefined (Warning("Missing Medication") at Location("PreviousGuidelineTherapy",id,"medication")))
+//          andThen (_ validateEach)
+          medication.toList.validateEach
         
       )
       .mapN { case _: Product => th }
@@ -321,8 +323,9 @@ object DefaultDataValidator
             l must be (in (therapyLines)) otherwise (Error(s"Invalid Therapy Line ${l.value}") at Location("LastGuidelineTherapy",id,"therapyLine"))
           ),
         
-        (medication ifUndefined (Warning("Missing Medication") at Location("LastGuidelineTherapy",id,"medication"))
-          andThen (_ validateEach)),
+//        (medication ifUndefined (Warning("Missing Medication") at Location("LastGuidelineTherapy",id,"medication"))
+//          andThen (_ validateEach)),
+        medication.toList.validateEach,
 
         (reasonStopped ifUndefined (Warning("Missing Stop Reason") at Location("LastGuidelineTherapy",id,"reasonStopped"))),
 
@@ -640,9 +643,75 @@ object DefaultDataValidator
 
     consent.status match {
 
+
       case Consent.Status.Rejected => {
-        (patient.validate, consent.validate, episode.validate).mapN { case _: Product => mtbfile }
+        (
+          patient.validate,
+
+          consent.validate,
+
+          episode.validate,
+
+          diagnoses mustBe undefined otherwise (
+            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+              at Location("MTBFile",patId.value,"diagnoses")),
+
+          previousGuidelineTherapies mustBe undefined otherwise (
+            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+              at Location("MTBFile",patId.value,"previousGuidelineTherapies")),
+
+          lastGuidelineTherapy mustBe undefined otherwise (
+            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+              at Location("MTBFile",patId.value,"lastGuidelineTherapy")),
+
+          ecogStatus mustBe undefined otherwise (
+            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+              at Location("MTBFile",patId.value,"ecogStatus")),
+
+          specimens mustBe undefined otherwise (
+            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+              at Location("MTBFile",patId.value,"specimens")),
+
+          histologyResults mustBe undefined otherwise (
+            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+              at Location("MTBFile",patId.value,"histologyResults")),
+
+          ngsReports mustBe undefined otherwise (
+            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+              at Location("MTBFile",patId.value,"ngsReports")),
+
+          carePlans mustBe undefined otherwise (
+            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+              at Location("MTBFile",patId.value,"carePlans")),
+
+          recommendations mustBe undefined otherwise (
+            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+              at Location("MTBFile",patId.value,"recommendations")),
+
+          counsellingRequests mustBe undefined otherwise (
+            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+              at Location("MTBFile",patId.value,"counsellingRequests")),
+
+          rebiopsyRequests mustBe undefined otherwise (
+            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+              at Location("MTBFile",patId.value,"rebiopsyRequests")),
+
+          claims mustBe undefined otherwise (
+            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+              at Location("MTBFile",patId.value,"claims")),
+
+          claimResponses mustBe undefined otherwise (
+            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+              at Location("MTBFile",patId.value,"claimResponses")),
+
+          responses mustBe undefined otherwise (
+            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+              at Location("MTBFile",patId.value,"responses")),
+        )
+        .mapN { case _: Product => mtbfile }
       }
+
+
 
       case Consent.Status.Active => {
         
@@ -730,7 +799,7 @@ object DefaultDataValidator
           //TODO: validate Responses
   
         )
-        .mapN { case _: Product => mtbfile}
+        .mapN { case _: Product => mtbfile }
 
       }
 

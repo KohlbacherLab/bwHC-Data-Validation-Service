@@ -18,7 +18,7 @@ object ECOG extends Enumeration
 
   implicit val format = Json.formatEnum(this)
 
-  implicit val system = Coding.System[ECOG.Value]("ECOG")
+  implicit val system = Coding.System[ECOG.Value]("ECOG-Performance-Status")
 }
 
 

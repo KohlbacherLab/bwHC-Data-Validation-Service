@@ -333,6 +333,9 @@ package object gens
   implicit val genMedications: Gen[List[Coding[Medication]]] =
     Gen.list(Gen.intsBetween(1,4), Gen.of[Coding[Medication]])
 
+  implicit val genMedicationNel: Gen[NonEmptyList[Coding[Medication]]] =
+    Gen.nonEmptyList(Gen.intsBetween(1,4), Gen.of[Coding[Medication]])
+
 
 
   implicit val genGLTherapyStopReason: Gen[GuidelineTherapy.StopReason.Value] =
@@ -346,8 +349,8 @@ package object gens
       id    <- Gen.of[TherapyId]
       patId =  pat.id
       thl   <- Gen.oneOf(TherapyLine.values)
-      meds  <- Gen.of[List[Coding[Medication]]]
-    } yield PreviousGuidelineTherapy(id,patId,Some(thl),Some(meds))
+      meds  <- Gen.of[NonEmptyList[Coding[Medication]]]
+    } yield PreviousGuidelineTherapy(id,patId,Some(thl),meds)
 
 
   def genLastGLTherapyFor(
@@ -358,9 +361,9 @@ package object gens
       patId      =  pat.id
       thl        <- Gen.oneOf(TherapyLine.values)
       period     =  OpenEndPeriod(LocalDate.now)
-      meds       <- Gen.of[List[Coding[Medication]]]
+      meds       <- Gen.of[NonEmptyList[Coding[Medication]]]
       stopReason <- Gen.of[GuidelineTherapy.StopReason.Value].map(Coding(_,None))
-    } yield LastGuidelineTherapy(id,patId,Some(thl),Some(period),Some(meds),Some(stopReason))
+    } yield LastGuidelineTherapy(id,patId,Some(thl),Some(period),meds,Some(stopReason))
 
 
 

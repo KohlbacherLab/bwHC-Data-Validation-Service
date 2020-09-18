@@ -23,6 +23,7 @@ import de.bwhc.util.Logging
 import de.bwhc.mtb.data.entry.api._
 
 import de.bwhc.mtb.data.entry.dtos._
+import DataQualityReport.Issue.Severity
 
 
 
@@ -49,7 +50,7 @@ class MTBDataServiceProviderImpl extends MTBDataServiceProvider
     
 }
 
-
+/*
 object Helpers
 {
 
@@ -60,7 +61,7 @@ object Helpers
       qc.issues
         .map(_.severity)
         .toList
-        .contains(DataQualityReport.Issue.Severity.Fatal)
+        .contains(Fatal)
     }
 
     def hasErrors: Boolean = {
@@ -68,24 +69,20 @@ object Helpers
         .map(_.severity)
         .toList
         .exists(s =>
-          s == DataQualityReport.Issue.Severity.Fatal ||
-          s == DataQualityReport.Issue.Severity.Error
+          s == Fatal || s == Error
         )
     }
 
     def hasOnlyInfos: Boolean = {
-      val severities =
         qc.issues
           .map(_.severity)
           .toList
-          .toSet 
-
-      (severities & (DataQualityReport.Issue.Severity.values - DataQualityReport.Issue.Severity.Info)).isEmpty
+          .forall(_ == Info)
     }
   }
 
 }
-
+*/
 
 class MTBDataServiceImpl
 (
@@ -98,7 +95,7 @@ extends MTBDataService
 with Logging
 {
 
-  import Helpers._
+//  import Helpers._
 
   def process(
     cmd: MTBDataService.Command
@@ -127,13 +124,12 @@ with Logging
             response <-
 
               checked match {
-
 /*
                 case Invalid(qcReport) if (qcReport.hasFatalErrors) => {
 
                   log.error(s"Fatal issues detected, refusing data upload")
 
-                  Future successful InvalidData(qcReport).asLeft[MTBDataService.Response]
+                  Future.successful(InvalidData(qcReport).asLeft[MTBDataService.Response])
                 }
 
                 case Invalid(qcReport) if (qcReport.hasOnlyInfos) => {
@@ -162,18 +158,16 @@ with Logging
 
                 case Invalid(qcReport) => {
 
-                  import DataQualityReport.Issue.Severity._
-
                   val severities = qcReport.issues.map(_.severity).toList 
 
                   severities match {
 
-                    case s if (s contains Fatal) => {
+                    case s if (s contains Severity.Fatal) => {
                       log.error(s"Fatal issues detected, refusing data upload")
-                      Future successful InvalidData(qcReport).asLeft[MTBDataService.Response]
+                      Future.successful(InvalidData(qcReport).asLeft[MTBDataService.Response])
                     }
 
-                    case s if (s forall (_ == Info)) => {
+                    case s if (s forall (_ == Severity.Info)) => {
 
                       log.info(s"Only 'Info' issues detected, forwarding data to QueryService")
                       
@@ -182,7 +176,7 @@ with Logging
                           case Success(_) => db.deleteAll(mtbfile.patient.id)
                         }
                         .map(_ => Imported(mtbfile).asRight[MTBDataService.Error])
-                        }
+                    }
 
                     case _ => {
 
@@ -194,9 +188,7 @@ with Logging
                       )
                       .map(IssuesDetected(_).asRight[MTBDataService.Error])
                     }
-
                   }
-
                 }
 
                 case Valid(_) => {

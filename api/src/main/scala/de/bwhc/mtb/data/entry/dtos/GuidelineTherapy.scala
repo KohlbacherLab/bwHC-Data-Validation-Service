@@ -7,6 +7,8 @@ import play.api.libs.json.Json
 
 import cats.data.NonEmptyList
 
+import de.bwhc.util.json._
+
 
 
 final case class TherapyLine(value: Int) extends AnyVal
@@ -47,7 +49,7 @@ sealed trait GuidelineTherapy
   val id: TherapyId
   val patient: Patient.Id
   val therapyLine: Option[TherapyLine]
-  val medication: Option[List[Coding[Medication]]]
+  val medication: NonEmptyList[Coding[Medication]]
 }
 
 
@@ -56,8 +58,9 @@ case class PreviousGuidelineTherapy
   id: TherapyId,
   patient: Patient.Id,
   therapyLine: Option[TherapyLine],
-  medication: Option[List[Coding[Medication]]],
-) extends GuidelineTherapy
+  medication: NonEmptyList[Coding[Medication]],
+)
+extends GuidelineTherapy
 
 object PreviousGuidelineTherapy
 {
@@ -71,10 +74,10 @@ case class LastGuidelineTherapy
   patient: Patient.Id,
   therapyLine: Option[TherapyLine],
   period: Option[OpenEndPeriod[LocalDate]],
-  medication: Option[List[Coding[Medication]]],
+  medication: NonEmptyList[Coding[Medication]],
   reasonStopped: Option[Coding[GuidelineTherapy.StopReason.Value]]
-//  reasonStopped: Option[GuidelineTherapy.StopReason.Value]
-) extends GuidelineTherapy
+)
+extends GuidelineTherapy
   
 object LastGuidelineTherapy
 {
