@@ -89,7 +89,6 @@ object DefaultDataValidator
     case pat @ Patient(Patient.Id(id),_,birthDate,_,insurance,dod) =>
 
       (
-//        birthDate must (be (defined)) otherwise (Error("Missing BirthDate") at Location("Patient",id,"birthdate")),
         birthDate mustBe defined otherwise (Error("Missing BirthDate") at Location("Patient",id,"birthdate")),
 
         insurance shouldBe defined otherwise (Warning("Missing Health Insurance") at Location("Patient",id,"insurance")),

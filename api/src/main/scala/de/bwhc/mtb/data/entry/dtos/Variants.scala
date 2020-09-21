@@ -4,18 +4,22 @@ package de.bwhc.mtb.data.entry.dtos
 
 import play.api.libs.json.Json
 
+import cats.data.NonEmptyList
+
+import de.bwhc.util.data.Interval
 
 
-case class Chromosome private (number: Int) extends AnyVal
+
+case class Chromosome private (value: String) extends AnyVal
 object Chromosome
 {
 
   val instances: List[Chromosome] =
-    (1 to 23).map(new Chromosome(_)).toList
+    ((1 to 22)
+      .map(_.toString)
+      .toList :+ "X" :+ "Y")
+      .map(new Chromosome(_))
   
-  def apply(num: Int): Chromosome =
-    instances(num-1)
-
   implicit val format = Json.valueFormat[Chromosome]
   
 }
@@ -42,6 +46,13 @@ object Variant
   object CosmicId
   {
     implicit val format = Json.valueFormat[CosmicId]
+  }
+
+
+  case class TranscriptId(value: String) extends AnyVal
+  object TranscriptId
+  {
+    implicit val format = Json.valueFormat[TranscriptId]
   }
 
 
@@ -139,4 +150,143 @@ object SimpleVariant
 
   implicit val format = Json.format[SimpleVariant]
 
+}
+
+
+final case class CNV
+(
+  chromosome: Chromosome,
+  start: Long,
+  startRange: Option[Interval.Closed[Long]],
+  end: Long,
+  endRange: Option[Interval.Closed[Long]],
+  totalCopyNumber: Int,
+  relativeCopyNumber: Int,
+//  cnA: ???,
+//  cnB: ???
+  reportedAffectedGenes: Option[List[Coding[Gene]]],
+//  reportedFocality: ???,
+  `type`: CNV.Type.Value,
+  copyNumberNeutralLoH: Option[List[Coding[Gene]]],
+)
+
+object CNV
+{
+
+  object Type extends Enumeration
+  {
+    val LowLevelGain  = Value("low-level-gain")
+    val HighLevelGain = Value("high-level-gain")
+    val Loss          = Value("loss")
+
+    implicit val format = Json.formatEnum(this)
+  }
+
+  implicit val format = Json.format[CNV]
+}
+
+
+
+final case class DNAFusion
+(
+  domain5pr: DNAFusion.FunctionalDomain,
+  domain3pr: DNAFusion.FunctionalDomain,
+  reportedNumReads: Int
+)
+
+object DNAFusion
+{
+
+  final case class FunctionalDomain
+  (
+    chromosome: Chromosome,
+    position: Long,
+    gene: Coding[Gene]
+  )
+
+  implicit val formatDomain = Json.format[FunctionalDomain]
+
+  implicit val format = Json.format[DNAFusion]
+}
+
+
+
+final case class RNAFusion
+(
+  domain5pr: RNAFusion.FunctionalDomain,
+  domain3pr: RNAFusion.FunctionalDomain,
+  effect: Option[RNAFusion.Effect],
+  cosmicId: Option[CosmicId],
+  reportedNumReads: Int
+)
+
+object RNAFusion
+{
+
+
+  case class TranscriptPosition(value: String) extends AnyVal
+
+  case class ExonId(value: String) extends AnyVal
+
+
+  object Strand extends Enumeration
+  {
+    val Plus  = Value("+")
+    val Minus = Value("-")
+
+    implicit val format = Json.formatEnum(this)
+  }
+
+
+  final case class FunctionalDomain
+  (
+    gene: Coding[Gene],
+    transcriptId: TranscriptId,
+    exon: ExonId,
+    position: TranscriptPosition,
+    strand: Strand.Value
+  )
+
+
+  case class Effect(value: String) extends AnyVal
+
+
+  implicit val formatEffect        = Json.valueFormat[Effect]
+  implicit val formatTranscriptPos = Json.valueFormat[TranscriptPosition]
+  implicit val formatExonId        = Json.valueFormat[ExonId]
+
+  implicit val formatDomain = Json.format[FunctionalDomain]
+
+  implicit val format = Json.format[RNAFusion]
+}
+
+
+
+
+final case class RNASeq
+(
+  entrezId: RNASeq.EntrezId,
+  ensemblId: RNASeq.EnsemblId,
+  gene: Coding[Gene],
+  transcriptId: TranscriptId,
+  fragmentsPerKilobaseMillion: Double,
+  fromNGS: Boolean,
+  tissueCorrectedExpression: Boolean,
+  rawCounts: Int,
+  librarySize: Int,
+  cohortRanking: Option[Int]
+)
+
+
+object RNASeq
+{
+
+  case class EntrezId(value: String) extends AnyVal
+  
+  case class EnsemblId(value: String) extends AnyVal
+
+  implicit val formatEntrezId       = Json.valueFormat[EntrezId]
+  implicit val formatEnsemblId      = Json.valueFormat[EnsemblId]
+
+  implicit val format = Json.format[RNASeq]
 }

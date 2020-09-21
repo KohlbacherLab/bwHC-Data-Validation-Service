@@ -19,9 +19,11 @@ case class SomaticNGSReport
   brcaness: BRCAness,
   msi: MSI,
   tmb: TMB,
-//TODO: other QualityControl parameters
-//  qualityControl: QualityControl,
-  simpleVariants: List[SimpleVariant]
+  simpleVariants: List[SimpleVariant],
+//  cnvs: List[CNV],
+// dnaFusions: Option[List[DNAFusion]],
+// rnaFusions: Option[List[RNAFusion]]
+
 )
 
 
@@ -29,6 +31,25 @@ object SomaticNGSReport
 {
 
   case class Id(value: String) extends AnyVal
+
+  object SequencingType extends Enumeration
+  {
+    val TargetedNGS = Value("tNGS")
+    val WGS         = Value("WGS")
+    val WES         = Value("WES")
+
+    implicit val format = Json.formatEnum(this)
+  }
+
+
+  final case class MetaData
+  (
+    kitType: String,
+    kitManufacturer: String,
+    sequencer: String
+  )
+
+
 
   case class MSI(value: Double) extends AnyVal // Micro-Satellite Instabilities
   case class TMB(value: Double) extends AnyVal // Tumor Mutational Burden
@@ -40,10 +61,6 @@ object SomaticNGSReport
   implicit val formatMSI         = Json.valueFormat[MSI]
   implicit val formatBRCAness    = Json.valueFormat[BRCAness]
   implicit val formatAvgReadDpth = Json.valueFormat[AverageReadDepth]
-
-//  case class QualityControl(
-//    avgReadDepth: AverageReadDepth
-//  )
 
 
   implicit val format = Json.format[SomaticNGSReport]
