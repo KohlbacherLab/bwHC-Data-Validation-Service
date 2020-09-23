@@ -61,6 +61,7 @@ object SomaticNGSReport
   implicit val formatMSI         = Json.valueFormat[MSI]
   implicit val formatBRCAness    = Json.valueFormat[BRCAness]
   implicit val formatAvgReadDpth = Json.valueFormat[AverageReadDepth]
+  implicit val formatMetaData    = Json.format[MetaData]
 
 
   implicit val format = Json.format[SomaticNGSReport]

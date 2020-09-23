@@ -156,30 +156,11 @@ object DefaultDataValidator
         .getOrElse(icd.ICD10GM.Version(2019).validNel[Issue])
         .andThen (
           v =>
-//            code.value mustBe in (catalog.codings(v).map(_.code.value))
             code must be (in (catalog.codings(v).map(_.code.value)))
-//            catalog.codings(v).map(_.code.value) must contain (code.value)
               otherwise (Error(s"Invalid ICD-10-GM code $code") at Location("ICD-10-GM Coding","","code"))
         )
         .map(c => icd10)
 
-/*
-        (version ifUndefined (Error("Missing ICD-10-GM Version") at Location("ICD-10-GM Coding","","version")))
-          .andThen (
-            v =>
-              ifThrows(
-                icd.ICD10GM.Version(v)
-              )(
-                Error(s"Invalid ICD-10-GM Version $version") at Location("ICD-10-GM Coding","","version")
-              )
-          )
-          .andThen (
-            v =>
-              code.value mustBe in (catalog.codings(v).map(_.code.value))
-                otherwise (Error(s"Invalid ICD-10-GM code $code") at Location("ICD-10-GM Coding","","code"))
-          )
-          .map(c => icd10)
-*/
     }
 
 
@@ -210,16 +191,16 @@ object DefaultDataValidator
     catalog: ICDO3Catalogs
   ): DataQualityValidator[Coding[ICDO3M]] = {
 
-      case icdo3m @ Coding(code,_,version) =>
+      case icdo3m @ Coding(ICDO3M(code),_,version) =>
 
-        (version ifUndefined (Error("Missing ICD-O-3 Version") at Location("ICD-O-3-M Coding","","version")))
+        (version mustBe defined otherwise (Error("Missing ICD-O-3 Version") at Location("ICD-O-3-M Coding","","version")))
           .andThen(
             v =>
-              ifThrows(icd.ICDO3.Version(v))(Error(s"Invalid ICD-O-3 Version $version") at Location("ICD-O-3-M Coding","","version"))
+              ifThrows(icd.ICDO3.Version(v.get))(Error(s"Invalid ICD-O-3 Version $version") at Location("ICD-O-3-M Coding","","version"))
           )
           .andThen(
             v =>
-              code.value must be (in (catalog.morphologyCodings(v).map(_.code.value)))
+              code must be (in (catalog.morphologyCodings(v).map(_.code.value)))
                 otherwise (Error(s"Invalid ICD-O-3-M code $code") at Location("ICD-O-3-M Coding","","code"))
           )
           .map(c => icdo3m)
@@ -437,11 +418,9 @@ object DefaultDataValidator
         (specimen must be (in (specimens))
            otherwise (Fatal(s"Invalid Reference to Specimen/${specimen.value}") at Location("SomaticNGSReport",id,"specimen"))),
 
-//        (TumorContent.Method.Pathologic mustBe in (tumorContents.map(_.method))
         (tumorContents.map(_.method) should contain (TumorContent.Method.Pathologic)
           otherwise (Warning(s"Missing pathologic TumorContent finding") at Location("SomaticNGSReport",id,"tumorContent"))),
            
-//        (TumorContent.Method.Bioinformatic mustBe in (tumorContents.map(_.method))
         (tumorContents.map(_.method) should contain (TumorContent.Method.Bioinformatic)
           otherwise (Warning(s"Missing bio-informatic TumorContent finding") at Location("SomaticNGSReport",id,"tumorContent"))),
            
