@@ -93,14 +93,16 @@ object DefaultDataValidator
 
         insurance shouldBe defined otherwise (Warning("Missing Health Insurance") at Location("Patient",id,"insurance")),
 
-        (dod couldBe defined otherwise (Info("Undefined date of death. Ensure if up to date") at Location("Patient",id,"dateOfDeath")))
+        (dod couldBe defined
+          otherwise (Info("Undefined date of death. Ensure if up to date") at Location("Patient",id,"dateOfDeath")))
           .andThen (
             _.get must be (before (LocalDate.now)) otherwise (Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath"))
           ),
 
         (birthDate, dod)
           .mapN(
-            (b,d) => d must be (after (b)) otherwise (Error("Invalid Date of death before birthDate") at Location("Patient",id,"dateOfDeath"))
+            (b,d) => d must be (after (b))
+                       otherwise (Error("Invalid Date of death before birthDate") at Location("Patient",id,"dateOfDeath"))
            )
           .getOrElse(LocalDate.now.validNel[Issue])
       )
@@ -405,7 +407,11 @@ object DefaultDataValidator
     specimens: Seq[Specimen.Id]
   ): DataQualityValidator[SomaticNGSReport] = {
 
-    case ngs @ SomaticNGSReport(SomaticNGSReport.Id(id),patient,specimen,date,tumorContents,brcaness,msi,tmb,_) => {
+
+    case ngs @
+      SomaticNGSReport(SomaticNGSReport.Id(id),patient,specimen,date,_,_,tumorContents,brcaness,msi,tmb,_,_,_,_,_) => {
+
+      import SomaticNGSReport._
 
       val brcanessRange = Interval.Closed(0.0,1.0)
       val msiRange      = Interval.Closed(0.0,2.0)
@@ -426,14 +432,25 @@ object DefaultDataValidator
            
         (tumorContents validateEach),
        
-        (brcaness.value must be (in (brcanessRange))
-           otherwise (Error(s"BRCAness value ${brcaness.value} not in reference range $brcanessRange") at Location("SomaticNGSReport",id,"brcaness"))),
+        (brcaness shouldBe defined otherwise (Info("Missing BRCAness value") at Location("SomaticNGSReport",id,"brcaness")))
+          .andThen(
+            opt =>
+              opt.get.value must be (in (brcanessRange)) otherwise (
+                  Error(s"BRCAness value ${opt.get.value} not in reference range $brcanessRange")
+                    at Location("SomaticNGSReport",id,"brcaness")
+                )
+              ),
              
-        (msi.value must be (in (msiRange))
-           otherwise (Error(s"MSI value ${msi.value} not in reference range $msiRange") at Location("SomaticNGSReport",id,"msi"))),
+        (msi shouldBe defined otherwise (Info("Missing MSI value") at Location("SomaticNGSReport",id,"msi")))
+          .andThen(
+            opt =>
+              opt.get.value must be (in (msiRange)) otherwise (
+                Error(s"MSI value ${opt.get.value} not in reference range $msiRange") at Location("SomaticNGSReport",id,"msi")
+              )
+            ),
              
-        (tmb.value must be (in (tmbRange))
-           otherwise (Error(s"TMB value ${tmb.value} not in reference range $tmbRange") at Location("SomaticNGSReport",id,"tmb")))
+        tmb.value must be (in (tmbRange))
+          otherwise (Error(s"TMB value ${tmb.value} not in reference range $tmbRange") at Location("SomaticNGSReport",id,"tmb"))
              
       )
       .mapN { case _: Product => ngs }

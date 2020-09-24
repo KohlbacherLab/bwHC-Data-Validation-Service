@@ -1,6 +1,8 @@
 package de.bwhc.mtb.data.entry.dtos
 
 
+import java.net.URI
+
 import java.time.LocalDate
 
 import play.api.libs.json.Json
@@ -15,16 +17,26 @@ case class SomaticNGSReport
   patient: Patient.Id,
   specimen: Specimen.Id,
   issueDate: LocalDate,
+  sequencingType: SomaticNGSReport.SequencingType.Value,
+  metadata: SomaticNGSReport.MetaData,
   tumorContent: List[TumorContent],
-  brcaness: BRCAness,
-  msi: MSI,
+  brcaness: Option[BRCAness],
+  msi: Option[MSI],
   tmb: TMB,
   simpleVariants: List[SimpleVariant],
-//  cnvs: List[CNV],
-// dnaFusions: Option[List[DNAFusion]],
-// rnaFusions: Option[List[RNAFusion]]
-
+  copyNumberVariants: Option[List[CNV]],
+  dnaFusions: Option[List[DNAFusion]],
+  rnaFusions: Option[List[RNAFusion]],
+  rnaSeqs: Option[List[RNASeq]]
 )
+
+
+object ReferenceGenome extends Enumeration
+{
+  val HG19, HG38 = Value
+  
+  implicit val format = Json.formatEnum(this)
+}
 
 
 object SomaticNGSReport
@@ -46,7 +58,9 @@ object SomaticNGSReport
   (
     kitType: String,
     kitManufacturer: String,
-    sequencer: String
+    sequencer: String,
+    referenceGenome: ReferenceGenome.Value,
+    pipeline: Option[URI]
   )
 
 

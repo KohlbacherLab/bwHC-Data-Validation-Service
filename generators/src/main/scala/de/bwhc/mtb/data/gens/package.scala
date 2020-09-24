@@ -1,6 +1,7 @@
 package de.bwhc.mtb.data
 
 
+import java.net.URI
 import java.time.LocalDate
 
 import cats.data.NonEmptyList
@@ -9,7 +10,6 @@ import de.ekut.tbi.generators.{
   Gen, DateTimeGens
 }
 
-//import de.bwhc.util.data.Interval
 
 import de.bwhc.mtb.data.entry.dtos._
 
@@ -66,7 +66,8 @@ package object gens
   def genConsentFor(pat: Patient): Gen[Consent] =
     for {
       id      <- Gen.of[Consent.Id]
-      status  <- Gen.of[Consent.Status.Value]    
+      status  <- Gen.const(Consent.Status.Active)    
+//      status  <- Gen.of[Consent.Status.Value]    
     } yield Consent(id,pat.id,status)
 
 
@@ -216,11 +217,19 @@ package object gens
 
   implicit val genStartEnd: Gen[StartEnd] =
     for {
-      start <- Gen.longs 
-    } yield StartEnd(start,Some(start+1))
+      start <- Gen.positiveLongs 
+      n     <- Gen.longsBetween(10,100)
+      end   =  start + n 
+    } yield StartEnd(start,Some(end))
+
 
   implicit val genChromosome: Gen[Chromosome] =
     Gen.oneOf(Chromosome.instances)
+
+  implicit val genFuncAnnotation: Gen[Coding[FunctionalAnnotation]] =
+    Gen.const("functional-annotation")
+    .map(FunctionalAnnotation(_))
+    .map(Coding(_,None))
 
   implicit val genInterpretation: Gen[Coding[Interpretation]] =
     Gen.oneOf(
@@ -237,42 +246,131 @@ package object gens
     .map(Interpretation(_))
     .map(Coding(_,None))
 
-   implicit val genSimpleVariant: Gen[SimpleVariant] =
-     for {
-       chr       <- Gen.of[Chromosome]
-       gene      <- Gen.of[Coding[Gene]]
-       se        <- Gen.of[StartEnd]
-       refAllele <- Gen.oneOf(alleles)
-       altAllele <- Gen.oneOf(alleles.filterNot(_ == refAllele))
-       dnaChg    =  Coding(DNAChange(s"${refAllele.value}>${altAllele.value}"), None)
-       aaChg     =  Coding(AminoAcidChange(s"${refAllele.value}>${altAllele.value}"), None)
-       readDpth  <- Gen.of[AllelicReadDepth]
-       allelicFreq <- Gen.of[AllelicFrequency]
-       cosmicId  <- Gen.of[CosmicId]
-       dbSNPId   <- Gen.of[Coding[DbSNPId]]
-       interpr   <- Gen.of[Coding[Interpretation]]
-     } yield SimpleVariant(
-       chr,gene,se,refAllele,altAllele,dnaChg,aaChg,readDpth,allelicFreq,cosmicId,dbSNPId,interpr
-     )
+  implicit val genSimpleVariant: Gen[SimpleVariant] =
+    for {
+      chr       <- Gen.of[Chromosome]
+      gene      <- Gen.of[Coding[Gene]]
+      se        <- Gen.positiveLongs.map(StartEnd(_))
+      refAllele <- Gen.oneOf(alleles)
+      altAllele <- Gen.oneOf(alleles.filterNot(_ == refAllele))
+      fnAnnot   <- Gen.of[Coding[FunctionalAnnotation]]
+      dnaChg    =  Coding(DNAChange(s"${refAllele.value}>${altAllele.value}"), None)
+      aaChg     =  Coding(AminoAcidChange(s"${refAllele.value}>${altAllele.value}"), None)
+      readDpth  <- Gen.of[AllelicReadDepth]
+      allelicFreq <- Gen.of[AllelicFrequency]
+      cosmicId  <- Gen.of[CosmicId]
+      dbSNPId   <- Gen.of[Coding[DbSNPId]]
+      interpr   <- Gen.of[Coding[Interpretation]]
+    } yield SimpleVariant(
+      chr,gene,se,refAllele,altAllele,fnAnnot,dnaChg,aaChg,readDpth,allelicFreq,cosmicId,dbSNPId,interpr
+    )
+
+  implicit val genCNV: Gen[CNV] =
+    for {
+      chr        <- Gen.of[Chromosome]
+      startRange <- Gen.of[StartEnd]
+      endRange   <- Gen.of[StartEnd]
+      totalCN    <- Gen.intsBetween(2,5)
+      relCN      <- Gen.doubles
+      cnA        <- Gen.doubles
+      cnB        <- Gen.doubles
+      genes      <- Gen.list(Gen.intsBetween(2,5),Gen.of[Coding[Gene]])
+      focality   <- Gen.const("reported-focality...")
+      typ        <- Gen.enum(CNV.Type)
+      loh        <- Gen.list(Gen.intsBetween(2,5),Gen.of[Coding[Gene]])
+    } yield CNV(chr,startRange,endRange,totalCN,relCN,Some(cnA),Some(cnB),Some(genes),Some(focality),typ,Some(loh))
+
+
+
+  implicit val genDNAFusionFnDomain: Gen[DNAFusion.FunctionalDomain] =
+    for {
+      chr  <- Gen.of[Chromosome]
+      pos  <- Gen.positiveLongs
+      gene <- Gen.of[Coding[Gene]]
+    } yield DNAFusion.FunctionalDomain(chr,pos,gene)
+
+
+  implicit val genDNAFusion: Gen[DNAFusion] =
+    for {
+      d5pr  <- Gen.of[DNAFusion.FunctionalDomain]
+      d3pr  <- Gen.of[DNAFusion.FunctionalDomain]
+      reads <- Gen.intsBetween(20,50)
+    } yield DNAFusion(d5pr,d3pr,reads)
+
+
+  implicit val genRNAFusionFnDomain: Gen[RNAFusion.FunctionalDomain] = {
+    import RNAFusion._
+
+    for {
+      gene       <- Gen.of[Coding[Gene]]
+      transcript <- Gen.uuidStrings.map(TranscriptId(_))
+      exon       <- Gen.uuidStrings.map(ExonId)
+      pos        <- Gen.positiveLongs.map(TranscriptPosition)
+      strand     <- Gen.enum(Strand)
+    } yield RNAFusion.FunctionalDomain(gene,transcript,exon,pos,strand)
+
+  }
+
+  implicit val genRNAFusion: Gen[RNAFusion] =
+    for {
+      d5pr     <- Gen.of[RNAFusion.FunctionalDomain]
+      d3pr     <- Gen.of[RNAFusion.FunctionalDomain]
+      effect   <- Gen.const("RNA Fusion effect...").map(RNAFusion.Effect)
+      cosmicId <- Gen.of[CosmicId]
+      reads    <- Gen.intsBetween(20,50)
+    } yield RNAFusion(d5pr,d3pr,Some(effect),Some(cosmicId),reads)
+
+
+
+  implicit val genRNASeq: Gen[RNASeq] = 
+    for {
+      entrezId      <- Gen.uuidStrings.map(RNASeq.EntrezId)
+      ensemblId     <- Gen.uuidStrings.map(RNASeq.EnsemblId)
+      gene          <- Gen.of[Coding[Gene]]
+      transcript    <- Gen.uuidStrings.map(TranscriptId(_))
+      fpkm          <- Gen.doubles
+      fromNGS       <- Gen.booleans
+      tsCorrExp     <- Gen.booleans
+      rawCounts     <- Gen.intsBetween(20,1000)
+      librarySize   <- Gen.intsBetween(20,100) 
+      cohortRanking <- Gen.intsBetween(1,10)
+    } yield RNASeq(entrezId,ensemblId,gene,transcript,fpkm,fromNGS,tsCorrExp,rawCounts,librarySize,Some(cohortRanking))
+
+
 
   def genSomaticNGSReportFor(
     specimen: Specimen
   ): Gen[SomaticNGSReport] =
     for {
-      id    <- Gen.of[SomaticNGSReport.Id]
-      patId =  specimen.patient
-      spId  =  specimen.id
-      date  = LocalDate.now
-      tc    <- genTumorContentFor(specimen)
+      id       <- Gen.of[SomaticNGSReport.Id]
+      patId    =  specimen.patient
+      spId     =  specimen.id
+      date     = LocalDate.now
+      seqType  <- Gen.enum(SomaticNGSReport.SequencingType)
+
+      metadata <- for {
+                    kitType   <- Gen.const("Agilent ExomV6")
+                    kitManu   <- Gen.const("Agilent")
+                    sequencer <- Gen.const("Sequencer-XYZ")
+                    refGenome <- Gen.enum(ReferenceGenome)
+                    pipeline  <- Gen.const("dummy/uri/to/pipeline").map(URI.create)
+                  } yield SomaticNGSReport.MetaData(kitType,kitManu,sequencer,refGenome,Some(pipeline))
+
+      tc       <- genTumorContentFor(specimen)
       brcaness <- Gen.of[BRCAness]
       msi      <- Gen.of[MSI]
       tmb      <- Gen.of[TMB]
-      variants <- Gen.list(
-                    Gen.intsBetween(5,20),
-                    Gen.of[SimpleVariant]
-                  )
+      simpleVariants <- Gen.list(Gen.intsBetween(5,15), Gen.of[SimpleVariant])
+      cnvs           <- Gen.list(Gen.intsBetween(5,10), Gen.of[CNV])
+      dnaFusions     <- Gen.list(Gen.intsBetween(5,10), Gen.of[DNAFusion])
+      rnaFusions     <- Gen.list(Gen.intsBetween(5,10), Gen.of[RNAFusion])
+      rnaSeqs        <- Gen.list(Gen.intsBetween(5,10), Gen.of[RNASeq])
+
     } yield SomaticNGSReport(
-      id,patId,spId,date,tc,brcaness,msi,tmb,variants
+      id,patId,spId,date,
+      seqType,metadata,tc,
+      Some(brcaness),Some(msi),tmb,
+      simpleVariants,Some(cnvs),Some(dnaFusions),Some(rnaFusions),Some(rnaSeqs)
     )
 
 

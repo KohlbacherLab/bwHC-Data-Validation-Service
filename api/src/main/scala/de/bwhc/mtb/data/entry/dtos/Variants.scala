@@ -18,7 +18,8 @@ object Chromosome
     ((1 to 22)
       .map(_.toString)
       .toList :+ "X" :+ "Y")
-      .map(new Chromosome(_))
+      .map(s => s"chr$s")
+      .map(Chromosome(_))
   
   implicit val format = Json.valueFormat[Chromosome]
   
@@ -27,13 +28,6 @@ object Chromosome
 
 object Variant
 {
-
-  object Type extends Enumeration
-  {
-    val Simple, CNV = Value
-
-    implicit val format = Json.formatEnum(this)
-  }
 
   case class Gene(value: String) extends AnyVal
   object Gene
@@ -68,7 +62,7 @@ object Variant
   object FunctionalAnnotation
   {
     implicit val format = Json.valueFormat[FunctionalAnnotation]
-    implicit val system = Coding.System[FunctionalAnnotation]("TODO: System FunctionalAnnotation")
+    implicit val system = Coding.System[FunctionalAnnotation]("SequenceOntology")
   }
 
 
@@ -84,10 +78,7 @@ object Variant
   implicit val formatAllelicReadDepth = Json.valueFormat[AllelicReadDepth]
 
 
-  final case class StartEnd(
-    start: Long,
-    end: Option[Long] = None,
-  )
+  final case class StartEnd(start: Long, end: Option[Long] = None)
   object StartEnd
   {
     implicit val format = Json.format[StartEnd]
@@ -114,6 +105,7 @@ case class SimpleVariant
   startEnd: StartEnd,
   refAllele: Allele,
   altAllele: Allele,
+  functionalAnnotation: Coding[FunctionalAnnotation],
   dnaChange: Coding[SimpleVariant.DNAChange],
   aminoAcidChange: Coding[SimpleVariant.AminoAcidChange],
   readDepth: AllelicReadDepth,
@@ -156,16 +148,14 @@ object SimpleVariant
 final case class CNV
 (
   chromosome: Chromosome,
-  start: Long,
-  startRange: Option[Interval.Closed[Long]],
-  end: Long,
-  endRange: Option[Interval.Closed[Long]],
+  startRange: StartEnd,
+  endRange: StartEnd,
   totalCopyNumber: Int,
-  relativeCopyNumber: Int,
-//  cnA: ???,
-//  cnB: ???
+  relativeCopyNumber: Double,
+  cnA: Option[Double],
+  cnB: Option[Double],
   reportedAffectedGenes: Option[List[Coding[Gene]]],
-//  reportedFocality: ???,
+  reportedFocality: Option[String],
   `type`: CNV.Type.Value,
   copyNumberNeutralLoH: Option[List[Coding[Gene]]],
 )
@@ -189,8 +179,8 @@ object CNV
 
 final case class DNAFusion
 (
-  domain5pr: DNAFusion.FunctionalDomain,
-  domain3pr: DNAFusion.FunctionalDomain,
+  domain5prime: DNAFusion.FunctionalDomain,
+  domain3prime: DNAFusion.FunctionalDomain,
   reportedNumReads: Int
 )
 
@@ -213,8 +203,8 @@ object DNAFusion
 
 final case class RNAFusion
 (
-  domain5pr: RNAFusion.FunctionalDomain,
-  domain3pr: RNAFusion.FunctionalDomain,
+  domain5prime: RNAFusion.FunctionalDomain,
+  domain3prime: RNAFusion.FunctionalDomain,
   effect: Option[RNAFusion.Effect],
   cosmicId: Option[CosmicId],
   reportedNumReads: Int
@@ -224,7 +214,7 @@ object RNAFusion
 {
 
 
-  case class TranscriptPosition(value: String) extends AnyVal
+  case class TranscriptPosition(value: Long) extends AnyVal
 
   case class ExonId(value: String) extends AnyVal
 
