@@ -218,7 +218,7 @@ package object gens
   implicit val genStartEnd: Gen[StartEnd] =
     for {
       start <- Gen.positiveLongs 
-      n     <- Gen.longsBetween(10,100)
+      n     <- Gen.longsBetween(100,1000)
       end   =  start + n 
     } yield StartEnd(start,Some(end))
 
@@ -255,7 +255,7 @@ package object gens
       altAllele <- Gen.oneOf(alleles.filterNot(_ == refAllele))
       fnAnnot   <- Gen.of[Coding[FunctionalAnnotation]]
       dnaChg    =  Coding(DNAChange(s"${refAllele.value}>${altAllele.value}"), None)
-      aaChg     =  Coding(AminoAcidChange(s"${refAllele.value}>${altAllele.value}"), None)
+      aaChg     =  Coding(AminoAcidChange(s"Amino acid change code..."), None)
       readDpth  <- Gen.of[AllelicReadDepth]
       allelicFreq <- Gen.of[AllelicFrequency]
       cosmicId  <- Gen.of[CosmicId]
