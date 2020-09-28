@@ -6,25 +6,25 @@ import play.api.libs.json.Json
 
 
 
-case class TumorContent
+case class TumorCellContent
 (
   specimen: Specimen.Id, 
-  method: TumorContent.Method.Value,
+  method: TumorCellContent.Method.Value,
   value: Double
 )
 
 
-object TumorContent
+object TumorCellContent
 {
 
   object Method extends Enumeration
   {
-    val Pathologic    = Value("pathologic")
+    val Histologic    = Value("histologic")
     val Bioinformatic = Value("bioinformatic")
 
     implicit val format = Json.formatEnum(this)
   }
 
-  implicit val format = Json.format[TumorContent]
+  implicit val format = Json.format[TumorCellContent]
 
 }

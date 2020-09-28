@@ -166,15 +166,15 @@ package object gens
   // NGS
   //---------------------------------------------------------------------------
 
-  def genTumorContentFor(
+  def genTumorCellContentFor(
     specimen: Specimen
-  ): Gen[List[TumorContent]] = 
+  ): Gen[List[TumorCellContent]] = 
     for {
       path   <- Gen.doubles
       bioinf <- Gen.doubles
     } yield List(
-      TumorContent(specimen.id,TumorContent.Method.Pathologic,path),
-      TumorContent(specimen.id,TumorContent.Method.Bioinformatic,bioinf)
+      TumorCellContent(specimen.id,TumorCellContent.Method.Pathologic,path),
+      TumorCellContent(specimen.id,TumorCellContent.Method.Bioinformatic,bioinf)
     )
  
   implicit val genSomaticNGSReportId: Gen[SomaticNGSReport.Id] =
@@ -356,7 +356,7 @@ package object gens
                     pipeline  <- Gen.const("dummy/uri/to/pipeline").map(URI.create)
                   } yield SomaticNGSReport.MetaData(kitType,kitManu,sequencer,refGenome,Some(pipeline))
 
-      tc       <- genTumorContentFor(specimen)
+      tc       <- genTumorCellContentFor(specimen)
       brcaness <- Gen.of[BRCAness]
       msi      <- Gen.of[MSI]
       tmb      <- Gen.of[TMB]
