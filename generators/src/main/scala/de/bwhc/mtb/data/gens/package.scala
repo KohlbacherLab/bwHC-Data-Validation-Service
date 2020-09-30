@@ -173,7 +173,7 @@ package object gens
       path   <- Gen.doubles
       bioinf <- Gen.doubles
     } yield List(
-      TumorCellContent(specimen.id,TumorCellContent.Method.Pathologic,path),
+      TumorCellContent(specimen.id,TumorCellContent.Method.Histologic,path),
       TumorCellContent(specimen.id,TumorCellContent.Method.Bioinformatic,bioinf)
     )
  
