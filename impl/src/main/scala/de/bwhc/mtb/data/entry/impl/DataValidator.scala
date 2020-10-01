@@ -617,87 +617,6 @@ object DefaultDataValidator
     patId: Patient.Id,
     recommendationRefs: Seq[TherapyRecommendation.Id]
   ): DataQualityValidator[MolecularTherapy] = {
-/*
-    therapy =>
-
-      val TherapyId(id) = therapy.id
-      val patient = therapy.patient
-      val basedOn = therapy.basedOn
-
-      (
-        (patient must be (patId)
-           otherwise (Fatal(s"Invalid Reference to Patient/${patient.value}")
-             at Location("MolecularTherapy",id,"patient"))),
-
-        (basedOn must be (in (recommendationRefs))
-          otherwise (Fatal(s"Invalid Reference to TherapyRecommendation/${basedOn.value}")
-            at Location("MolecularTherapy",id,"basedOn")))
-
-
-
-
-    case th @ NotDoneTherapy(TherapyId(id),patient,recordedOn,basedOn,notDoneReason,note) =>
-
-      (
-        (patient must be (patId)
-           otherwise (Fatal(s"Invalid Reference to Patient/${patient.value}")
-             at Location("MolecularTherapy",id,"patient"))),
-
-        (basedOn must be (in (recommendationRefs))
-          otherwise (Fatal(s"Invalid Reference to TherapyRecommendation/${basedOn.value}")
-            at Location("MolecularTherapy",id,"basedOn")))
-
-      )
-      .mapN { case _: Product => th }
-
-
-    case th @ StoppedTherapy(TherapyId(id),patient,_,basedOn,_,medication,_,_,_) =>
-
-      (
-        (patient must be (patId)
-           otherwise (Fatal(s"Invalid Reference to Patient/${patient.value}")
-             at Location("MolecularTherapy",id,"patient"))),
-
-        (basedOn must be (in (recommendationRefs))
-          otherwise (Fatal(s"Invalid Reference to TherapyRecommendation/${basedOn.value}")
-            at Location("MolecularTherapy",id,"basedOn"))),
-
-        medication.toList.validateEach
-      )
-      .mapN { case _: Product => th }
-
-
-    case th @ CompletedTherapy(TherapyId(id),patient,_,basedOn,_,medication,_,_) =>
-
-      (
-        (patient must be (patId)
-           otherwise (Fatal(s"Invalid Reference to Patient/${patient.value}")
-             at Location("MolecularTherapy",id,"patient"))),
-
-        (basedOn must be (in (recommendationRefs))
-          otherwise (Fatal(s"Invalid Reference to TherapyRecommendation/${basedOn.value}")
-            at Location("MolecularTherapy",id,"basedOn"))),
-
-        medication.toList.validateEach
-      )
-      .mapN { case _: Product => th }
-
-
-    case th @ OngoingTherapy(TherapyId(id),patient,_,basedOn,_,medication,_,_) =>
-
-      (
-        (patient must be (patId)
-           otherwise (Fatal(s"Invalid Reference to Patient/${patient.value}")
-             at Location("MolecularTherapy",id,"patient"))),
-
-        (basedOn must be (in (recommendationRefs))
-          otherwise (Fatal(s"Invalid Reference to TherapyRecommendation/${basedOn.value}")
-            at Location("MolecularTherapy",id,"basedOn"))),
-
-        medication.toList.validateEach
-      )
-      .mapN { case _: Product => th }
-*/
 
     case th @ NotDoneTherapy(TherapyId(id),patient,recordedOn,basedOn,notDoneReason,note) =>
 
@@ -763,6 +682,26 @@ object DefaultDataValidator
 
   }
 
+
+  implicit def reponseValidator(
+    implicit
+    patId: Patient.Id,
+    therapyRefs: Seq[TherapyId]
+  ): DataQualityValidator[Response] = {
+
+    case resp @ Response(Response.Id(id),patient,therapy,_,_) =>
+      (
+        (patient must be (patId)
+           otherwise (Fatal(s"Invalid Reference to Patient/${patient.value}")
+             at Location("Response",id,"patient"))),
+
+        (therapy must be (in (therapyRefs))
+          otherwise (Fatal(s"Invalid Reference to Therapy/${therapy.value}")
+            at Location("Response",id,"therapy")))
+      )
+      .mapN{ case _: Product => resp }
+
+  }
 
 
 
@@ -882,9 +821,6 @@ object DefaultDataValidator
         implicit val specimenRefs =
           specimens.getOrElse(List.empty[Specimen]).map(_.id)
   
-        implicit val therapyRefs =
-          responses.getOrElse(List.empty[Response]).map(_.therapy)
-  
         implicit val recommendationRefs =
           recommendations.getOrElse(List.empty[TherapyRecommendation]).map(_.id)
   
@@ -896,6 +832,13 @@ object DefaultDataValidator
   
         implicit val claimRefs =
           claims.getOrElse(List.empty[Claim]).map(_.id)
+ 
+        // Get List of TherapyIds as combined IDs of Previous and Last Guideline Therapies and Molecular Therapies
+        implicit val therapyRefs =
+          previousGuidelineTherapies.map(_.map(_.id)).getOrElse(List.empty[TherapyId]) ++
+          lastGuidelineTherapy.map(_.id) ++
+          molecularTherapies.map(_.flatMap(_.history.map(_.id))).getOrElse(List.empty[TherapyId])
+  
   
         (
           patient.validate,
