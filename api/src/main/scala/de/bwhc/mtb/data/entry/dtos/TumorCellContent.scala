@@ -8,6 +8,7 @@ import play.api.libs.json.Json
 
 case class TumorCellContent
 (
+  id: TumorCellContent.Id, 
   specimen: Specimen.Id, 
   method: TumorCellContent.Method.Value,
   value: Double
@@ -16,6 +17,11 @@ case class TumorCellContent
 
 object TumorCellContent
 {
+
+  case class Id(value: String) extends AnyVal
+
+  implicit val formatId = Json.valueFormat[Id]
+
 
   object Method extends Enumeration
   {

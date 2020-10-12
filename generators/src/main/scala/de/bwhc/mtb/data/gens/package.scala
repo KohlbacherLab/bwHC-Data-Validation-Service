@@ -146,9 +146,24 @@ package object gens
 
 
   //---------------------------------------------------------------------------
-  // HistologyResult
+  // TumorCellContent
   //---------------------------------------------------------------------------
 
+  def genTumorCellContentFor(
+    specimen: Specimen,
+    method: TumorCellContent.Method.Value 
+  ): Gen[TumorCellContent] = 
+    for {
+      id <- Gen.uuidStrings.map(TumorCellContent.Id)
+      tc <- Gen.doubles
+    } yield TumorCellContent(id,specimen.id,method,tc)
+ 
+
+  //---------------------------------------------------------------------------
+  // HistologyReport
+  //---------------------------------------------------------------------------
+
+/*
   implicit val genHistologyResultId: Gen[HistologyResult.Id] =
     Gen.uuidStrings.map(HistologyResult.Id)
 
@@ -160,13 +175,46 @@ package object gens
       icdO3M <- Gen.of[Coding[ICDO3M]]
       note   =  Some("Histology finding notes...")
     } yield HistologyResult(id,specimen.patient,specimen.id,Some(LocalDate.now),Some(icdO3M),note)
+*/
+
+  def genTumorMorphologyFor(
+    specimen: Specimen
+  ): Gen[TumorMorphology] =
+    for {
+      id     <- Gen.uuidStrings.map(TumorMorphology.Id)
+      icdO3M <- Gen.of[Coding[ICDO3M]]
+      note   =  Some("Histology finding notes...")
+    } yield TumorMorphology(id,specimen.patient,specimen.id,Some(icdO3M),note)
+
+  def genHistologyReportFor(
+    specimen: Specimen
+  ): Gen[HistologyReport] =
+    for {
+      id     <- Gen.uuidStrings.map(HistologyReport.Id)
+      morph  <- genTumorMorphologyFor(specimen)
+      tc     <- genTumorCellContentFor(specimen,TumorCellContent.Method.Histologic)
+    } yield HistologyReport(id,specimen.patient,specimen.id,Some(LocalDate.now),Some(morph),Some(tc))
+
+
+  //---------------------------------------------------------------------------
+  // MolecularPathologyFinding
+  //---------------------------------------------------------------------------
+
+  def genMolecularPathologyFindingFor(
+    specimen: Specimen
+  ): Gen[MolecularPathologyFinding] =
+    for {
+      id   <- Gen.uuidStrings.map(MolecularPathologyFinding.Id)
+      dept <- Gen.uuidStrings.map(PathologyDept(_))
+      note = "MolecularPathologyFinding notes..."
+    } yield MolecularPathologyFinding(id,specimen.patient,specimen.id,Some(dept),Some(LocalDate.now),note)
 
 
   //---------------------------------------------------------------------------
   // NGS
   //---------------------------------------------------------------------------
-
-  def genTumorCellContentFor(
+/*
+  def genTumorCellContentsFor(
     specimen: Specimen
   ): Gen[List[TumorCellContent]] = 
     for {
@@ -176,7 +224,9 @@ package object gens
       TumorCellContent(specimen.id,TumorCellContent.Method.Histologic,path),
       TumorCellContent(specimen.id,TumorCellContent.Method.Bioinformatic,bioinf)
     )
- 
+*/ 
+
+
   implicit val genSomaticNGSReportId: Gen[SomaticNGSReport.Id] =
     Gen.uuidStrings.map(SomaticNGSReport.Id)
 
@@ -356,7 +406,8 @@ package object gens
                     pipeline  <- Gen.const("dummy/uri/to/pipeline").map(URI.create)
                   } yield SomaticNGSReport.MetaData(kitType,kitManu,sequencer,refGenome,Some(pipeline))
 
-      tc       <- genTumorCellContentFor(specimen)
+//      tc       <- genTumorCellContentFor(specimen)
+      tc       <- genTumorCellContentFor(specimen,TumorCellContent.Method.Bioinformatic)
       brcaness <- Gen.of[BRCAness]
       msi      <- Gen.of[MSI]
       tmb      <- Gen.of[TMB]
@@ -394,7 +445,7 @@ package object gens
 
   def genDiagnosisFor(
     specimen: Specimen,
-    histologyResults: List[HistologyResult]
+    histologyReports: List[HistologyReport]
   ): Gen[Diagnosis] =
     for {
       id        <- Gen.of[Diagnosis.Id]
@@ -403,9 +454,10 @@ package object gens
       icd10     =  specimen.icd10
       icdO3T    =  icdO3TCodings.find(_.code.value == icd10.code.value)
       who       <- Gen.of[Coding[WHOGrade.Value]]
-      histoRefs =  histologyResults.map(_.id) 
+      histoRefs =  histologyReports.map(_.id) 
       status    <- Gen.listOf(2,Gen.of[Diagnosis.StatusOnDate])
-    } yield Diagnosis(id,pat,Some(date),Some(icd10),icdO3T,Some(who),Some(histoRefs),Some(status))
+      glTreatment <- Gen.enum(GuidelineTreatmentStatus)
+    } yield Diagnosis(id,pat,Some(date),Some(icd10),icdO3T,Some(who),Some(histoRefs),Some(status), glTreatment)
 
 
   //---------------------------------------------------------------------------
@@ -441,27 +493,27 @@ package object gens
 
 
   def genPreviousGLTherapyFor(
-    pat: Patient
+//    pat: Patient
+    diag: Diagnosis
   ): Gen[PreviousGuidelineTherapy] = 
     for {
       id    <- Gen.of[TherapyId]
-      patId =  pat.id
       thl   <- Gen.oneOf(TherapyLine.values)
       meds  <- Gen.of[NonEmptyList[Coding[Medication]]]
-    } yield PreviousGuidelineTherapy(id,patId,Some(thl),meds)
+    } yield PreviousGuidelineTherapy(id,diag.patient,diag.id,Some(thl),meds)
 
 
   def genLastGLTherapyFor(
-    pat: Patient
+//    pat: Patient
+    diag: Diagnosis
   ): Gen[LastGuidelineTherapy] = 
     for {
       id         <- Gen.of[TherapyId]
-      patId      =  pat.id
       thl        <- Gen.oneOf(TherapyLine.values)
       period     =  OpenEndPeriod(LocalDate.now)
       meds       <- Gen.of[NonEmptyList[Coding[Medication]]]
       stopReason <- Gen.of[GuidelineTherapy.StopReason.Value].map(Coding(_,None))
-    } yield LastGuidelineTherapy(id,patId,Some(thl),Some(period),meds,Some(stopReason))
+    } yield LastGuidelineTherapy(id,diag.patient,diag.id,Some(thl),Some(period),meds,Some(stopReason))
 
 
 
@@ -495,18 +547,18 @@ package object gens
 
 
   def genTherapyRecommendationFor(
-    pat: Patient
+//    pat: Patient
+    diag: Diagnosis
   ): Gen[TherapyRecommendation] =
     for {
       id    <- Gen.uuidStrings.map(TherapyRecommendation.Id)
-      patId =  pat.id
       date  =  LocalDate.now
       meds  <- Gen.of[List[Coding[Medication]]]
                  .map(NonEmptyList.fromListUnsafe)
       prio  <- Gen.enum(TherapyRecommendation.Priority)
       loe   <- Gen.of[LevelOfEvidence]
       //TODO: ref supporting variant
-    } yield TherapyRecommendation(id,patId,Some(date),meds,Some(prio),Some(loe),None)
+    } yield TherapyRecommendation(id,diag.patient,diag.id,Some(date),meds,Some(prio),Some(loe),None)
 
 
   def genRebiopsyRequestFor(
@@ -520,36 +572,59 @@ package object gens
     } yield RebiopsyRequest(id,patId,spId,Some(date))
 
 
+  def genHistologyReevaluationRequestFor(
+    specimen: Specimen
+  ): Gen[HistologyReevaluationRequest] =
+    for {
+      id    <- Gen.uuidStrings.map(HistologyReevaluationRequest.Id)
+      patId =  specimen.patient
+      spId  =  specimen.id
+      date  =  LocalDate.now
+    } yield HistologyReevaluationRequest(id,patId,spId,Some(date))
+
+
+  def genStudyInclusionRequestFor(
+//    patient: Patient
+    diag: Diagnosis
+  ): Gen[StudyInclusionRequest] =
+    for {
+      id     <- Gen.uuidStrings.map(StudyInclusionRequest.Id)
+      nctNum <- Gen.intsBetween(10000000,99999999)
+                   .map(num => NCTNumber(s"NCT$num"))
+      date   =  LocalDate.now
+    } yield StudyInclusionRequest(id,diag.patient,diag.id,nctNum,Some(date))
+
+
   def genCounsellingRequestFor(
-    pat: Patient
+    pat: Patient.Id
   ): Gen[GeneticCounsellingRequest] =
     for {
       id    <- Gen.uuidStrings.map(GeneticCounsellingRequest.Id)
-      patId =  pat.id
       date  =  LocalDate.now
-    } yield GeneticCounsellingRequest(id,patId,Some(date))
+    } yield GeneticCounsellingRequest(id,pat,Some(date))
 
 
   def genCarePlanFor(
-    pat: Patient,
+//    pat: Patient,
+    diag: Diagnosis,
     specimens: List[Specimen]
   ): Gen[(CarePlan,NonEmptyList[TherapyRecommendation],Option[GeneticCounsellingRequest],List[RebiopsyRequest])] =
     for {
       id          <- Gen.uuidStrings.map(CarePlan.Id)
-      patId       =  pat.id
+      patId       =  diag.patient
       date        =  LocalDate.now
       descr       =  "MTB conference protocol..."
       recs        <- Gen.nonEmptyList(
                        Gen.intsBetween(2,4),
-                       genTherapyRecommendationFor(pat)
+                       genTherapyRecommendationFor(diag)
                      )
-      recRefs     =  recs.map(_.id)
-      counsellingReq <- genCounsellingRequestFor(pat)
+      recRefs     =  recs.map(_.id).toList
+      counsellingReq <- genCounsellingRequestFor(diag.patient)
       rebiopyReqs    <- genRebiopsyRequestFor(specimens.head)
                           .map(List(_))
       rebiopyReqRefs = rebiopyReqs.map(_.id)                 
     } yield (
-      CarePlan(id,patId,Some(date),Some(descr),recRefs,Some(counsellingReq.id),Some(rebiopyReqRefs)),
+      CarePlan(id,patId,diag.id,Some(date),Some(descr),None,Some(recRefs),Some(counsellingReq.id),Some(rebiopyReqRefs)),
       recs,
       Some(counsellingReq), 
       rebiopyReqs
@@ -681,50 +756,66 @@ package object gens
       patient   <- Gen.of[Patient]
       consent   <- genConsentFor(patient)
       episode   <- genEpisodeFor(patient)
-      specimens <- Gen.list(
-                     Gen.intsBetween(1,4),
-                     genSpecimenFor(patient)
-                   )
-      histology <- Gen.oneOfEach(
-                     specimens.map(
-                       sp => Gen.list(
-                         Gen.intsBetween(1,3),
-                         genHistologyResultFor(sp)
-                       )
-                     )
+//      specimens <- Gen.list(
+//                     Gen.intsBetween(1,1),
+//                     genSpecimenFor(patient)
+//                   )
+      specimen <- genSpecimenFor(patient)
+      specimens = List(specimen)
 
-                   ) 
-      diagnoses <- Gen.oneOfEach(
-                     (specimens zip histology).map { case (sp,hs) => genDiagnosisFor(sp,hs)}
+//      histology <- Gen.oneOfEach(
+//                     specimens.map(
+//                       sp => Gen.list(
+//                         Gen.intsBetween(1,1),
+//                         genHistologyReportFor(sp)
+//                       )
+//                     )
+//                   ) 
+      histology <- genHistologyReportFor(specimen).map(List(_)) 
+
+      molPatho <- Gen.oneOfEach(
+                     specimens.map(
+                       genMolecularPathologyFindingFor(_)
+                     )
                    )
+
+//      diagnoses <- Gen.oneOfEach(
+//                     (specimens zip histology).map { case (sp,hs) => genDiagnosisFor(sp,hs)}
+//                   )
+      diagnosis <- genDiagnosisFor(specimen,histology)
+
+      diagnoses = List(diagnosis)
 
       familyMemberDiagnoses <- Gen.listOf(2, genFamilyMemberDiagnosisFor(patient))
-
 
       ngsReports <- Gen.oneOfEach(
                       specimens.map(genSomaticNGSReportFor)
                     )
 
-      previousGL <- Gen.listOf(3,genPreviousGLTherapyFor(patient))
+      previousGL <- Gen.listOf(3,genPreviousGLTherapyFor(diagnosis))
 
-      lastGL     <- genLastGLTherapyFor(patient)
+      lastGL     <- genLastGLTherapyFor(diagnosis)
 
       ecogs     <- Gen.list(
                      Gen.intsBetween(2,4),
                      genECOGStatusFor(patient)
                    )
 
-      cpBatches  <- Gen.list(
-                      Gen.intsBetween(1,3),
-                      genCarePlanFor(patient,specimens)
-                    )
-
-      cpData    <- genCarePlanFor(patient,specimens)
+      cpData    <- genCarePlanFor(diagnosis,specimens)
 
       (carePlan,
        recommendations,
        counsellingReq,
        rebiopsyReqs) = cpData
+
+      histoReeval <- Gen.oneOfEach(
+                       specimens.map(
+                         genHistologyReevaluationRequestFor(_)
+                       )
+                     )
+
+      studyInclusion <- Gen.listOf(2, genStudyInclusionRequestFor(diagnosis))
+
 
       claimData <- Gen.oneOfEach(
                      recommendations.toList.map(genClaimWithResponseFor)
@@ -740,31 +831,6 @@ package object gens
                      molThDocs.map(_.history.head.id).map(genResponseFor(patient,_))
                    )
 
-/*
-final case class MTBFile
-(
-  patient: Patient,
-  consent: Consent,
-  episode: MTBEpisode,
-  diagnoses: Option[List[Diagnosis]],
-  familyMemberDiagnoses: Option[List[FamilyMemberDiagnosis]],
-  previousGuidelineTherapies: Option[List[PreviousGuidelineTherapy]],
-  lastGuidelineTherapy: Option[LastGuidelineTherapy],
-  ecogStatus: Option[List[ECOGStatus]],
-  specimens: Option[List[Specimen]],
-  histologyResults: Option[List[HistologyResult]],
-  //TODO: NGS reports
-  carePlans: Option[List[CarePlan]],
-  recommendations: Option[List[TherapyRecommendation]],
-  geneticCounsellingRequests: Option[List[GeneticCounsellingRequest]],
-  rebiopsyRequests: Option[List[RebiopsyRequest]],
-  claims: Option[List[Claim]],
-  claimResponses: Option[List[ClaimResponse]],
-  molecularTherapies: Option[List[MolecularTherapyDocumentation]],
-  responses: Option[List[Response]]
-)
-*/
-
     } yield MTBFile(
       patient,
       consent,
@@ -775,12 +841,15 @@ final case class MTBFile
       Some(lastGL),
       Some(ecogs),
       Some(specimens),
-      Some(histology.flatten),
+      Some(molPatho),
+      Some(histology),
       Some(ngsReports),
       Some(List(carePlan)),
       Some(recommendations.toList),
       counsellingReq.map(List(_)),
       Some(rebiopsyReqs),
+      Some(histoReeval),
+      Some(studyInclusion),
       Some(claims),
       Some(claimResponses),
       Some(molThDocs),

@@ -50,11 +50,12 @@ case class TherapyRecommendation
 (
   id: TherapyRecommendation.Id,
   patient: Patient.Id,
+  diagnosis: Diagnosis.Id,
   issuedOn: Option[LocalDate],
   medication: NonEmptyList[Coding[Medication]],
   priority: Option[TherapyRecommendation.Priority.Value],
   levelOfEvidence: Option[LevelOfEvidence],
-  supportingVariant: Option[Variant.CosmicId]
+  supportingVariants: Option[List[Variant.CosmicId]]
 )
 
 

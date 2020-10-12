@@ -18,6 +18,41 @@ object Invalidators
     def invalidate(implicit f: T => T) = f(t)
   }
 
+
+  implicit val mtbFileInvalidator: MTBFile => MTBFile = {
+
+    case mtbfile @ MTBFile(
+      patient,
+      consent,
+      episode,
+      diagnoses,
+      _,
+      previousGuidelineTherapies,
+      lastGuidelineTherapy,
+      ecogStatus,
+      specimens,
+      histologyResults,
+      _,
+      ngsReports,
+      carePlans,
+      recommendations,
+      counsellingRequests,
+      rebiopsyRequests,
+      _,
+      _,
+      claims,
+      claimResponses,
+      _,
+      responses
+    ) =>
+
+      mtbfile.copy(
+        patient = patient.copy(birthDate = None)
+      )
+
+  }
+
+/*
   implicit val invalidMTBFile: MTBFile => MTBFile = {
 
     case mtbfile @ MTBFile(
@@ -44,11 +79,10 @@ object Invalidators
 
       mtbfile.copy(
         patient = patient.copy(birthDate = None)
-//        diagnoses = diagnoses.map(_.map(_.copy(patient = Patient.Id(randomUUID.toString))))
       )
 
   }
-
+*/
 
 
 }

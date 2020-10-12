@@ -48,6 +48,7 @@ sealed trait GuidelineTherapy
 {
   val id: TherapyId
   val patient: Patient.Id
+  val diagnosis: Diagnosis.Id
   val therapyLine: Option[TherapyLine]
   val medication: NonEmptyList[Coding[Medication]]
 }
@@ -57,6 +58,7 @@ case class PreviousGuidelineTherapy
 (
   id: TherapyId,
   patient: Patient.Id,
+  diagnosis: Diagnosis.Id,
   therapyLine: Option[TherapyLine],
   medication: NonEmptyList[Coding[Medication]],
 )
@@ -72,6 +74,7 @@ case class LastGuidelineTherapy
 (
   id: TherapyId,
   patient: Patient.Id,
+  diagnosis: Diagnosis.Id,
   therapyLine: Option[TherapyLine],
   period: Option[OpenEndPeriod[LocalDate]],
   medication: NonEmptyList[Coding[Medication]],

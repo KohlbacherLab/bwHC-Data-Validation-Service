@@ -35,7 +35,6 @@ lazy val api = project
     settings,
     libraryDependencies ++= Seq(
       dependencies.play_json,
-//   dependencies.shapeless,
       dependencies.cats_core,
       dependencies.bwhc_utils,
     )

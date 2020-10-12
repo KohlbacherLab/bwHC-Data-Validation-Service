@@ -26,6 +26,18 @@ object ICDO3T
   implicit val system = Coding.System[ICDO3T]("ICD-O-3-T")
 }
 
+object GuidelineTreatmentStatus extends Enumeration
+{
+
+  val Exhaustive            = Value("exhausted")
+  val NonExhaustive         = Value("non-exhausted")
+  val Impossible            = Value("impossible")
+  val NoGuidelinesAvailable = Value("no-guidelines-available")
+  val Unknown               = Value("unknown")
+
+  implicit val format = Json.formatEnum(this)
+}
+
 
 final case class Diagnosis
 (
@@ -35,8 +47,9 @@ final case class Diagnosis
   icd10: Option[Coding[ICD10GM]],
   icdO3T: Option[Coding[ICDO3T]],
   whoGrade: Option[Coding[WHOGrade.Value]],
-  histologyResults: Option[List[HistologyResult.Id]],
-  statusHistory: Option[List[Diagnosis.StatusOnDate]]
+  histologyResults: Option[List[HistologyReport.Id]],
+  statusHistory: Option[List[Diagnosis.StatusOnDate]],
+  guidelineTreatmentStatus: GuidelineTreatmentStatus.Value
 )
 
 object Diagnosis

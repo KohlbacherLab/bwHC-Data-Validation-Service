@@ -19,7 +19,10 @@ object Coding
 {
 
   @annotation.implicitNotFound("Couldn't find Coding.System instance for ${C}")
-  sealed trait System[C]{ val uri: URI }
+  sealed trait System[C]{
+    val uri: URI
+    override def toString = uri.toString
+  }
   object System
   {
     def apply[C](implicit sys: System[C]): System[C] = sys
