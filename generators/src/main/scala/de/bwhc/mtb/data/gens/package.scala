@@ -601,7 +601,8 @@ package object gens
     for {
       id    <- Gen.uuidStrings.map(GeneticCounsellingRequest.Id)
       date  =  LocalDate.now
-    } yield GeneticCounsellingRequest(id,pat,Some(date))
+      reason = "Some reason for genetic counselling..."
+    } yield GeneticCounsellingRequest(id,pat,Some(date),reason)
 
 
   def genCarePlanFor(

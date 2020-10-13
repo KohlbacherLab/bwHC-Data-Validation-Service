@@ -11,7 +11,8 @@ final case class GeneticCounsellingRequest
 (
   id: GeneticCounsellingRequest.Id,
   patient: Patient.Id,
-  issuedOn: Option[LocalDate]
+  issuedOn: Option[LocalDate],
+  reason: String
 )
 
 

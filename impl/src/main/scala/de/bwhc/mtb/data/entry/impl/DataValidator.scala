@@ -590,7 +590,7 @@ object DefaultDataValidator
     patId: Patient.Id
   ): DataQualityValidator[GeneticCounsellingRequest] = {
 
-    case req @ GeneticCounsellingRequest(GeneticCounsellingRequest.Id(id),patient,date) =>
+    case req @ GeneticCounsellingRequest(GeneticCounsellingRequest.Id(id),patient,date,_) =>
 
       (
         (patient must be (patId)
