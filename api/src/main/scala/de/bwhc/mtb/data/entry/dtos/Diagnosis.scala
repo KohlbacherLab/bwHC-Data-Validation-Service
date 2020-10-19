@@ -49,7 +49,7 @@ final case class Diagnosis
   whoGrade: Option[Coding[WHOGrade.Value]],
   histologyResults: Option[List[HistologyReport.Id]],
   statusHistory: Option[List[Diagnosis.StatusOnDate]],
-  guidelineTreatmentStatus: GuidelineTreatmentStatus.Value
+  guidelineTreatmentStatus: Option[GuidelineTreatmentStatus.Value]
 )
 
 object Diagnosis

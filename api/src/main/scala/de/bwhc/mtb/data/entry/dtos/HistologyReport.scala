@@ -25,7 +25,7 @@ final case class TumorMorphology
   patient: Patient.Id,
   specimen: Specimen.Id,
 //  issuedOn: Option[LocalDate],
-  value: Option[Coding[ICDO3M]],
+  value: Coding[ICDO3M],
   note: Option[String]
 )
 
@@ -45,7 +45,7 @@ final case class HistologyReport
   patient: Patient.Id,
   specimen: Specimen.Id,
   issuedOn: Option[LocalDate],
-//  icdO3M: Option[Coding[ICDO3M]],
+//  tumorMorphology: Coding[ICDO3M],
   tumorMorphology: Option[TumorMorphology],
   tumorCellContent: Option[TumorCellContent],
 )

@@ -184,7 +184,7 @@ package object gens
       id     <- Gen.uuidStrings.map(TumorMorphology.Id)
       icdO3M <- Gen.of[Coding[ICDO3M]]
       note   =  Some("Histology finding notes...")
-    } yield TumorMorphology(id,specimen.patient,specimen.id,Some(icdO3M),note)
+    } yield TumorMorphology(id,specimen.patient,specimen.id,icdO3M,note)
 
   def genHistologyReportFor(
     specimen: Specimen
@@ -457,7 +457,7 @@ package object gens
       histoRefs =  histologyReports.map(_.id) 
       status    <- Gen.listOf(2,Gen.of[Diagnosis.StatusOnDate])
       glTreatment <- Gen.enum(GuidelineTreatmentStatus)
-    } yield Diagnosis(id,pat,Some(date),Some(icd10),icdO3T,Some(who),Some(histoRefs),Some(status), glTreatment)
+    } yield Diagnosis(id,pat,Some(date),Some(icd10),icdO3T,Some(who),Some(histoRefs),Some(status),Some(glTreatment))
 
 
   //---------------------------------------------------------------------------
@@ -493,7 +493,6 @@ package object gens
 
 
   def genPreviousGLTherapyFor(
-//    pat: Patient
     diag: Diagnosis
   ): Gen[PreviousGuidelineTherapy] = 
     for {
@@ -504,7 +503,6 @@ package object gens
 
 
   def genLastGLTherapyFor(
-//    pat: Patient
     diag: Diagnosis
   ): Gen[LastGuidelineTherapy] = 
     for {
@@ -547,7 +545,6 @@ package object gens
 
 
   def genTherapyRecommendationFor(
-//    pat: Patient
     diag: Diagnosis
   ): Gen[TherapyRecommendation] =
     for {
@@ -584,7 +581,6 @@ package object gens
 
 
   def genStudyInclusionRequestFor(
-//    patient: Patient
     diag: Diagnosis
   ): Gen[StudyInclusionRequest] =
     for {
@@ -606,7 +602,6 @@ package object gens
 
 
   def genCarePlanFor(
-//    pat: Patient,
     diag: Diagnosis,
     specimens: List[Specimen]
   ): Gen[(CarePlan,NonEmptyList[TherapyRecommendation],Option[GeneticCounsellingRequest],List[RebiopsyRequest])] =

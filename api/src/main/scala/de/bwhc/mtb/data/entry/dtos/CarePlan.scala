@@ -17,7 +17,7 @@ case class NoTargetFinding
 (
   patient: Patient.Id,
   diagnosis: Diagnosis.Id,
-  issuedOn: LocalDate
+  issuedOn: Option[LocalDate]
 )
 
 object NoTargetFinding
@@ -33,7 +33,7 @@ case class CarePlan
   diagnosis: Diagnosis.Id,
   issuedOn: Option[LocalDate],
   description: Option[String],
-//  result: Either[NoTargetFinding,List[TherapyRecommendation.Id]] //TODO: consider this for result modelling 
+//  result: Either[NoTargetFinding,NonEmptyList[TherapyRecommendation.Id]] //TODO: consider this for result modelling 
   noTargetFinding: Option[NoTargetFinding],
   recommendations: Option[List[TherapyRecommendation.Id]],
 //  recommendations: NonEmptyList[TherapyRecommendation.Id],
