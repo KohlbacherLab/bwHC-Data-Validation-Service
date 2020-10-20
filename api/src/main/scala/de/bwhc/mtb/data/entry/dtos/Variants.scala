@@ -89,14 +89,14 @@ object Variant
 
 
 import Variant._
-
+/*
 sealed trait SomaticVariant
 {
   val gene: Coding[Gene]
   val cosmicId: CosmicId
   val interpretation: Coding[Interpretation]
 }
-
+*/
 
 case class SimpleVariant
 (
@@ -113,7 +113,8 @@ case class SimpleVariant
   cosmicId: CosmicId,
   dbSNPId: Coding[SimpleVariant.DbSNPId],
   interpretation: Coding[Interpretation]
-) extends SomaticVariant
+)
+// extends SomaticVariant
 
 
 object SimpleVariant

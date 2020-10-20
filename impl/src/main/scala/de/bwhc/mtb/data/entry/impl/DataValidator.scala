@@ -84,6 +84,40 @@ object DefaultDataValidator
   type DataQualityValidator[T] = Validator[DataQualityReport.Issue,T]
 
 
+
+  private def reference[Ref](
+    location: Location,
+  )(
+    implicit ref: Ref
+  ): DataQualityValidator[Ref] = {
+    r => r must be (ref) otherwise (
+        Fatal(s"Invalid Reference to $ref") at location
+      )
+  }
+
+
+  private def validReference[Ref](
+    location: Location,
+  )(
+    implicit ref: Ref
+  ): DataQualityValidator[Ref] = {
+    r => r must be (ref) otherwise ( Fatal(s"Invalid Reference to $ref") at location )
+  }
+
+
+  private def references[Ref](
+    location: Location,
+  )(
+    implicit refs: Seq[Ref]
+  ): DataQualityValidator[Ref] = {
+    ref =>
+      ref must be (in (refs)) otherwise (
+        Fatal(s"Invalid Reference to $ref") at location
+      )
+  }
+
+
+
   implicit val patientValidator: DataQualityValidator[Patient] = {
 
     case pat @ Patient(Patient.Id(id),_,birthDate,_,insurance,dod) =>
@@ -226,40 +260,6 @@ object DefaultDataValidator
 
     }
 
-
-
-  private def reference[Ref](
-    location: Location,
-//    toStr: Ref => String = (ref: Ref) => ref.toString
-  )(
-    implicit ref: Ref
-  ): DataQualityValidator[Ref] = {
-    r => r must be (ref) otherwise (
-        Fatal(s"Invalid Reference to $ref") at location
-      )
-  }
-
-
-  private def validReference[Ref](
-    location: Location,
-  )(
-    implicit ref: Ref
-  ): DataQualityValidator[Ref] = {
-    r => r must be (ref) otherwise ( Fatal(s"Invalid Reference to $ref") at location )
-  }
-
-
-  private def references[Ref](
-    location: Location,
-//    toStr: Ref => String = (ref: Ref) => ref.toString
-  )(
-    implicit refs: Seq[Ref]
-  ): DataQualityValidator[Ref] = {
-    ref =>
-      ref must be (in (refs)) otherwise (
-        Fatal(s"Invalid Reference to $ref") at location
-      )
-  }
 
 
   implicit def diagnosisValidator(

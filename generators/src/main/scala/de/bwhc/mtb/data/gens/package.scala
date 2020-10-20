@@ -421,7 +421,7 @@ package object gens
       id,patId,spId,date,
       seqType,metadata,tc,
       Some(brcaness),Some(msi),tmb,
-      simpleVariants,Some(cnvs),Some(dnaFusions),Some(rnaFusions),Some(rnaSeqs)
+      Some(simpleVariants),Some(cnvs),Some(dnaFusions),Some(rnaFusions),Some(rnaSeqs)
     )
 
 
