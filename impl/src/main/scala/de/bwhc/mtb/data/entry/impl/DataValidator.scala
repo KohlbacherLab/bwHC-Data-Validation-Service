@@ -313,8 +313,6 @@ object DefaultDataValidator
         )
       ) 
       .map(ref => diag)
-//      (diag.patient must be (validReference[Patient.Id](Location("FamilyMemberDiagnosis",diag.id.value,"patient"))))
-//        .map(ref => diag)
   }
 
 
@@ -651,7 +649,7 @@ object DefaultDataValidator
     diagnosisRefs: List[Diagnosis.Id],
   ): DataQualityValidator[TherapyRecommendation] = {
 
-    case rec @ TherapyRecommendation(TherapyRecommendation.Id(id),patient,diag,date,medication,priority,loe,variant) =>
+    case rec @ TherapyRecommendation(TherapyRecommendation.Id(id),patient,diag,date,medication,priority,loe,supportingVariants) =>
 
       (
         (patient must be (patId)
@@ -667,6 +665,8 @@ object DefaultDataValidator
         (priority ifUndefined (Warning("Missing Priority") at Location("TherapyRecommendation",id,"priority"))),
 
         (loe ifUndefined (Warning("Missing Level of Evidence") at Location("TherapyRecommendation",id,"levelOfEvidence"))),
+
+        (supportingVariants ifUndefined (Warning("Missing Supporting Variants") at Location("TherapyRecommendation",id,"supportingVariants")))
 
       )
       .mapN { case _: Product => rec }

@@ -19,7 +19,6 @@ final case class MTBFile
   specimens: Option[List[Specimen]],
   molecularPathologyFindings: Option[List[MolecularPathologyFinding]],
   histologyReports: Option[List[HistologyReport]],
-//  histologyResults: Option[List[HistologyResult]],
   ngsReports: Option[List[SomaticNGSReport]],
   carePlans: Option[List[CarePlan]],
   recommendations: Option[List[TherapyRecommendation]],
