@@ -52,7 +52,7 @@ class Tests extends AsyncFlatSpec
   val service = serviceTry.get
 
 
-  "Importing MTBFile" should "succeed" in {
+  "Importing valid MTBFile" should "succeed" in {
     
     for {
       response <- service ! Upload(Gen.of[MTBFile].next)
@@ -62,7 +62,7 @@ class Tests extends AsyncFlatSpec
   }
 
 
-  "Importing MTBFile" should "return detected Issues" in {
+  "Importing invalid MTBFile" should "return detected Issues" in {
    
     val mtbfile = Gen.of[MTBFile].next.invalidate
     val patId = mtbfile.patient.id

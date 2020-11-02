@@ -31,7 +31,7 @@ class MTBDataServiceProviderImpl extends MTBDataServiceProvider
 {
     
   def getInstance: MTBDataService = {
-
+/*
     val localSite    = Option(System.getProperty("bwhc.zpm.site")).map(ZPM(_)).get  //TODO: improve configurability
 
     val db           = MTBDataDB.getInstance.get
@@ -46,43 +46,31 @@ class MTBDataServiceProviderImpl extends MTBDataServiceProvider
       db,
       queryService
     )
+*/
+    MTBDataServiceImpl.instance
   }
     
 }
 
-/*
-object Helpers
+object MTBDataServiceImpl
 {
 
-  implicit class DataQualityReportOps(val qc: DataQualityReport) extends AnyVal
-  {
+  private val localSite    = Option(System.getProperty("bwhc.zpm.site")).map(ZPM(_)).get  //TODO: improve configurability
+  private val db           = MTBDataDB.getInstance.get
+  private val queryService = QueryServiceProxy.getInstance.get
 
-    def hasFatalErrors: Boolean = {
-      qc.issues
-        .map(_.severity)
-        .toList
-        .contains(Fatal)
-    }
+  private val validator: DataValidator = new DefaultDataValidator
 
-    def hasErrors: Boolean = {
-      qc.issues
-        .map(_.severity)
-        .toList
-        .exists(s =>
-          s == Fatal || s == Error
-        )
-    }
-
-    def hasOnlyInfos: Boolean = {
-        qc.issues
-          .map(_.severity)
-          .toList
-          .forall(_ == Info)
-    }
-  }
+  val instance =
+    new MTBDataServiceImpl(
+      localSite,
+      validator,
+      db,
+      queryService
+    )
 
 }
-*/
+
 
 class MTBDataServiceImpl
 (
@@ -95,7 +83,6 @@ extends MTBDataService
 with Logging
 {
 
-//  import Helpers._
 
   def process(
     cmd: MTBDataService.Command

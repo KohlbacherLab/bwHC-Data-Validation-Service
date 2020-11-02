@@ -117,7 +117,9 @@ object MolecularTherapy
         th.id,th.status,th.patient,th.recordedOn,th.basedOn,
         None,
         Some(th.notDoneReason),
-        None,None,None,
+        None,
+        None,
+        None,
         th.note
       )
       
@@ -256,6 +258,7 @@ final case class MolecularTherapyView
 
 object MolecularTherapyView
 {
+//  implicit val writes = Json.writes[MolecularTherapyView]
   implicit val format = Json.format[MolecularTherapyView]
 }
 

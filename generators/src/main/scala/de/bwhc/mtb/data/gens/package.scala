@@ -108,7 +108,8 @@ package object gens
     Gen.enum(WHOGrade).map(Coding(_,None,None))
 
   implicit val genMedication: Gen[Coding[Medication]] = 
-    Gen.oneOf(Medications.entries)
+//    Gen.oneOf(Medications.entries)
+    Gen.oneOf(Medications.entries.filter(_.code.value.startsWith("L")))
 
 
 
@@ -750,23 +751,14 @@ package object gens
   implicit val genMTBFile: Gen[MTBFile] =
     for {
       patient   <- Gen.of[Patient]
+
       consent   <- genConsentFor(patient)
+
       episode   <- genEpisodeFor(patient)
-//      specimens <- Gen.list(
-//                     Gen.intsBetween(1,1),
-//                     genSpecimenFor(patient)
-//                   )
+
       specimen <- genSpecimenFor(patient)
       specimens = List(specimen)
 
-//      histology <- Gen.oneOfEach(
-//                     specimens.map(
-//                       sp => Gen.list(
-//                         Gen.intsBetween(1,1),
-//                         genHistologyReportFor(sp)
-//                       )
-//                     )
-//                   ) 
       histology <- genHistologyReportFor(specimen).map(List(_)) 
 
       molPatho <- Gen.oneOfEach(
@@ -775,9 +767,6 @@ package object gens
                      )
                    )
 
-//      diagnoses <- Gen.oneOfEach(
-//                     (specimens zip histology).map { case (sp,hs) => genDiagnosisFor(sp,hs)}
-//                   )
       diagnosis <- genDiagnosisFor(specimen,histology)
 
       diagnoses = List(diagnosis)

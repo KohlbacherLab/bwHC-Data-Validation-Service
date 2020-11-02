@@ -281,3 +281,17 @@ object RNASeq
 
   implicit val format = Json.format[RNASeq]
 }
+
+
+
+sealed abstract class VariantRef
+
+final case class SimpleVariantRef
+(
+  gene: Gene,
+  aminoAcidChange: SimpleVariant.AminoAcidChange
+) extends VariantRef
+
+
+
+

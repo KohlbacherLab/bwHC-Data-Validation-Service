@@ -91,7 +91,7 @@ object DefaultDataValidator
     implicit ref: Ref
   ): DataQualityValidator[Ref] = {
     r => r must be (ref) otherwise (
-        Fatal(s"Invalid Reference to $ref") at location
+        Fatal(s"Invalid Reference to $r") at location
       )
   }
 
@@ -101,7 +101,9 @@ object DefaultDataValidator
   )(
     implicit ref: Ref
   ): DataQualityValidator[Ref] = {
-    r => r must be (ref) otherwise ( Fatal(s"Invalid Reference to $ref") at location )
+    r => r must be (ref) otherwise (
+           Fatal(s"Invalid Reference to $r") at location
+         )
   }
 
 
@@ -190,7 +192,6 @@ object DefaultDataValidator
               Error(s"Invalid ICD-10-GM Version ${v.get}") at Location("ICD-10-GM Coding","","version")
             )
           )
-//        .getOrElse(icd.ICD10GM.Version(2019).validNel[Issue])  //TODO: re-consider if this default version setting is really desirable!!!!
         .andThen (
           v =>
             code must be (in (catalog.codings(v).map(_.code.value)))
@@ -252,14 +253,15 @@ object DefaultDataValidator
     catalog: MedicationCatalog
   ): DataQualityValidator[Coding[Medication]] = {
 
-      case medication @ Coding(code,_,_) =>
+      case medication @ Coding(Medication(atcCode),_,_) =>
 
-        (code.value must be (in (catalog.entries.map(_.code.value)))
-          otherwise (Error(s"Invalid ATC Medication code $code") at Location("Medication Coding","","code")))
+        (atcCode must be (in (catalog.entries.map(_.code.value)))
+          otherwise (
+            Error(s"Invalid ATC Medication code $atcCode") at Location("Medication Coding","","code"))
+         )
          .map(c => medication)
 
     }
-
 
 
   implicit def diagnosisValidator(
