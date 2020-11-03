@@ -17,12 +17,18 @@ case class DataQualityReport
 (
   patient: Patient.Id,
   issues: NonEmptyList[DataQualityReport.Issue],
-  createdAt: Instant = Instant.now
+  createdAt: Instant
 )
 
 
 object DataQualityReport
 {
+
+  def apply(
+    patient: Patient.Id,
+    issues: NonEmptyList[DataQualityReport.Issue]
+  ): DataQualityReport =
+    DataQualityReport(patient,issues,Instant.now)
 
   case class Issue
   (

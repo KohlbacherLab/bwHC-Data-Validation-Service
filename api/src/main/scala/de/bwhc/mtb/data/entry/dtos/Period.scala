@@ -28,11 +28,19 @@ object ClosedPeriod
 final case class OpenEndPeriod[T <: Temporal]
 (
   start: T,
-  end: Option[T] = None
+  end: Option[T]
 ) extends Period[T]
 
 object OpenEndPeriod
 {
-  implicit def format[T <: Temporal: Format] = Json.format[OpenEndPeriod[T]]
+
+  def apply[T <: Temporal](
+    start: T
+  ): OpenEndPeriod[T] =
+    OpenEndPeriod(start,None)
+
+
+  implicit def format[T <: Temporal: Format] =
+    Json.format[OpenEndPeriod[T]]
 }
 

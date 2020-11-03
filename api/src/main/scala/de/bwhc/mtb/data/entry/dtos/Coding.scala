@@ -4,19 +4,30 @@ package de.bwhc.mtb.data.entry.dtos
 
 import java.net.URI
 
-import play.api.libs.json._
+import play.api.libs.json.{
+  Format, Reads, Writes, JsPath, JsString, JsObject, JsValue
+}
 
 
 final case class Coding[C: Coding.System]
 (
   code: C,
   display: Option[String],
-  version: Option[String] = None,
+  version: Option[String]
 )
 
 
 object Coding
 {
+
+
+  def apply[C: Coding.System](
+    code: C,
+    display: Option[String]
+  ): Coding[C] =
+    Coding(code,display,None)
+
+
 
   @annotation.implicitNotFound("Couldn't find Coding.System instance for ${C}")
   sealed trait System[C]{
@@ -45,7 +56,7 @@ object Coding
         (JsPath \ "code").read[C] and
         (JsPath \ "display").readNullable[String] and
         (JsPath \ "version").readNullable[String]
-      )(Coding.apply[C] _)
+      )(Coding.apply[C](_,_,_))
 
     val write: Writes[Coding[C]] =
       (

@@ -301,7 +301,7 @@ package object gens
     for {
       chr       <- Gen.of[Chromosome]
       gene      <- Gen.of[Coding[Gene]]
-      se        <- Gen.positiveLongs.map(StartEnd(_))
+      se        <- Gen.positiveLongs.map(StartEnd(_,None))
       refAllele <- Gen.oneOf(alleles)
       altAllele <- Gen.oneOf(alleles.filterNot(_ == refAllele))
       fnAnnot   <- Gen.of[Coding[FunctionalAnnotation]]

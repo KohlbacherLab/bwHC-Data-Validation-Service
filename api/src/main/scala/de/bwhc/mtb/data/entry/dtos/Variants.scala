@@ -78,7 +78,7 @@ object Variant
   implicit val formatAllelicReadDepth = Json.valueFormat[AllelicReadDepth]
 
 
-  final case class StartEnd(start: Long, end: Option[Long] = None)
+  final case class StartEnd(start: Long, end: Option[Long])
   object StartEnd
   {
     implicit val format = Json.format[StartEnd]
@@ -89,14 +89,6 @@ object Variant
 
 
 import Variant._
-/*
-sealed trait SomaticVariant
-{
-  val gene: Coding[Gene]
-  val cosmicId: CosmicId
-  val interpretation: Coding[Interpretation]
-}
-*/
 
 case class SimpleVariant
 (
@@ -114,7 +106,6 @@ case class SimpleVariant
   dbSNPId: Coding[SimpleVariant.DbSNPId],
   interpretation: Coding[Interpretation]
 )
-// extends SomaticVariant
 
 
 object SimpleVariant
