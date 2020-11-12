@@ -90,7 +90,8 @@ object DefaultDataValidator
   )(
     implicit ref: Ref
   ): DataQualityValidator[Ref] = {
-    r => r must be (ref) otherwise (
+    r => 
+      r must be (ref) otherwise (
         Fatal(s"Invalid Reference to $r") at location
       )
   }
@@ -101,9 +102,10 @@ object DefaultDataValidator
   )(
     implicit ref: Ref
   ): DataQualityValidator[Ref] = {
-    r => r must be (ref) otherwise (
-           Fatal(s"Invalid Reference to $r") at location
-         )
+    r =>
+      r must be (ref) otherwise (
+        Fatal(s"Invalid Reference to $r") at location
+      )
   }
 
 
@@ -186,9 +188,7 @@ object DefaultDataValidator
 
         (version mustBe defined otherwise (Error("Missing ICD-10-GM Version") at Location("ICD-10-GM Coding","","version")))
           .andThen( v =>
-            ifThrows(
-              icd.ICD10GM.Version(v.get)
-            )(
+            attempt(icd.ICD10GM.Version(v.get)) otherwise (
               Error(s"Invalid ICD-10-GM Version ${v.get}") at Location("ICD-10-GM Coding","","version")
             )
           )
@@ -211,8 +211,10 @@ object DefaultDataValidator
 
         (version mustBe defined otherwise (Error("Missing ICD-O-3 Version") at Location("ICD-O-3-T Coding","","version")))
           .andThen(
-            v =>           
-              ifThrows(icd.ICDO3.Version(v.get))(Error(s"Invalid ICD-O-3 Version ${v.get}") at Location("ICD-O-3-T Coding","","version"))
+            v => 
+              attempt(icd.ICDO3.Version(v.get)) otherwise (
+                Error(s"Invalid ICD-O-3 Version ${v.get}") at Location("ICD-O-3-T Coding","","version")
+              )
           )
           .andThen(
             v =>
@@ -234,7 +236,9 @@ object DefaultDataValidator
         (version mustBe defined otherwise (Error("Missing ICD-O-3 Version") at Location("ICD-O-3-M Coding","","version")))
           .andThen(
             v =>
-              ifThrows(icd.ICDO3.Version(v.get))(Error(s"Invalid ICD-O-3 Version ${v.get}") at Location("ICD-O-3-M Coding","","version"))
+              attempt(icd.ICDO3.Version(v.get)) otherwise (
+                Error(s"Invalid ICD-O-3 Version ${v.get}") at Location("ICD-O-3-M Coding","","version")
+              )
           )
           .andThen(
             v =>
@@ -253,15 +257,15 @@ object DefaultDataValidator
     catalog: MedicationCatalog
   ): DataQualityValidator[Coding[Medication]] = {
 
-      case medication @ Coding(Medication(atcCode),_,_) =>
+    case medication @ Coding(Medication(atcCode),_,_) =>
 
-        (atcCode must be (in (catalog.entries.map(_.code.value)))
-          otherwise (
-            Error(s"Invalid ATC Medication code $atcCode") at Location("Medication Coding","","code"))
-         )
-         .map(c => medication)
+      (atcCode must be (in (catalog.entries.map(_.code.value)))
+        otherwise (
+          Error(s"Invalid ATC Medication code $atcCode") at Location("Medication Coding","","code"))
+       )
+       .map(c => medication)
 
-    }
+  }
 
 
   implicit def diagnosisValidator(
@@ -649,9 +653,10 @@ object DefaultDataValidator
     implicit
     patId: Patient.Id,
     diagnosisRefs: List[Diagnosis.Id],
+    ngsReports: List[SomaticNGSReport]
   ): DataQualityValidator[TherapyRecommendation] = {
 
-    case rec @ TherapyRecommendation(TherapyRecommendation.Id(id),patient,diag,date,medication,priority,loe,supportingVariants) =>
+    case rec @ TherapyRecommendation(TherapyRecommendation.Id(id),patient,diag,date,medication,priority,loe,ngsId,supportingVariants) =>
 
       (
         (patient must be (patId)
@@ -660,15 +665,30 @@ object DefaultDataValidator
         diag must be (in (diagnosisRefs))
           otherwise (Fatal(s"Invalid Reference to Diagnosis/${diag.value}") at Location("TherapyRecommendation",id,"diagnosis")),
 
-        (date ifUndefined (Warning("Missing Recording Date") at Location("TherapyRecommendation",id,"issuedOn"))),
+        (date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("TherapyRecommendation",id,"issuedOn"))),
 
         (medication validateEach),
 
-        (priority ifUndefined (Warning("Missing Priority") at Location("TherapyRecommendation",id,"priority"))),
+        (priority shouldBe defined otherwise (Warning("Missing Priority") at Location("TherapyRecommendation",id,"priority"))),
 
-        (loe ifUndefined (Warning("Missing Level of Evidence") at Location("TherapyRecommendation",id,"levelOfEvidence"))),
+        (loe shouldBe defined otherwise (Warning("Missing Level of Evidence") at Location("TherapyRecommendation",id,"levelOfEvidence"))),
 
-        (supportingVariants ifUndefined (Warning("Missing Supporting Variants") at Location("TherapyRecommendation",id,"supportingVariants")))
+//        ngsId must be (in (ngsReports.map(_.id)))
+//          otherwise (Fatal(s"Invalid Reference to SomaticNGSReport/${ngsId.value}") at Location("TherapyRecommendation",id,"ngsReport")),
+
+//        (supportingVariants ifUndefined (Warning("Missing Supporting Variants") at Location("TherapyRecommendation",id,"supportingVariants")))
+
+        ngsReports.find(_.id == ngsId) mustBe defined otherwise (
+          Fatal(s"Invalid Reference to SomaticNGSReport/${ngsId.value}") at Location("TherapyRecommendation",id,"ngsReport")
+        ) andThen (
+          ngsReport =>
+
+          supportingVariants shouldBe defined otherwise (
+            Warning("Missing Supporting Variants") at Location("TherapyRecommendation",id,"supportingVariants")
+          ) andThen (refs =>
+            refs.get validateEach references(Location("TherapyRecommendation",id,"supportingVariants"))(ngsReport.get.variants.map(_.id)) 
+          )
+        )
 
       )
       .mapN { case _: Product => rec }
@@ -1028,6 +1048,9 @@ object DefaultDataValidator
         implicit val specimenRefs =
           specimens.getOrElse(List.empty[Specimen]).map(_.id)
   
+        implicit val allNgsReports =
+          ngsReports.getOrElse(List.empty[SomaticNGSReport])
+  
         implicit val recommendationRefs =
           recommendations.getOrElse(List.empty[TherapyRecommendation]).map(_.id)
   
@@ -1045,7 +1068,6 @@ object DefaultDataValidator
           previousGuidelineTherapies.map(_.map(_.id)).getOrElse(List.empty[TherapyId]) ++
           lastGuidelineTherapy.map(_.id) ++
           molecularTherapies.map(_.flatMap(_.history.map(_.id))).getOrElse(List.empty[TherapyId])
-  
   
         (
           patient.validate,

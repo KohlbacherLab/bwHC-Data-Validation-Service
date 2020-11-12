@@ -67,7 +67,6 @@ package object gens
     for {
       id      <- Gen.of[Consent.Id]
       status  <- Gen.const(Consent.Status.Active)    
-//      status  <- Gen.of[Consent.Status.Value]    
     } yield Consent(id,pat.id,status)
 
 
@@ -108,7 +107,6 @@ package object gens
     Gen.enum(WHOGrade).map(Coding(_,None,None))
 
   implicit val genMedication: Gen[Coding[Medication]] = 
-//    Gen.oneOf(Medications.entries)
     Gen.oneOf(Medications.entries.filter(_.code.value.startsWith("L")))
 
 
@@ -297,8 +295,13 @@ package object gens
     .map(Interpretation(_))
     .map(Coding(_,None))
 
+
+  implicit val genVariantId: Gen[Variant.Id] =
+    Gen.uuidStrings.map(Variant.Id)
+
   implicit val genSimpleVariant: Gen[SimpleVariant] =
     for {
+      id        <- Gen.of[Variant.Id]
       chr       <- Gen.of[Chromosome]
       gene      <- Gen.of[Coding[Gene]]
       se        <- Gen.positiveLongs.map(StartEnd(_,None))
@@ -313,11 +316,13 @@ package object gens
       dbSNPId   <- Gen.of[Coding[DbSNPId]]
       interpr   <- Gen.of[Coding[Interpretation]]
     } yield SimpleVariant(
-      chr,gene,se,refAllele,altAllele,fnAnnot,dnaChg,aaChg,readDpth,allelicFreq,cosmicId,dbSNPId,interpr
+      id,chr,gene,se,refAllele,altAllele,fnAnnot,dnaChg,aaChg,
+      readDpth,allelicFreq,cosmicId,dbSNPId,interpr
     )
 
   implicit val genCNV: Gen[CNV] =
     for {
+      id         <- Gen.of[Variant.Id]
       chr        <- Gen.of[Chromosome]
       startRange <- Gen.of[StartEnd]
       endRange   <- Gen.of[StartEnd]
@@ -329,7 +334,10 @@ package object gens
       focality   <- Gen.const("reported-focality...")
       typ        <- Gen.enum(CNV.Type)
       loh        <- Gen.list(Gen.intsBetween(2,5),Gen.of[Coding[Gene]])
-    } yield CNV(chr,startRange,endRange,totalCN,relCN,Some(cnA),Some(cnB),Some(genes),Some(focality),typ,Some(loh))
+    } yield CNV(
+      id,chr,startRange,endRange,totalCN,relCN,Some(cnA),Some(cnB),
+      Some(genes),Some(focality),typ,Some(loh)
+    )
 
 
 
@@ -343,10 +351,11 @@ package object gens
 
   implicit val genDNAFusion: Gen[DNAFusion] =
     for {
+      id    <- Gen.of[Variant.Id]
       d5pr  <- Gen.of[DNAFusion.FunctionalDomain]
       d3pr  <- Gen.of[DNAFusion.FunctionalDomain]
       reads <- Gen.intsBetween(20,50)
-    } yield DNAFusion(d5pr,d3pr,reads)
+    } yield DNAFusion(id,d5pr,d3pr,reads)
 
 
   implicit val genRNAFusionFnDomain: Gen[RNAFusion.FunctionalDomain] = {
@@ -364,17 +373,19 @@ package object gens
 
   implicit val genRNAFusion: Gen[RNAFusion] =
     for {
+      id       <- Gen.of[Variant.Id]
       d5pr     <- Gen.of[RNAFusion.FunctionalDomain]
       d3pr     <- Gen.of[RNAFusion.FunctionalDomain]
       effect   <- Gen.const("RNA Fusion effect...").map(RNAFusion.Effect)
       cosmicId <- Gen.of[CosmicId]
       reads    <- Gen.intsBetween(20,50)
-    } yield RNAFusion(d5pr,d3pr,Some(effect),Some(cosmicId),reads)
+    } yield RNAFusion(id,d5pr,d3pr,Some(effect),Some(cosmicId),reads)
 
 
 
   implicit val genRNASeq: Gen[RNASeq] = 
     for {
+      id            <- Gen.of[Variant.Id]
       entrezId      <- Gen.uuidStrings.map(RNASeq.EntrezId)
       ensemblId     <- Gen.uuidStrings.map(RNASeq.EnsemblId)
       gene          <- Gen.of[Coding[Gene]]
@@ -385,33 +396,35 @@ package object gens
       rawCounts     <- Gen.intsBetween(20,1000)
       librarySize   <- Gen.intsBetween(20,100) 
       cohortRanking <- Gen.intsBetween(1,10)
-    } yield RNASeq(entrezId,ensemblId,gene,transcript,fpkm,fromNGS,tsCorrExp,rawCounts,librarySize,Some(cohortRanking))
+    } yield RNASeq(
+      id,entrezId,ensemblId,gene,transcript,fpkm,fromNGS,tsCorrExp,
+      rawCounts,librarySize,Some(cohortRanking)
+    )
 
+   implicit val genNGSReportMetadata: Gen[SomaticNGSReport.MetaData] = 
+     for {
+       kitType   <- Gen.const("Agilent ExomV6")
+       kitManu   <- Gen.const("Agilent")
+       sequencer <- Gen.const("Sequencer-XYZ")
+       refGenome <- Gen.enum(ReferenceGenome)
+       pipeline  <- Gen.const("dummy/uri/to/pipeline").map(URI.create)
+     } yield SomaticNGSReport.MetaData(kitType,kitManu,sequencer,refGenome,Some(pipeline))
 
 
   def genSomaticNGSReportFor(
     specimen: Specimen
   ): Gen[SomaticNGSReport] =
     for {
-      id       <- Gen.of[SomaticNGSReport.Id]
-      patId    =  specimen.patient
-      spId     =  specimen.id
-      date     = LocalDate.now
-      seqType  <- Gen.enum(SomaticNGSReport.SequencingType)
-
-      metadata <- for {
-                    kitType   <- Gen.const("Agilent ExomV6")
-                    kitManu   <- Gen.const("Agilent")
-                    sequencer <- Gen.const("Sequencer-XYZ")
-                    refGenome <- Gen.enum(ReferenceGenome)
-                    pipeline  <- Gen.const("dummy/uri/to/pipeline").map(URI.create)
-                  } yield SomaticNGSReport.MetaData(kitType,kitManu,sequencer,refGenome,Some(pipeline))
-
-//      tc       <- genTumorCellContentFor(specimen)
-      tc       <- genTumorCellContentFor(specimen,TumorCellContent.Method.Bioinformatic)
-      brcaness <- Gen.of[BRCAness]
-      msi      <- Gen.of[MSI]
-      tmb      <- Gen.of[TMB]
+      id             <- Gen.of[SomaticNGSReport.Id]
+      patId          =  specimen.patient
+      spId           =  specimen.id
+      date           =  LocalDate.now
+      seqType        <- Gen.enum(SomaticNGSReport.SequencingType)
+      metadata       <- Gen.list(Gen.intsBetween(1,3), Gen.of[SomaticNGSReport.MetaData])
+      tc             <- genTumorCellContentFor(specimen,TumorCellContent.Method.Bioinformatic)
+      brcaness       <- Gen.of[BRCAness]
+      msi            <- Gen.of[MSI]
+      tmb            <- Gen.of[TMB]
       simpleVariants <- Gen.list(Gen.intsBetween(5,15), Gen.of[SimpleVariant])
       cnvs           <- Gen.list(Gen.intsBetween(5,10), Gen.of[CNV])
       dnaFusions     <- Gen.list(Gen.intsBetween(5,10), Gen.of[DNAFusion])
@@ -546,7 +559,8 @@ package object gens
 
 
   def genTherapyRecommendationFor(
-    diag: Diagnosis
+    diag: Diagnosis,
+    ngsReport: SomaticNGSReport
   ): Gen[TherapyRecommendation] =
     for {
       id    <- Gen.uuidStrings.map(TherapyRecommendation.Id)
@@ -556,7 +570,11 @@ package object gens
       prio  <- Gen.enum(TherapyRecommendation.Priority)
       loe   <- Gen.of[LevelOfEvidence]
       //TODO: ref supporting variant
-    } yield TherapyRecommendation(id,diag.patient,diag.id,Some(date),meds,Some(prio),Some(loe),None)
+      supportingVariantRefs <- Gen.subsets(ngsReport.variants).map(_.map(_.id))
+    } yield TherapyRecommendation(
+      id,diag.patient,diag.id,Some(date),meds,Some(prio),Some(loe),ngsReport.id,Some(supportingVariantRefs)
+    )
+//    } yield TherapyRecommendation(id,diag.patient,diag.id,Some(date),meds,Some(prio),Some(loe),None)
 
 
   def genRebiopsyRequestFor(
@@ -604,6 +622,7 @@ package object gens
 
   def genCarePlanFor(
     diag: Diagnosis,
+    ngsReport: SomaticNGSReport,
     specimens: List[Specimen]
   ): Gen[(CarePlan,NonEmptyList[TherapyRecommendation],Option[GeneticCounsellingRequest],List[RebiopsyRequest])] =
     for {
@@ -613,7 +632,7 @@ package object gens
       descr       =  "MTB conference protocol..."
       recs        <- Gen.nonEmptyList(
                        Gen.intsBetween(2,4),
-                       genTherapyRecommendationFor(diag)
+                       genTherapyRecommendationFor(diag,ngsReport)
                      )
       recRefs     =  recs.map(_.id).toList
       counsellingReq <- genCounsellingRequestFor(diag.patient)
@@ -773,9 +792,11 @@ package object gens
 
       familyMemberDiagnoses <- Gen.listOf(2, genFamilyMemberDiagnosisFor(patient))
 
-      ngsReports <- Gen.oneOfEach(
-                      specimens.map(genSomaticNGSReportFor)
-                    )
+      ngsReport  <- genSomaticNGSReportFor(specimen)
+      ngsReports =  List(ngsReport)
+//      ngsReports <- Gen.oneOfEach(
+//                      specimens.map(genSomaticNGSReportFor)
+//                    )
 
       previousGL <- Gen.listOf(3,genPreviousGLTherapyFor(diagnosis))
 
@@ -786,7 +807,8 @@ package object gens
                      genECOGStatusFor(patient)
                    )
 
-      cpData    <- genCarePlanFor(diagnosis,specimens)
+      cpData    <- genCarePlanFor(diagnosis,ngsReport,specimens)
+//      cpData    <- genCarePlanFor(diagnosis,specimens)
 
       (carePlan,
        recommendations,

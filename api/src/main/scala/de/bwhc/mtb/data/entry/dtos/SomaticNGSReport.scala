@@ -18,7 +18,8 @@ case class SomaticNGSReport
   specimen: Specimen.Id,
   issueDate: LocalDate,
   sequencingType: SomaticNGSReport.SequencingType.Value,
-  metadata: SomaticNGSReport.MetaData,
+  metadata: List[SomaticNGSReport.MetaData],
+//  metadata: SomaticNGSReport.MetaData,
   tumorCellContent: TumorCellContent,
   brcaness: Option[BRCAness],
   msi: Option[MSI],
@@ -29,6 +30,14 @@ case class SomaticNGSReport
   rnaFusions: Option[List[RNAFusion]],
   rnaSeqs: Option[List[RNASeq]]
 )
+{
+  def variants: List[Variant] =
+    simpleVariants.getOrElse(List.empty[Variant]) :++
+    copyNumberVariants.getOrElse(List.empty[Variant]) :++
+    dnaFusions.getOrElse(List.empty[Variant]) :++
+    rnaFusions.getOrElse(List.empty[Variant]) :++
+    rnaSeqs.getOrElse(List.empty[Variant])
+}
 
 
 object ReferenceGenome extends Enumeration

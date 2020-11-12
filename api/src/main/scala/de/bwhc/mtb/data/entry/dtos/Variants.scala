@@ -26,8 +26,19 @@ object Chromosome
 }
 
 
+sealed abstract class Variant
+{
+  val id: Variant.Id
+}
+
+
 object Variant
 {
+
+  case class Id(value: String) extends AnyVal
+
+  implicit val formatId = Json.valueFormat[Id]
+
 
   case class Gene(value: String) extends AnyVal
   object Gene
@@ -92,6 +103,7 @@ import Variant._
 
 case class SimpleVariant
 (
+  id: Variant.Id,
   chromosome: Chromosome,
   gene: Coding[Gene],
   startEnd: StartEnd,
@@ -106,6 +118,7 @@ case class SimpleVariant
   dbSNPId: Coding[SimpleVariant.DbSNPId],
   interpretation: Coding[Interpretation]
 )
+extends Variant
 
 
 object SimpleVariant
@@ -139,6 +152,7 @@ object SimpleVariant
 
 final case class CNV
 (
+  id: Variant.Id,
   chromosome: Chromosome,
   startRange: StartEnd,
   endRange: StartEnd,
@@ -151,6 +165,7 @@ final case class CNV
   `type`: CNV.Type.Value,
   copyNumberNeutralLoH: Option[List[Coding[Gene]]],
 )
+extends Variant
 
 object CNV
 {
@@ -171,10 +186,12 @@ object CNV
 
 final case class DNAFusion
 (
+  id: Variant.Id,
   domain5prime: DNAFusion.FunctionalDomain,
   domain3prime: DNAFusion.FunctionalDomain,
   reportedNumReads: Int
 )
+extends Variant
 
 object DNAFusion
 {
@@ -195,12 +212,14 @@ object DNAFusion
 
 final case class RNAFusion
 (
+  id: Variant.Id,
   domain5prime: RNAFusion.FunctionalDomain,
   domain3prime: RNAFusion.FunctionalDomain,
   effect: Option[RNAFusion.Effect],
   cosmicId: Option[CosmicId],
   reportedNumReads: Int
 )
+extends Variant
 
 object RNAFusion
 {
@@ -247,6 +266,7 @@ object RNAFusion
 
 final case class RNASeq
 (
+  id: Variant.Id,
   entrezId: RNASeq.EntrezId,
   ensemblId: RNASeq.EnsemblId,
   gene: Coding[Gene],
@@ -258,6 +278,7 @@ final case class RNASeq
   librarySize: Int,
   cohortRanking: Option[Int]
 )
+extends Variant
 
 
 object RNASeq
@@ -272,17 +293,4 @@ object RNASeq
 
   implicit val format = Json.format[RNASeq]
 }
-
-
-
-sealed abstract class VariantRef
-
-final case class SimpleVariantRef
-(
-  gene: Gene,
-  aminoAcidChange: SimpleVariant.AminoAcidChange
-) extends VariantRef
-
-
-
 
