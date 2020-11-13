@@ -301,7 +301,6 @@ package object gens
 
   implicit val genSimpleVariant: Gen[SimpleVariant] =
     for {
-      id        <- Gen.of[Variant.Id]
       chr       <- Gen.of[Chromosome]
       gene      <- Gen.of[Coding[Gene]]
       se        <- Gen.positiveLongs.map(StartEnd(_,None))
@@ -315,6 +314,8 @@ package object gens
       cosmicId  <- Gen.of[CosmicId]
       dbSNPId   <- Gen.of[Coding[DbSNPId]]
       interpr   <- Gen.of[Coding[Interpretation]]
+//      id        <- Gen.of[Variant.Id]
+      id        <- Gen.uuidStrings.map(u => s"SNV_$u").map(Variant.Id)
     } yield SimpleVariant(
       id,chr,gene,se,refAllele,altAllele,fnAnnot,dnaChg,aaChg,
       readDpth,allelicFreq,cosmicId,dbSNPId,interpr
@@ -322,7 +323,6 @@ package object gens
 
   implicit val genCNV: Gen[CNV] =
     for {
-      id         <- Gen.of[Variant.Id]
       chr        <- Gen.of[Chromosome]
       startRange <- Gen.of[StartEnd]
       endRange   <- Gen.of[StartEnd]
@@ -334,6 +334,10 @@ package object gens
       focality   <- Gen.const("reported-focality...")
       typ        <- Gen.enum(CNV.Type)
       loh        <- Gen.list(Gen.intsBetween(2,5),Gen.of[Coding[Gene]])
+//      id         <- Gen.of[Variant.Id]
+      id         =  Variant.Id(
+                      s"CNV_${genes.map(_.code.value).reduceLeft(_ + "_" + _)}_${typ.toString}"
+                    ) 
     } yield CNV(
       id,chr,startRange,endRange,totalCN,relCN,Some(cnA),Some(cnB),
       Some(genes),Some(focality),typ,Some(loh)
@@ -351,10 +355,11 @@ package object gens
 
   implicit val genDNAFusion: Gen[DNAFusion] =
     for {
-      id    <- Gen.of[Variant.Id]
       d5pr  <- Gen.of[DNAFusion.FunctionalDomain]
       d3pr  <- Gen.of[DNAFusion.FunctionalDomain]
       reads <- Gen.intsBetween(20,50)
+//      id    <- Gen.of[Variant.Id]
+      id    =  Variant.Id(s"DNAFusion_${d5pr.gene.code.value}_${d3pr.gene.code.value}") 
     } yield DNAFusion(id,d5pr,d3pr,reads)
 
 
@@ -373,19 +378,19 @@ package object gens
 
   implicit val genRNAFusion: Gen[RNAFusion] =
     for {
-      id       <- Gen.of[Variant.Id]
       d5pr     <- Gen.of[RNAFusion.FunctionalDomain]
       d3pr     <- Gen.of[RNAFusion.FunctionalDomain]
       effect   <- Gen.const("RNA Fusion effect...").map(RNAFusion.Effect)
       cosmicId <- Gen.of[CosmicId]
       reads    <- Gen.intsBetween(20,50)
+//      id       <- Gen.of[Variant.Id]
+      id       =  Variant.Id(s"RNAFusion_${d5pr.gene.code.value}_${d3pr.gene.code.value}") 
     } yield RNAFusion(id,d5pr,d3pr,Some(effect),Some(cosmicId),reads)
 
 
 
   implicit val genRNASeq: Gen[RNASeq] = 
     for {
-      id            <- Gen.of[Variant.Id]
       entrezId      <- Gen.uuidStrings.map(RNASeq.EntrezId)
       ensemblId     <- Gen.uuidStrings.map(RNASeq.EnsemblId)
       gene          <- Gen.of[Coding[Gene]]
@@ -396,6 +401,9 @@ package object gens
       rawCounts     <- Gen.intsBetween(20,1000)
       librarySize   <- Gen.intsBetween(20,100) 
       cohortRanking <- Gen.intsBetween(1,10)
+//      id            <- Gen.of[Variant.Id]
+      id            =  Variant.Id(s"RNASeq_${entrezId.value}")
+ 
     } yield RNASeq(
       id,entrezId,ensemblId,gene,transcript,fpkm,fromNGS,tsCorrExp,
       rawCounts,librarySize,Some(cohortRanking)
@@ -794,9 +802,6 @@ package object gens
 
       ngsReport  <- genSomaticNGSReportFor(specimen)
       ngsReports =  List(ngsReport)
-//      ngsReports <- Gen.oneOfEach(
-//                      specimens.map(genSomaticNGSReportFor)
-//                    )
 
       previousGL <- Gen.listOf(3,genPreviousGLTherapyFor(diagnosis))
 
@@ -808,7 +813,6 @@ package object gens
                    )
 
       cpData    <- genCarePlanFor(diagnosis,ngsReport,specimens)
-//      cpData    <- genCarePlanFor(diagnosis,specimens)
 
       (carePlan,
        recommendations,
