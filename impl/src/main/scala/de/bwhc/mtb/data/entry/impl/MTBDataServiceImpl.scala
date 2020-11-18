@@ -31,22 +31,6 @@ class MTBDataServiceProviderImpl extends MTBDataServiceProvider
 {
     
   def getInstance: MTBDataService = {
-/*
-    val localSite    = Option(System.getProperty("bwhc.zpm.site")).map(ZPM(_)).get  //TODO: improve configurability
-
-    val db           = MTBDataDB.getInstance.get
-
-    val queryService = QueryServiceProxy.getInstance.get
-    
-    val validator    = DataValidator.getInstance.getOrElse(new DefaultDataValidator)
-
-    new MTBDataServiceImpl(
-      localSite,
-      validator,
-      db,
-      queryService
-    )
-*/
     MTBDataServiceImpl.instance
   }
     
@@ -72,6 +56,26 @@ object MTBDataServiceImpl
 }
 
 
+object Matchers
+{
+
+  object FatalErrors
+  {
+    def unapply(rep: DataQualityReport): Boolean = {
+      rep.issues.map(_.severity).toList contains Severity.Fatal
+    }
+  }
+
+  object OnlyInfos
+  {
+    def unapply(rep: DataQualityReport): Boolean = {
+      rep.issues.map(_.severity).toList forall (_ == Severity.Info)
+    }
+  }
+
+}
+
+
 class MTBDataServiceImpl
 (
   private val localSite: ZPM,
@@ -90,6 +94,8 @@ with Logging
     implicit ec: ExecutionContext
   ): Future[Either[MTBDataService.Error,MTBDataService.Response]] = {
 
+    import Matchers._
+
     import MTBDataService.Command._
     import MTBDataService.Response._
     import MTBDataService.Error._
@@ -106,45 +112,45 @@ with Logging
 
         val result =
           for {
-            checked <- validator check mtbfile
+            validation <- validator check mtbfile
 
             response <-
 
-              checked match {
-/*
-                case Invalid(qcReport) if (qcReport.hasFatalErrors) => {
+              validation match {
 
-                  log.error(s"Fatal issues detected, refusing data upload")
+                case Invalid(qcReport) => {
 
-                  Future.successful(InvalidData(qcReport).asLeft[MTBDataService.Response])
-                }
+                  qcReport match {
 
-                case Invalid(qcReport) if (qcReport.hasOnlyInfos) => {
-  
-                  log.info(s"Only 'Info' issues detected, forwarding data to QueryService")
-  
-                  (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
-                    .andThen {
-                      case Success(_) => db.deleteAll(mtbfile.patient.id)
+                    case FatalErrors() => {
+                      log.error(s"Fatal issues detected, refusing data upload")
+                      Future.successful(InvalidData(qcReport).asLeft[MTBDataService.Response])
                     }
-                    .map(_ => Imported(mtbfile).asRight[MTBDataService.Error])
-                }
-  
-                case Invalid(qcReport) => {
 
-                  log.warn(s"Issues detected, storing DataQualityReport")
+                    case OnlyInfos() => {
 
-                  Apply[Future].*>(
-                    db.save(mtbfile)
-                  )(
-                    db.save(qcReport)
-                  )
-                  .map(IssuesDetected(_).asRight[MTBDataService.Error])
-                }
-*/
+                      log.info(s"Only 'Info' issues detected, forwarding data to QueryService")
+                      
+                      (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
+                        .andThen {
+                          case Success(_) => db.deleteAll(mtbfile.patient.id)
+                        }
+                        .map(_ => Imported(mtbfile).asRight[MTBDataService.Error])
+                    }
 
-                case Invalid(qcReport) => {
+                    case _ => {
 
+                      log.warn(s"Issues detected, storing DataQualityReport")
+                      Apply[Future].*>(
+                        db.save(mtbfile)
+                      )(
+                        db.save(qcReport)
+                      )
+                      .map(IssuesDetected(_).asRight[MTBDataService.Error])
+                    }
+                  }
+                
+/*
                   val severities = qcReport.issues.map(_.severity).toList 
 
                   severities match {
@@ -176,6 +182,7 @@ with Logging
                       .map(IssuesDetected(_).asRight[MTBDataService.Error])
                     }
                   }
+*/
                 }
 
                 case Valid(_) => {
