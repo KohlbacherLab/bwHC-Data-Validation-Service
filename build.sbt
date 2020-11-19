@@ -34,8 +34,6 @@ lazy val api = project
     name := "data-entry-service-api",
     settings,
     libraryDependencies ++= Seq(
-//      dependencies.play_json,
-//      dependencies.cats_core,
       dependencies.bwhc_utils,
     )
   )
@@ -90,9 +88,9 @@ lazy val tests = project
     libraryDependencies ++= Seq(
       dependencies.scalatest,
       dependencies.logback,
-      dependencies.hgnc_catalog_impl % Test,
-      dependencies.icd_catalogs_impl % Test,
-      dependencies.med_catalog_impl % Test
+      dependencies.hgnc_catalog_impl,
+      dependencies.icd_catalogs_impl,
+      dependencies.med_catalog_impl
     ),
     publish / skip := true
   )
@@ -113,17 +111,16 @@ lazy val dependencies =
     val scalatest          = "org.scalatest"     %% "scalatest"               % "3.1.1" % Test
     val slf4j              = "org.slf4j"         %  "slf4j-api"               % "1.7.26"
     val logback            = "ch.qos.logback"    %  "logback-classic"         % "1.0.13" % Test
-//    val cats_core          = "org.typelevel"     %% "cats-core"               % "2.1.1"
     val play_json          = "com.typesafe.play" %% "play-json"               % "2.8.1"
-    val bwhc_utils         = "de.bwhc"           %% "utils"                   % "1.0-SNAPSHOT"
     val generators         = "de.ekut.tbi"       %% "generators"              % "0.1-SNAPSHOT"
+    val repo_utils         = "de.ekut.tbi"       %% "repository-utils"        % "1.0-SNAPSHOT" 
+    val bwhc_utils         = "de.bwhc"           %% "utils"                   % "1.0-SNAPSHOT"
     val hgnc_catalog_api   = "de.bwhc"           %% "hgnc-api"                % "1.0-SNAPSHOT"
     val icd_catalogs_api   = "de.bwhc"           %% "icd-catalogs-api"        % "1.0-SNAPSHOT"
     val med_catalog_api    = "de.bwhc"           %% "medication-catalog-api"  % "1.0-SNAPSHOT"
-    val hgnc_catalog_impl  = "de.bwhc"           %% "hgnc-impl"               % "1.0-SNAPSHOT"
-    val icd_catalogs_impl  = "de.bwhc"           %% "icd-catalogs-impl"       % "1.0-SNAPSHOT"
-    val med_catalog_impl   = "de.bwhc"           %% "medication-catalog-impl" % "1.0-SNAPSHOT"
-    val repo_utils         = "de.ekut.tbi"       %% "repository-utils"        % "1.0-SNAPSHOT" 
+    val hgnc_catalog_impl  = "de.bwhc"           %% "hgnc-impl"               % "1.0-SNAPSHOT" % Test
+    val icd_catalogs_impl  = "de.bwhc"           %% "icd-catalogs-impl"       % "1.0-SNAPSHOT" % Test
+    val med_catalog_impl   = "de.bwhc"           %% "medication-catalog-impl" % "1.0-SNAPSHOT" % Test
     val bwhc_query_api     = "de.bwhc"           %% "query-service-api"       % "1.0-SNAPSHOT"
   }
 
