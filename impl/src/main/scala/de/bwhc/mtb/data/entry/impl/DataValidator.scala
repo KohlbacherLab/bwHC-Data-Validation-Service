@@ -24,6 +24,7 @@ import de.bwhc.mtb.data.entry.api.DataQualityReport
 
 import de.bwhc.catalogs.icd
 import de.bwhc.catalogs.icd._
+import de.bwhc.catalogs.hgnc.{HGNCGene,HGNCCatalog}
 import de.bwhc.catalogs.med.MedicationCatalog
 
 
@@ -524,16 +525,32 @@ object DefaultDataValidator
   }
 
 
+  private val hgncCatalog = HGNCCatalog.getInstance.get
+
+  import scala.language.implicitConversions
+
+  implicit def toHGNCGeneSymbol(gene: Variant.Gene): HGNCGene.Symbol =
+    HGNCGene.Symbol(gene.value)
+
+  private def validGeneSymbol(
+    location: => Location
+  ): DataQualityValidator[Variant.Gene] = 
+    symbol => 
+      (hgncCatalog.geneWithSymbol(symbol) mustBe defined otherwise 
+        (Error(s"Invalid Gene Symbol ${symbol.value}") at location))
+        .map(_ => symbol)
+  
+
 
   implicit def ngsReportValidator(
     implicit
     patId: Patient.Id,
-    specimens: Seq[Specimen.Id]
+    specimens: Seq[Specimen.Id],
   ): DataQualityValidator[SomaticNGSReport] = {
 
 
     case ngs @
-      SomaticNGSReport(SomaticNGSReport.Id(id),patient,specimen,date,_,_,tumorContent,brcaness,msi,tmb,_,_,_,_,_) => {
+      SomaticNGSReport(SomaticNGSReport.Id(id),patient,specimen,date,_,_,tumorContent,brcaness,msi,tmb,optSnvs,_,_,_,_) => {
 
       import SomaticNGSReport._
 
@@ -570,8 +587,19 @@ object DefaultDataValidator
             ),
              
         tmb.value must be (in (tmbRange))
-          otherwise (Error(s"TMB value ${tmb.value} not in reference range $tmbRange") at Location("SomaticNGSReport",id,"tmb"))
-             
+          otherwise (Error(s"TMB value ${tmb.value} not in reference range $tmbRange") at Location("SomaticNGSReport",id,"tmb")),             
+
+        optSnvs.fold(
+          List.empty[SimpleVariant].validNel[Issue]
+        )(
+          _ validateEach (
+              snv => 
+                (snv.gene.code must be (validGeneSymbol(Location("SomaticNGSReport",id,s"SimpleVariant/${snv.id.value}"))))
+                  .map(_ => snv)
+            )
+        )
+
+        //TODO: validate other variants, at least gene symbols
       )
       .mapN { case _: Product => ngs }
 
