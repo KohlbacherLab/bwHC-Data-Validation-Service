@@ -324,8 +324,6 @@ object DefaultDataValidator
       (
         (patient must be (validReference[Patient.Id](Location("PreviousGuidelineTherapy",id,"patient")))),
 
-//        diag must be (in (diagnosisRefs))
-//          otherwise (Fatal(s"Invalid Reference to Diagnosis/${diag.value}") at Location("PreviousGuidelineTherapy",id,"diagnosis")),
         diag must be (validReference(diagnosisRefs)(Location("PreviousGuidelineTherapy",id,"diagnosis"))),
 
         (therapyLine ifUndefined (Warning("Missing Therapy Line") at Location("PreviousGuidelineTherapy",id,"therapyLine")))
@@ -352,8 +350,6 @@ object DefaultDataValidator
       (
         (patient must be (validReference[Patient.Id](Location("LastGuidelineTherapy",id,"patient")))),
 
-//        diag must be (in (diagnosisRefs))
-//          otherwise (Fatal(s"Invalid Reference to Diagnosis/${diag.value}") at Location("LastGuidelineTherapy",id,"diagnosis")),
         diag must be (validReference(diagnosisRefs)(Location("LastGuidelineTherapy",id,"diagnosis"))),
 
         period ifUndefined (Warning("Missing Therapy Period (Start/End)") at Location("LastGuidelineTherapy",id,"period"))
@@ -463,8 +459,6 @@ object DefaultDataValidator
       (
         (patient must be (validReference[Patient.Id](Location("TumorMorphology",id,"patient")))),
 
-//        (specimen must be (in (specimens))
-//           otherwise (Fatal(s"Invalid Reference to Specimen/${specimen.value}") at Location("TumorMorphology",id,"specimen"))),
         specimen must be (validReference(specimens)(Location("TumorMorphology",id,"specimen"))),
         
         icdO3M.validate
@@ -646,6 +640,7 @@ object DefaultDataValidator
 
         (loe shouldBe defined otherwise (Warning("Missing Level of Evidence") at Location("TherapyRecommendation",id,"levelOfEvidence"))),
 
+//        ngsId must be (validReference(ngsReports.map(_.id))(Location("TherapyRecommendation",id,"ngsReport")))
         ngsReports.find(_.id == ngsId) mustBe defined otherwise (
           Fatal(s"Invalid Reference to SomaticNGSReport/${ngsId.value}") at Location("TherapyRecommendation",id,"ngsReport")
         ) andThen (
@@ -674,8 +669,7 @@ object DefaultDataValidator
       (
         (patient must be (validReference[Patient.Id](Location("GeneticCounsellingRequest",id,"patient")))),
 
-        (date ifUndefined (Warning("Missing Recording Date") at Location("GeneticCounsellingRequest",id,"issuedOn"))),
-
+        (date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("GeneticCounsellingRequest",id,"issuedOn"))),
       )
       .mapN { case _: Product => req }
 
@@ -693,7 +687,7 @@ object DefaultDataValidator
       (
         (patient must be (validReference[Patient.Id](Location("RebiopsyRequest",id,"patient")))),
 
-        (date ifUndefined (Warning("Missing Recording Date") at Location("RebiopsyRequest",id,"issuedOn"))),
+        (date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("RebiopsyRequest",id,"issuedOn"))),
 
         specimen must be (validReference(specimens)(Location("RebiopsyRequest",id,"specimen"))),
       )
@@ -713,7 +707,7 @@ object DefaultDataValidator
       (
         (patient must be (validReference[Patient.Id](Location("HistologyReevaluationRequest",id,"patient")))),
 
-        (date ifUndefined (Warning("Missing Recording Date") at Location("HistologyReevaluationRequest",id,"issuedOn"))),
+        (date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("HistologyReevaluationRequest",id,"issuedOn"))),
 
         specimen must be (validReference(specimens)(Location("HistologyReevaluationRequest",id,"specimen"))),
       )
@@ -739,7 +733,7 @@ object DefaultDataValidator
         (nct must matchRegex (nctNumRegex) otherwise (
           Error(s"Invalid NCT Number pattern ${nct}") at Location("StudyInclusionRequest",id,"nctNumber"))),  
 
-        (date ifUndefined (Warning("Missing Recording Date") at Location("StudyInclusionRequest",id,"issuedOn"))),
+        (date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("StudyInclusionRequest",id,"issuedOn"))),
 
       )
       .mapN { case _: Product => req }
