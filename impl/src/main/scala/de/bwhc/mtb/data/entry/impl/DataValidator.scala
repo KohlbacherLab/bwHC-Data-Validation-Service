@@ -653,7 +653,7 @@ object DefaultDataValidator
     ngsReports: List[SomaticNGSReport]
   ): DataQualityValidator[TherapyRecommendation] = {
 
-    case rec @ TherapyRecommendation(TherapyRecommendation.Id(id),patient,diag,date,medication,priority,loe,ngsId,supportingVariants) =>
+    case rec @ TherapyRecommendation(TherapyRecommendation.Id(id),patient,diag,date,medication,priority,loe,optNgsId,supportingVariants) =>
 
       (
         (patient must be (validReference[Patient.Id](Location("TherapyRecommendation",id,"patient")))),
@@ -668,19 +668,22 @@ object DefaultDataValidator
 
         (loe shouldBe defined otherwise (Warning("Missing Level of Evidence") at Location("TherapyRecommendation",id,"levelOfEvidence"))),
 
-//        ngsId must be (validReference(ngsReports.map(_.id))(Location("TherapyRecommendation",id,"ngsReport")))
-        ngsReports.find(_.id == ngsId) mustBe defined otherwise (
-          Fatal(s"Invalid Reference to SomaticNGSReport/${ngsId.value}") at Location("TherapyRecommendation",id,"ngsReport")
+        optNgsId mustBe defined otherwise (
+          Error(s"Missing Reference to SomaticNGSReport") at Location("TherapyRecommendation",id,"ngsReport")
         ) andThen (
-          ngsReport =>
+          ngsId =>
+            ngsReports.find(_.id == ngsId.get) mustBe defined otherwise (
+              Fatal(s"Invalid Reference to SomaticNGSReport/${ngsId.get.value}") at Location("TherapyRecommendation",id,"ngsReport")
+            ) andThen (
+              ngsReport =>
 
-          supportingVariants shouldBe defined otherwise (
-            Warning("Missing Supporting Variants") at Location("TherapyRecommendation",id,"supportingVariants")
-          ) andThen (refs =>
-            refs.get must be (validReferences(Location("TherapyRecommendation",id,"supportingVariants"))(ngsReport.get.variants.map(_.id))) 
-          )
+              supportingVariants shouldBe defined otherwise (
+                Warning("Missing Supporting Variants") at Location("TherapyRecommendation",id,"supportingVariants")
+              ) andThen (refs =>
+                refs.get must be (validReferences(Location("TherapyRecommendation",id,"supportingVariants"))(ngsReport.get.variants.map(_.id))) 
+              )
+            )
         )
-
       )
       .mapN { case _: Product => rec }
 

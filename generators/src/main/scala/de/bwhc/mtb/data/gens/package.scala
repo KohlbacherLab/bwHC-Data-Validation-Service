@@ -580,9 +580,8 @@ package object gens
       //TODO: ref supporting variant
       supportingVariantRefs <- Gen.subsets(ngsReport.variants).map(_.map(_.id))
     } yield TherapyRecommendation(
-      id,diag.patient,diag.id,Some(date),meds,Some(prio),Some(loe),ngsReport.id,Some(supportingVariantRefs)
+      id,diag.patient,diag.id,Some(date),meds,Some(prio),Some(loe),Some(ngsReport.id),Some(supportingVariantRefs)
     )
-//    } yield TherapyRecommendation(id,diag.patient,diag.id,Some(date),meds,Some(prio),Some(loe),None)
 
 
   def genRebiopsyRequestFor(

@@ -150,39 +150,6 @@ with Logging
                     }
                   }
                 
-/*
-                  val severities = qcReport.issues.map(_.severity).toList 
-
-                  severities match {
-
-                    case s if (s contains Severity.Fatal) => {
-                      log.error(s"Fatal issues detected, refusing data upload")
-                      Future.successful(InvalidData(qcReport).asLeft[MTBDataService.Response])
-                    }
-
-                    case s if (s forall (_ == Severity.Info)) => {
-
-                      log.info(s"Only 'Info' issues detected, forwarding data to QueryService")
-                      
-                      (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
-                        .andThen {
-                          case Success(_) => db.deleteAll(mtbfile.patient.id)
-                        }
-                        .map(_ => Imported(mtbfile).asRight[MTBDataService.Error])
-                    }
-
-                    case _ => {
-
-                      log.warn(s"Issues detected, storing DataQualityReport")
-                      Apply[Future].*>(
-                        db.save(mtbfile)
-                      )(
-                        db.save(qcReport)
-                      )
-                      .map(IssuesDetected(_).asRight[MTBDataService.Error])
-                    }
-                  }
-*/
                 }
 
                 case Valid(_) => {
