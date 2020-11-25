@@ -198,6 +198,8 @@ with Logging
     implicit ec: ExecutionContext
   ): Future[Iterable[Patient]] = {
   
+    log.info(s"Handling request for Patients with data quality issues")
+
     db.mtbfiles.map(_.map(_.patient))  
 
   }
@@ -208,7 +210,11 @@ with Logging
   )(
     implicit ec: ExecutionContext
   ): Future[Option[MTBFile]] = {
+
+    log.info(s"Handling request for MTBFile of Patient ${patient.value}")
+
     db.mtbfile(patient)
+
   }
 
 
@@ -217,6 +223,8 @@ with Logging
   )(
     implicit ec: ExecutionContext
   ): Future[Option[DataQualityReport]] = {
+
+    log.info(s"Handling request for DataQualityReport of Patient ${patient.value}")
 
     db.dataQcReportOf(patient)
 

@@ -85,6 +85,7 @@ object MTBDataService extends SPILoader(classOf[MTBDataServiceProvider])
       patient: Patient.Id,
       timestamp: Instant = Instant.now
     ) extends Response
+
   }
 
   sealed abstract class Error
