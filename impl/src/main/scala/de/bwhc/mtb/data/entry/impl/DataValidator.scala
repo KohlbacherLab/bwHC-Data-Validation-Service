@@ -129,9 +129,9 @@ object DefaultDataValidator
 
         insurance shouldBe defined otherwise (Warning("Missing Health Insurance") at Location("Patient",id,"insurance")),
 
-        (dod couldBe defined
-          otherwise (Info("Undefined date of death. Ensure if up to date") at Location("Patient",id,"dateOfDeath")))
-          .andThen ( date =>
+        (dod couldBe defined otherwise (
+           Info("Undefined date of death. Ensure if up to date") at Location("Patient",id,"dateOfDeath"))
+          ) andThen ( date =>
             date.get must be (before (LocalDate.now))
               otherwise (Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath"))
           ),
@@ -183,7 +183,7 @@ object DefaultDataValidator
       case icd10 @ Coding(dtos.ICD10GM(code),_,version) =>
 
         (version mustBe defined otherwise (Error("Missing ICD-10-GM Version") at Location("ICD-10-GM Coding","","version")))
-          .andThen( v =>
+          .andThen ( v =>
             attempt(icd.ICD10GM.Version(v.get)) otherwise (
               Error(s"Invalid ICD-10-GM Version ${v.get}") at Location("ICD-10-GM Coding","","version")
             )
@@ -277,9 +277,9 @@ object DefaultDataValidator
       implicit val diagId = diag.id
 
       (
-        (patient must be (validReference[Patient.Id](Location("Diagnosis",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("Diagnosis",id,"patient"))),
 
-        (date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("Diagnosis",id,"recordedOn"))),
+        date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("Diagnosis",id,"recordedOn")),
 
         (icd10 mustBe defined otherwise (Error("Missing ICD-10-GM Coding") at Location("Diagnosis",id,"icd10")))
           andThen (_.get validate),
@@ -797,14 +797,19 @@ object DefaultDataValidator
     claimRefs: Seq[Claim.Id],
   ): DataQualityValidator[ClaimResponse] = {
 
-    case cl @ ClaimResponse(ClaimResponse.Id(id),claim,patient,_,_,reason) =>
+    case cl @ ClaimResponse(ClaimResponse.Id(id),claim,patient,_,status,reason) =>
 
       (
-        (patient must be (validReference[Patient.Id](Location("ClaimResponse",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("ClaimResponse",id,"patient"))),
 
-        (claim must be (validReference(claimRefs)(Location("ClaimResponse",id,"claim")))),
+        claim must be (validReference(claimRefs)(Location("ClaimResponse",id,"claim"))),
 
-        (reason shouldBe defined otherwise (Warning("Missing Reason for ClaimResponse Status") at Location("ClaimResponse",id,"reason")))
+        if (status == ClaimResponse.Status.Rejected)
+          reason shouldBe defined otherwise (
+            Warning("Missing Reason for Rejected ClaimResponse") at Location("ClaimResponse",id,"reason")
+          )
+        else 
+          reason.validNel[Issue]
       )
       .mapN { case _: Product => cl }
 
@@ -820,9 +825,9 @@ object DefaultDataValidator
     case th @ NotDoneTherapy(TherapyId(id),patient,recordedOn,basedOn,notDoneReason,note) =>
 
       (
-        (patient must be (validReference[Patient.Id](Location("MolecularTherapy",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("MolecularTherapy",id,"patient"))),
 
-        (basedOn must be (validReference(recommendationRefs)(Location("MolecularTherapy",id,"basedOn"))))
+        basedOn must be (validReference(recommendationRefs)(Location("MolecularTherapy",id,"basedOn")))
       )
       .mapN { case _: Product => th }
 
@@ -830,9 +835,9 @@ object DefaultDataValidator
     case th @ StoppedTherapy(TherapyId(id),patient,_,basedOn,_,medication,_,_,_) =>
 
       (
-        (patient must be (validReference[Patient.Id](Location("MolecularTherapy",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("MolecularTherapy",id,"patient"))),
 
-        (basedOn must be (validReference(recommendationRefs)(Location("MolecularTherapy",id,"basedOn")))),
+        basedOn must be (validReference(recommendationRefs)(Location("MolecularTherapy",id,"basedOn"))),
 
         medication.toList.validateEach
       )
@@ -842,9 +847,9 @@ object DefaultDataValidator
     case th @ CompletedTherapy(TherapyId(id),patient,_,basedOn,_,medication,_,_) =>
 
       (
-        (patient must be (validReference[Patient.Id](Location("MolecularTherapy",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("MolecularTherapy",id,"patient"))),
 
-        (basedOn must be (validReference(recommendationRefs)(Location("MolecularTherapy",id,"basedOn")))),
+        basedOn must be (validReference(recommendationRefs)(Location("MolecularTherapy",id,"basedOn"))),
 
         medication.toList.validateEach
       )
@@ -854,9 +859,9 @@ object DefaultDataValidator
     case th @ OngoingTherapy(TherapyId(id),patient,_,basedOn,_,medication,_,_) =>
 
       (
-        (patient must be (validReference[Patient.Id](Location("MolecularTherapy",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("MolecularTherapy",id,"patient"))),
 
-        (basedOn must be (validReference(recommendationRefs)(Location("MolecularTherapy",id,"basedOn")))),
+        basedOn must be (validReference(recommendationRefs)(Location("MolecularTherapy",id,"basedOn"))),
 
         medication.toList.validateEach
       )
