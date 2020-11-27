@@ -87,18 +87,18 @@ extends MTBDataService
 with Logging
 {
 
+  import Matchers._
+
+  import MTBDataService.Command._
+  import MTBDataService.Response._
+  import MTBDataService.Error._
+
 
   def process(
     cmd: MTBDataService.Command
   )(
     implicit ec: ExecutionContext
   ): Future[Either[MTBDataService.Error,MTBDataService.Response]] = {
-
-    import Matchers._
-
-    import MTBDataService.Command._
-    import MTBDataService.Response._
-    import MTBDataService.Error._
 
     cmd match {
 
@@ -115,7 +115,6 @@ with Logging
             validation <- validator check mtbfile
 
             response <-
-
               validation match {
 
                 case Invalid(qcReport) => {
@@ -128,25 +127,16 @@ with Logging
                     }
 
                     case OnlyInfos() => {
-
                       log.info(s"Only 'Info' issues detected, forwarding data to QueryService")
                       
-                      (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
-                        .andThen {
-                          case Success(_) => db.deleteAll(mtbfile.patient.id)
-                        }
-                        .map(_ => Imported(mtbfile).asRight[MTBDataService.Error])
+                      processClean(mtbfile)
                     }
 
                     case _ => {
 
                       log.warn(s"Issues detected, storing DataQualityReport")
-                      Apply[Future].*>(
-                        db.save(mtbfile)
-                      )(
-                        db.save(qcReport)
-                      )
-                      .map(IssuesDetected(_).asRight[MTBDataService.Error])
+                      Apply[Future].*>(db save mtbfile)(db save qcReport)
+                        .map(IssuesDetected(_).asRight[MTBDataService.Error])
                     }
                   }
                 
@@ -155,12 +145,8 @@ with Logging
                 case Valid(_) => {
   
                   log.info(s"No issues detected, forwarding data to QueryService")
-  
-                  (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
-                    .andThen {
-                      case Success(_) => db.deleteAll(mtbfile.patient.id)
-                    }
-                    .map(_ => Imported(mtbfile).asRight[MTBDataService.Error])
+ 
+                  processClean(mtbfile)
                 }
   
               }
@@ -190,6 +176,21 @@ with Logging
         }
       }
     }
+
+  }
+
+
+  private def processClean(
+    mtbfile: MTBFile
+  )(
+    implicit ec: ExecutionContext
+  ): Future[Either[MTBDataService.Error,MTBDataService.Response]] = {
+
+    (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
+      .andThen {
+        case Success(_) => db deleteAll mtbfile.patient.id
+      }
+      .map(_ => Imported(mtbfile).asRight[MTBDataService.Error])
 
   }
 
