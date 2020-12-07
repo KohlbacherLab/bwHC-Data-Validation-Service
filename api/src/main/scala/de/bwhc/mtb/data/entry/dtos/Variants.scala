@@ -114,8 +114,9 @@ case class SimpleVariant
   aminoAcidChange: Coding[SimpleVariant.AminoAcidChange],
   readDepth: AllelicReadDepth,
   allelicFrequency: AllelicFrequency,
-  cosmicId: CosmicId,
-  dbSNPId: Coding[SimpleVariant.DbSNPId],
+  cosmicId: Option[CosmicId],
+  dbSNPId: Option[SimpleVariant.DbSNPId],
+//  dbSNPId: Coding[SimpleVariant.DbSNPId],
   interpretation: Coding[Interpretation]
 )
 extends Variant

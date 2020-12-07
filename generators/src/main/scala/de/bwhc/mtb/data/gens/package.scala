@@ -253,8 +253,10 @@ package object gens
   implicit val genCosmicId: Gen[CosmicId] =
     Gen.uuidStrings.map(CosmicId(_))
 
-  implicit val genDbSNPId: Gen[Coding[DbSNPId]] =
-    Gen.uuidStrings.map(DbSNPId(_)).map(Coding(_,None))
+//  implicit val genDbSNPId: Gen[Coding[DbSNPId]] =
+//    Gen.uuidStrings.map(DbSNPId(_)).map(Coding(_,None))
+  implicit val genDbSNPId: Gen[DbSNPId] =
+    Gen.uuidStrings.map(DbSNPId(_))
 
   private val alleles = List("A","C","G","T").map(Allele)
 
@@ -312,13 +314,13 @@ package object gens
       readDpth  <- Gen.of[AllelicReadDepth]
       allelicFreq <- Gen.of[AllelicFrequency]
       cosmicId  <- Gen.of[CosmicId]
-      dbSNPId   <- Gen.of[Coding[DbSNPId]]
+      dbSNPId   <- Gen.of[DbSNPId]
+//      dbSNPId   <- Gen.of[Coding[DbSNPId]]
       interpr   <- Gen.of[Coding[Interpretation]]
-//      id        <- Gen.of[Variant.Id]
       id        <- Gen.uuidStrings.map(u => s"SNV_$u").map(Variant.Id)
     } yield SimpleVariant(
       id,chr,gene,se,refAllele,altAllele,fnAnnot,dnaChg,aaChg,
-      readDpth,allelicFreq,cosmicId,dbSNPId,interpr
+      readDpth,allelicFreq,Some(cosmicId),Some(dbSNPId),interpr
     )
 
   implicit val genCNV: Gen[CNV] =
