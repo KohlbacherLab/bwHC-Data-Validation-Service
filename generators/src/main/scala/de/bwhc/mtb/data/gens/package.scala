@@ -336,7 +336,6 @@ package object gens
       focality   <- Gen.const("reported-focality...")
       typ        <- Gen.enum(CNV.Type)
       loh        <- Gen.list(Gen.intsBetween(2,5),Gen.of[Coding[Gene]])
-//      id         <- Gen.of[Variant.Id]
       id         =  Variant.Id(
                       s"CNV_${genes.map(_.code.value).reduceLeft(_ + "_" + _)}_${typ.toString}"
                     ) 
@@ -360,7 +359,6 @@ package object gens
       d5pr  <- Gen.of[DNAFusion.FunctionalDomain]
       d3pr  <- Gen.of[DNAFusion.FunctionalDomain]
       reads <- Gen.intsBetween(20,50)
-//      id    <- Gen.of[Variant.Id]
       id    =  Variant.Id(s"DNAFusion_${d5pr.gene.code.value}_${d3pr.gene.code.value}") 
     } yield DNAFusion(id,d5pr,d3pr,reads)
 
@@ -385,7 +383,6 @@ package object gens
       effect   <- Gen.const("RNA Fusion effect...").map(RNAFusion.Effect)
       cosmicId <- Gen.of[CosmicId]
       reads    <- Gen.intsBetween(20,50)
-//      id       <- Gen.of[Variant.Id]
       id       =  Variant.Id(s"RNAFusion_${d5pr.gene.code.value}_${d3pr.gene.code.value}") 
     } yield RNAFusion(id,d5pr,d3pr,Some(effect),Some(cosmicId),reads)
 
@@ -403,7 +400,6 @@ package object gens
       rawCounts     <- Gen.intsBetween(20,1000)
       librarySize   <- Gen.intsBetween(20,100) 
       cohortRanking <- Gen.intsBetween(1,10)
-//      id            <- Gen.of[Variant.Id]
       id            =  Variant.Id(s"RNASeq_${entrezId.value}")
  
     } yield RNASeq(

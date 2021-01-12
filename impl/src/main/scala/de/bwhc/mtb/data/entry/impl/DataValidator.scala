@@ -185,13 +185,13 @@ object DefaultDataValidator
         (version mustBe defined otherwise (Error("Missing ICD-10-GM Version") at Location("ICD-10-GM Coding","","version")))
           .andThen ( v =>
             attempt(icd.ICD10GM.Version(v.get)) otherwise (
-              Error(s"Invalid ICD-10-GM Version ${v.get}") at Location("ICD-10-GM Coding","","version")
+              Error(s"Invalid ICD-10-GM Version '${v.get}'") at Location("ICD-10-GM Coding","","version")
             )
           )
           .andThen (
             v =>
               code must be (in (catalog.codings(v).map(_.code.value)))
-                otherwise (Error(s"Invalid ICD-10-GM code $code") at Location("ICD-10-GM Coding","","code"))
+                otherwise (Error(s"Invalid ICD-10-GM code '$code'") at Location("ICD-10-GM Coding","","code"))
           )
           .map(c => icd10)
 
@@ -209,13 +209,13 @@ object DefaultDataValidator
           .andThen(
             v => 
               attempt(icd.ICDO3.Version(v.get)) otherwise (
-                Error(s"Invalid ICD-O-3 Version ${v.get}") at Location("ICD-O-3-T Coding","","version")
+                Error(s"Invalid ICD-O-3 Version '${v.get}'") at Location("ICD-O-3-T Coding","","version")
               )
           )
           .andThen(
             v =>
               code must be (in (catalog.topographyCodings(v).map(_.code.value)))
-                otherwise (Error(s"Invalid ICD-O-3-T code $code") at Location("ICD-O-3-T Coding","","code"))
+                otherwise (Error(s"Invalid ICD-O-3-T code '$code'") at Location("ICD-O-3-T Coding","","code"))
           )
           .map(c => icdo3t)
 
@@ -233,13 +233,13 @@ object DefaultDataValidator
           .andThen(
             v =>
               attempt(icd.ICDO3.Version(v.get)) otherwise (
-                Error(s"Invalid ICD-O-3 Version ${v.get}") at Location("ICD-O-3-M Coding","","version")
+                Error(s"Invalid ICD-O-3 Version '${v.get}'") at Location("ICD-O-3-M Coding","","version")
               )
           )
           .andThen(
             v =>
               code must be (in (catalog.morphologyCodings(v).map(_.code.value)))
-                otherwise (Error(s"Invalid ICD-O-3-M code $code") at Location("ICD-O-3-M Coding","","code"))
+                otherwise (Error(s"Invalid ICD-O-3-M code '$code'") at Location("ICD-O-3-M Coding","","code"))
           )
           .map(c => icdo3m)
 
@@ -257,7 +257,7 @@ object DefaultDataValidator
 
       (atcCode must be (in (catalog.entries.map(_.code.value)))
         otherwise (
-          Error(s"Invalid ATC Medication code $atcCode") at Location("Medication Coding","","code"))
+          Error(s"Invalid ATC Medication code '$atcCode'") at Location("Medication Coding","","code"))
        )
        .map(c => medication)
 
@@ -329,7 +329,7 @@ object DefaultDataValidator
 
         (therapyLine ifUndefined (Warning("Missing Therapy Line") at Location("PreviousGuidelineTherapy",id,"therapyLine")))
           andThen ( l =>
-            l must be (in (therapyLines)) otherwise (Error(s"Invalid Therapy Line ${l.value}") at Location("PreviousGuidelineTherapy",id,"therapyLine"))
+            l must be (in (therapyLines)) otherwise (Error(s"Invalid Therapy Line '${l.value}'") at Location("PreviousGuidelineTherapy",id,"therapyLine"))
           ),
 
         medication.toList.validateEach
@@ -360,7 +360,7 @@ object DefaultDataValidator
 
         (therapyLine ifUndefined (Warning("Missing Therapy Line") at Location("LastGuidelineTherapy",id,"therapyLine")))
           andThen ( l =>
-            l must be (in (therapyLines)) otherwise (Error(s"Invalid Therapy Line ${l.value}") at Location("LastGuidelineTherapy",id,"therapyLine"))
+            l must be (in (therapyLines)) otherwise (Error(s"Invalid Therapy Line '${l.value}'") at Location("LastGuidelineTherapy",id,"therapyLine"))
           ),
         
         medication.toList.validateEach,
@@ -436,7 +436,7 @@ object DefaultDataValidator
       (
         (value must be (in (tcRange))
           otherwise (
-            Error(s"Tumor content value $value not in reference range $tcRange") at Location("TumorContent",id,"value"))
+            Error(s"Tumor content value '$value' not in reference range $tcRange") at Location("TumorContent",id,"value"))
           )
           .map(_ => tc),
 
@@ -564,7 +564,7 @@ object DefaultDataValidator
         specimen must be (validReference(specimens)(Location("SomaticNGSReport",id,"specimen"))),
 
         tumorContent.method must equal (TumorCellContent.Method.Bioinformatic)
-          otherwise (Error(s"Expected TumorCellContent method ${TumorCellContent.Method.Bioinformatic}")
+          otherwise (Error(s"Expected TumorCellContent method '${TumorCellContent.Method.Bioinformatic}'")
             at Location("SomaticNGSReport",id,"tumorContent")),
 
         (tumorContent validate),
@@ -573,7 +573,7 @@ object DefaultDataValidator
           .andThen(
             opt =>
               opt.get.value must be (in (brcanessRange)) otherwise (
-                  Error(s"BRCAness value ${opt.get.value} not in reference range $brcanessRange")
+                  Error(s"BRCAness value '${opt.get.value}' not in reference range $brcanessRange")
                     at Location("SomaticNGSReport",id,"brcaness")
                 )
               ),
@@ -582,12 +582,12 @@ object DefaultDataValidator
           .andThen(
             opt =>
               opt.get.value must be (in (msiRange)) otherwise (
-                Error(s"MSI value ${opt.get.value} not in reference range $msiRange") at Location("SomaticNGSReport",id,"msi")
+                Error(s"MSI value '${opt.get.value}' not in reference range $msiRange") at Location("SomaticNGSReport",id,"msi")
               )
             ),
              
         tmb.value must be (in (tmbRange))
-          otherwise (Error(s"TMB value ${tmb.value} not in reference range $tmbRange") at Location("SomaticNGSReport",id,"tmb")),             
+          otherwise (Error(s"TMB value '${tmb.value}' not in reference range $tmbRange") at Location("SomaticNGSReport",id,"tmb")),             
 
         optSnvs.fold(
           List.empty[SimpleVariant].validNel[Issue]
@@ -762,7 +762,7 @@ object DefaultDataValidator
         (patient must be (validReference[Patient.Id](Location("StudyInclusionRequest",id,"patient")))),
 
         (nct must matchRegex (nctNumRegex) otherwise (
-          Error(s"Invalid NCT Number pattern ${nct}") at Location("StudyInclusionRequest",id,"nctNumber"))),  
+          Error(s"Invalid NCT Number pattern '${nct}'") at Location("StudyInclusionRequest",id,"nctNumber"))),  
 
         (date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("StudyInclusionRequest",id,"issuedOn"))),
 
