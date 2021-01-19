@@ -11,6 +11,10 @@ final case class ValueSet[C]
   name: String,
   concepts: List[ValueSet.Concept[C]]
 )
+{
+  def getCode(c: C) =
+    concepts.find(_.code == c)
+}
 
 
 object ValueSet

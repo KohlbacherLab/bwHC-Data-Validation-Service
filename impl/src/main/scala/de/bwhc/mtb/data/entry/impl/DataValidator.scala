@@ -627,11 +627,35 @@ object DefaultDataValidator
 
         (date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("CarePlan",id,"issuedOn"))),
 
+/*
         recommendations mustBe defined otherwise (
           Error("Missing Therapy Recommendations") at Location("CarePlan",id,"recommendations"))
           andThen (
             _.get must be (validReferences[TherapyRecommendation.Id](Location("CarePlan",id,"recommendations")))
           ),
+*/
+
+        // Check that Recommendations are defined unless "noTarget" is declared
+        noTarget couldBe defined orElse (
+          recommendations mustBe defined otherwise (
+            Error("Missing Therapy Recommendations") at Location("CarePlan",id,"recommendations"))
+            andThen (
+              _.get must be (validReferences[TherapyRecommendation.Id](Location("CarePlan",id,"recommendations")))
+            )
+          ),
+
+/*
+        // Check that Recommendations are defined or "noTarget" is declared
+        recommendations mustBe defined otherwise (
+          Error("Missing Therapy Recommendations") at Location("CarePlan",id,"recommendations"))
+          andThen (
+            _.get must be (validReferences[TherapyRecommendation.Id](Location("CarePlan",id,"recommendations")))
+          ) orElse (
+            noTarget mustBe defined otherwise (
+              Error("Missing 'no target' declaration despite empty recommendation list") at Location("CarePlan",id,"recommendations")
+            )
+          ),
+*/
 
         counsellingReq
           .map(_ must be (validReference(counsellingRequestRefs)(Location("CarePlan",id,"geneticCounsellingRequest"))))

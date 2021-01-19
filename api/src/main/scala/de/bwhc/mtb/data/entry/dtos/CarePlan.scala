@@ -3,8 +3,6 @@ package de.bwhc.mtb.data.entry.dtos
 
 import java.time.LocalDate
 
-//import scala.util.Either
-
 import play.api.libs.json.Json
 
 import cats.data.NonEmptyList

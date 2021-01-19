@@ -35,6 +35,9 @@ lazy val api = project
     settings,
     libraryDependencies ++= Seq(
       dependencies.bwhc_utils,
+      dependencies.hgnc_catalog_api,
+      dependencies.icd_catalogs_api,
+      dependencies.med_catalog_api
     )
   )
 
@@ -57,9 +60,9 @@ lazy val impl = project
     name := "data-entry-service-impl",
     settings,
     libraryDependencies ++= Seq(
-      dependencies.hgnc_catalog_api,
-      dependencies.icd_catalogs_api,
-      dependencies.med_catalog_api
+//      dependencies.hgnc_catalog_api,
+//      dependencies.icd_catalogs_api,
+//      dependencies.med_catalog_api
     )
   )
   .dependsOn(

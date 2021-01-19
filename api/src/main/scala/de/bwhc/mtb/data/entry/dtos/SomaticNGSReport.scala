@@ -19,7 +19,6 @@ case class SomaticNGSReport
   issueDate: LocalDate,
   sequencingType: SomaticNGSReport.SequencingType.Value,
   metadata: List[SomaticNGSReport.MetaData],
-//  metadata: SomaticNGSReport.MetaData,
   tumorCellContent: TumorCellContent,
   brcaness: Option[BRCAness],
   msi: Option[MSI],

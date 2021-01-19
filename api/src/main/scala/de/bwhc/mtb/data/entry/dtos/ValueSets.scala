@@ -9,7 +9,7 @@ object ValueSets
   import ValueSet.Concept
 
 
-  implicit val gender: ValueSet[Gender.Value] =
+  implicit val genderValueSet: ValueSet[Gender.Value] =
     ValueSet(
       "Geschlecht",
       List(
@@ -22,7 +22,7 @@ object ValueSets
 
 
 
-  implicit val diagnosisStatus: ValueSet[Diagnosis.Status.Value] =
+  implicit val diagnosisStatusValueSet: ValueSet[Diagnosis.Status.Value] =
     ValueSet(
       "DiagnoseStadium",
       List(
@@ -34,7 +34,22 @@ object ValueSets
     )
 
 
-  implicit val familyMemberRelationship: ValueSet[FamilyMember.Relationship.Value] =
+
+  implicit val guidelineTreatmentStatusValueSet: ValueSet[GuidelineTreatmentStatus.Value] =
+    ValueSet(
+      "Leitlinientherapie-Status",
+      List(
+        Concept(GuidelineTreatmentStatus.Exhaustive            , "Ausgeschöpft"),
+        Concept(GuidelineTreatmentStatus.NonExhaustive         , "Nicht ausgeschöpft"),
+        Concept(GuidelineTreatmentStatus.Impossible            , "Leitlinientherapie nicht möglich"),
+        Concept(GuidelineTreatmentStatus.NoGuidelinesAvailable , "Kein Leitlinien vorhanden"),
+        Concept(GuidelineTreatmentStatus.Unknown               , "Unbekannt"),
+      )
+    )
+
+
+
+  implicit val familyMemberRelationshipValueSet: ValueSet[FamilyMember.Relationship.Value] =
     ValueSet(
       "Verwandtschaftsgrad",
       List(
@@ -45,13 +60,13 @@ object ValueSets
 
 
 
-  implicit val therapyLines =
+  implicit val therapyLinesValueSet =
     ValueSet[TherapyLine](
       "TherapieLinie",
       TherapyLine.values.map(tl => ValueSet.Concept(tl, s"Therapie Linie ${tl.value}"))
     )
 
-  implicit val guidelineTherapyStopReasons: ValueSet[GuidelineTherapy.StopReason.Value] =
+  implicit val guidelineTherapyStopReasonsValueSet: ValueSet[GuidelineTherapy.StopReason.Value] =
     ValueSet(
       "LeitlinienTherapie-Abbruchsgrund",
       List(
@@ -68,7 +83,7 @@ object ValueSets
 
 
 
-  implicit val specimenType: ValueSet[Specimen.Type.Value] =
+  implicit val specimenTypeValueSet: ValueSet[Specimen.Type.Value] =
     ValueSet(
       "Proben-Art",
       List(
@@ -81,7 +96,7 @@ object ValueSets
     )
 
 
-  implicit val specimenLocalization: ValueSet[Specimen.Collection.Localization.Value] =
+  implicit val specimenLocalizationValueSet: ValueSet[Specimen.Collection.Localization.Value] =
     ValueSet(
       "Proben-Lokalisierung",
       List(
@@ -92,7 +107,7 @@ object ValueSets
     )
 
 
-  implicit val specimenCollectionMethod: ValueSet[Specimen.Collection.Method.Value] =
+  implicit val specimenCollectionMethodValueSet: ValueSet[Specimen.Collection.Method.Value] =
     ValueSet(
       "Proben-Entnahmemethode",
       List(
@@ -107,7 +122,7 @@ object ValueSets
 
 
 
-  implicit val molecularTherapyNotDoneReason: ValueSet[MolecularTherapy.NotDoneReason.Value] =
+  implicit val molecularTherapyNotDoneReasonValueSet: ValueSet[MolecularTherapy.NotDoneReason.Value] =
     ValueSet(
       "MolekularTherapie-Nichtumsetzungsgrund",
       List(
@@ -126,7 +141,7 @@ object ValueSets
     )
 
 
-  implicit val molecularTherapyStopReason: ValueSet[MolecularTherapy.StopReason.Value] =
+  implicit val molecularTherapyStopReasonValueSet: ValueSet[MolecularTherapy.StopReason.Value] =
     ValueSet(
       "MolekularTherapie-Abbruchsgrund",
       List(
@@ -146,7 +161,7 @@ object ValueSets
     )
 
 
-  implicit val molecularTherapyStatusDE: ValueSet[MolecularTherapy.Status.Value] =
+  implicit val molecularTherapyStatusDEValueSet: ValueSet[MolecularTherapy.Status.Value] =
     ValueSet(
       "MolekularTherapie-Status",
       List(
@@ -160,7 +175,7 @@ object ValueSets
 
 
 
-  implicit val ecog: ValueSet[ECOG.Value] =
+  implicit val ecogValueSet: ValueSet[ECOG.Value] =
     ValueSet(
       "ECOGPerformanceStatus",
       List(
@@ -173,7 +188,7 @@ object ValueSets
     )
 
 
-  implicit val recist: ValueSet[RECIST.Value] =
+  implicit val recistValueSet: ValueSet[RECIST.Value] =
     ValueSet(
       "RECIST",
       List(
@@ -188,7 +203,7 @@ object ValueSets
     )
 
 
-  implicit val whoGrade: ValueSet[WHOGrade.Value] =
+  implicit val whoGradeValueSet: ValueSet[WHOGrade.Value] =
     ValueSet(
       "WHOGradingOfCNSTumors",
       List(
@@ -202,7 +217,7 @@ object ValueSets
 
   import LevelOfEvidence._
 
-  implicit val levelOfEvidenceGrading: ValueSet[LevelOfEvidence.Grading.Value] =
+  implicit val levelOfEvidenceGradingValueSet: ValueSet[LevelOfEvidence.Grading.Value] =
     ValueSet(
       "LevelOfEvidence-Graduierung",
       List(
@@ -218,7 +233,7 @@ object ValueSets
     )
 
 
-  implicit val levelOfEvidenceAddendum: ValueSet[LevelOfEvidence.Addendum.Value] =
+  implicit val levelOfEvidenceAddendumValueSet: ValueSet[LevelOfEvidence.Addendum.Value] =
     ValueSet(
       "LevelOfEvidence-Zusatzverweise",
       List(
@@ -233,7 +248,7 @@ object ValueSets
 
 
 
-  implicit val claimResponseStatus: ValueSet[ClaimResponse.Status.Value] =
+  implicit val claimResponseStatusValueSet: ValueSet[ClaimResponse.Status.Value] =
     ValueSet(
       "Kostenübernahme-Status",
       List(
@@ -243,7 +258,7 @@ object ValueSets
     )
 
 
-  implicit val claimResponseReason: ValueSet[ClaimResponse.Reason.Value] =
+  implicit val claimResponseReasonValueSet: ValueSet[ClaimResponse.Reason.Value] =
     ValueSet(
       "Kostenübernahme-Ablehnungsgrund",
       List(
