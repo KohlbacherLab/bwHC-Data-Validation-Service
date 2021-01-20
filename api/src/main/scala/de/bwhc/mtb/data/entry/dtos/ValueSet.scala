@@ -12,7 +12,7 @@ final case class ValueSet[C]
   concepts: List[ValueSet.Concept[C]]
 )
 {
-  def getCode(c: C) =
+  def concept(c: C) =
     concepts.find(_.code == c)
 }
 

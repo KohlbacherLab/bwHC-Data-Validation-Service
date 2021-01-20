@@ -9,38 +9,31 @@ package object views
   import play.api.libs.json.{Json,Format}
 
 
-
   type Or[+T,+U] = Either[T,U]
 
 
-
   final case class Default[T](value: T) extends AnyVal
-
   object Default
   {
     def valueOf[T](implicit dflt: Default[T]): T = dflt.value
   }
 
 
-  trait View[T]
-
-
   object syntax
   {
  
-    implicit class ViewOps[T](val t: T) extends AnyVal
+    implicit class MappingOps[T](val t: T) extends AnyVal
     {
-       def to[V](implicit f: T => V) = f(t)
-
-       def toOpt[V](implicit f: T => Option[V]) = f(t)
+      def mapTo[V](implicit f: T => V) = f(t)
     }
 
   }
 
 
-  import java.time.temporal.Temporal
+//  import java.time.temporal.Temporal
 
-  final case class TemporalValue[T <: Temporal,V]
+//  final case class TemporalValue[T <: Temporal,V]
+  final case class TemporalValue[T,V]
   (
     date: T,
     value: V
@@ -48,12 +41,11 @@ package object views
 
   object TemporalValue
   {
-    implicit def formatTemporalValue[T <: Temporal: Format, V: Format] =
+//    implicit def formatTemporalValue[T <: Temporal: Format, V: Format] =
+    implicit def formatTemporalValue[T: Format, V: Format] =
       Json.format[TemporalValue[T,V]]
   }
 
- 
-  type TimeSeries[T <: Temporal,V] = List[TemporalValue[T,V]]
 
 
 }

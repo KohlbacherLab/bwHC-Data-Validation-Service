@@ -12,12 +12,9 @@ import de.bwhc.mtb.data.entry.dtos._
 
 
 sealed trait NoTarget
-{
-  override def toString = "Kein Target"
-}
 object NoTarget extends NoTarget
 {
-  implicit val format: Writes[NoTarget] = Writes(nt => JsString(nt.toString))
+  implicit val format: Writes[NoTarget] = Writes(nt => JsString("Kein Target"))
 }
 
 
@@ -26,12 +23,13 @@ case class CarePlanView
   id: CarePlan.Id,
 //  patient: Patient.Id,
   diagnosis: Diagnosis.Id,
+  icd10: ICD10Display,
   issuedOn: String Or LocalDate,
   protocol: String,
-//  recommendations: NoTarget Or NonEmptyList[TherapyRecommendation.Id],
-  recommendations: NoTarget Or List[TherapyRecommendation.Id],
-  geneticCounsellingRequest: String Or GeneticCounsellingRequest.Id,
-  rebiopsyRequests: String Or List[RebiopsyRequest.Id]
+//  recommendations: NoTarget Or List[TherapyRecommendation.Id],
+  geneticCounsellingRecommended: Boolean,
+  rebiopsyRequests: String Or List[RebiopsyRequest.Id],
+  inclusionInStudy: String Or List[NCTNumber]
 )
 
 

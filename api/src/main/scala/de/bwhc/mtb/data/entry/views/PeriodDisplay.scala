@@ -12,12 +12,12 @@ import de.bwhc.mtb.data.entry.dtos.{
 }
 
 
-final case class PeriodDisplay[T <: Temporal](value: String) extends View[Period[T]]
+final case class PeriodDisplay[T <: Temporal](value: String) extends AnyVal
 
 
 object PeriodDisplay
 {
-  implicit def format[T <: Temporal: Format] = Json.writes[PeriodDisplay[T]]
+  implicit def format[T <: Temporal: Format] = Json.valueWrites[PeriodDisplay[T]]
 
   implicit def dflt[T <: Temporal] = Default(PeriodDisplay[T]("N/A"))
 }

@@ -109,7 +109,7 @@ object MolecularTherapy
       }
     )
 
-
+/*
   implicit val toMolecularTherapyView: MolecularTherapy => MolecularTherapyView = {
   
     case th: NotDoneTherapy => 
@@ -157,7 +157,7 @@ object MolecularTherapy
       )
 
   }
-
+*/
 
 }
 
@@ -240,7 +240,7 @@ final case class OngoingTherapy
 
 
 
-
+/*
 final case class MolecularTherapyView
 (
   id: TherapyId,
@@ -261,7 +261,7 @@ object MolecularTherapyView
 //  implicit val writes = Json.writes[MolecularTherapyView]
   implicit val format = Json.format[MolecularTherapyView]
 }
-
+*/
 
 case class MolecularTherapyDocumentation
 (

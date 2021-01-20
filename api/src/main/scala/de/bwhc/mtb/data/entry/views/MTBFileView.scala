@@ -11,17 +11,15 @@ final case class MTBFileView
   patient: PatientView,
   diagnoses: List[DiagnosisView],
   familyMemberDiagnoses: List[FamilyMemberDiagnosisView],
-  previousGuidelineTherapies: List[PreviousGuidelineTherapyView],
-  lastGuidelineTherapy: Option[LastGuidelineTherapyView],
-  //TODO: ecogStatus
+  guidelineTherapies: List[GuidelineTherapyView],
+  ecogStatus: Option[ECOGStatusView],
   specimens: List[SpecimenView],
   molecularPathologyFindings: List[MolecularPathologyFindingView],
   histologyReports: List[HistologyReportView],
   //TODO: NGSReports
-  
+  claimStatus: List[ClaimStatusView], 
 
 )
-extends View[MTBFile]
 
 
 object MTBFileView

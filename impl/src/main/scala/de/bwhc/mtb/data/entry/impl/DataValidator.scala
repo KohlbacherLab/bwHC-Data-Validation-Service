@@ -386,7 +386,7 @@ object DefaultDataValidator
         (patient must be (validReference[Patient.Id](Location("ECOGStatus",id.value,"patient")))),
 
         date mustBe defined otherwise (
-          Error("Missing ECOG Performance Status Recording Date") at Location("ECOGStatus",id.value,"effectiveDate")
+          Error("Missing effective date of ECOG Performance Status finding") at Location("ECOGStatus",id.value,"effectiveDate")
         ),
       )
       .mapN { case _: Product => pfSt }
@@ -627,23 +627,30 @@ object DefaultDataValidator
 
         (date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("CarePlan",id,"issuedOn"))),
 
-/*
-        recommendations mustBe defined otherwise (
-          Error("Missing Therapy Recommendations") at Location("CarePlan",id,"recommendations"))
-          andThen (
-            _.get must be (validReferences[TherapyRecommendation.Id](Location("CarePlan",id,"recommendations")))
-          ),
-*/
-
         // Check that Recommendations are defined unless "noTarget" is declared
-        noTarget couldBe defined orElse (
+        recommendations mustBe defined otherwise (
+          Error("Missing Therapy Recommendations") at Location("CarePlan",id,"recommendations")
+        ) andThen (
+          _.get must be (validReferences[TherapyRecommendation.Id](Location("CarePlan",id,"recommendations")))
+        ) andThen (
+          _ => noTarget mustBe undefined otherwise (
+            Error("'No target' declared despite TherapyRecommendations being defined") at Location("CarePlan",id,"recommendations")
+          )
+        )
+        ,
+/*
+        noTarget couldBe defined andThen (
+          nt => recommendations.getOrElse(List.empty[TherapyRecommendation.Id]) mustBe empty
+        ) otherwise (
+          Error("Therapy Recommendations defined despite 'no target' being declared") at Location("CarePlan",id,"recommendations") 
+        ) orElse (
           recommendations mustBe defined otherwise (
-            Error("Missing Therapy Recommendations") at Location("CarePlan",id,"recommendations"))
-            andThen (
-              _.get must be (validReferences[TherapyRecommendation.Id](Location("CarePlan",id,"recommendations")))
-            )
-          ),
-
+            Error("Missing Therapy Recommendations") at Location("CarePlan",id,"recommendations")
+          ) andThen (
+             _.get must be (validReferences[TherapyRecommendation.Id](Location("CarePlan",id,"recommendations")))
+          )
+        ),
+*/
 /*
         // Check that Recommendations are defined or "noTarget" is declared
         recommendations mustBe defined otherwise (
@@ -783,12 +790,12 @@ object DefaultDataValidator
     case req @ StudyInclusionRequest(StudyInclusionRequest.Id(id),patient,diag,NCTNumber(nct),date) =>
 
       (
-        (patient must be (validReference[Patient.Id](Location("StudyInclusionRequest",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("StudyInclusionRequest",id,"patient"))),
 
-        (nct must matchRegex (nctNumRegex) otherwise (
-          Error(s"Invalid NCT Number pattern '${nct}'") at Location("StudyInclusionRequest",id,"nctNumber"))),  
+        nct must matchRegex (nctNumRegex) otherwise (
+          Error(s"Invalid NCT Number pattern '${nct}'") at Location("StudyInclusionRequest",id,"nctNumber")),  
 
-        (date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("StudyInclusionRequest",id,"issuedOn"))),
+        date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("StudyInclusionRequest",id,"issuedOn")),
 
       )
       .mapN { case _: Product => req }

@@ -23,5 +23,11 @@ object ECOGDisplay
 final case class ECOGStatusView
 (
 //  patient: Patient.Id,
-  values: List[TemporalValue[LocalDate,ECOGDisplay]]
+  values: List[TemporalValue[String,ECOGDisplay]]
+//  values: List[TemporalValue[LocalDate,ECOGDisplay]]
 )
+
+object ECOGStatusView
+{
+  implicit val format = Json.format[ECOGStatusView]
+}

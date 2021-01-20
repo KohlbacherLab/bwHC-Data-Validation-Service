@@ -23,7 +23,6 @@ final case class PatientView
   insurance: String Or HealthInsurance.Id,
   dateOfDeath: String Or LocalDate,
 )
-extends View[Patient]
 
 
 object PatientView

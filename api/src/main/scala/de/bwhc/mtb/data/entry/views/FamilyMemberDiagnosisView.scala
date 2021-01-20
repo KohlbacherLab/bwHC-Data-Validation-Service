@@ -17,7 +17,6 @@ final case class FamilyMemberDiagnosisView
   id: FamilyMemberDiagnosis.Id,
   relationship: String
 )
-extends View[FamilyMemberDiagnosis]
 
 
 object FamilyMemberDiagnosisView

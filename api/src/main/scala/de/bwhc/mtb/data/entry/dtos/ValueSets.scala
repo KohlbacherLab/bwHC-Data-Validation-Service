@@ -39,8 +39,8 @@ object ValueSets
     ValueSet(
       "Leitlinientherapie-Status",
       List(
-        Concept(GuidelineTreatmentStatus.Exhaustive            , "Ausgeschöpft"),
-        Concept(GuidelineTreatmentStatus.NonExhaustive         , "Nicht ausgeschöpft"),
+        Concept(GuidelineTreatmentStatus.Exhaustive            , "Leitlinien ausgeschöpft"),
+        Concept(GuidelineTreatmentStatus.NonExhaustive         , "Leitlinien nicht ausgeschöpft"),
         Concept(GuidelineTreatmentStatus.Impossible            , "Leitlinientherapie nicht möglich"),
         Concept(GuidelineTreatmentStatus.NoGuidelinesAvailable , "Kein Leitlinien vorhanden"),
         Concept(GuidelineTreatmentStatus.Unknown               , "Unbekannt"),

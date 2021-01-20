@@ -16,7 +16,6 @@ import de.bwhc.mtb.data.entry.dtos.{
 }
 
 
-//case class ICD10Display(value: String) extends View[Coding[ICD10GM]]
 case class ICD10Display(value: String) extends AnyVal
 
 object ICD10Display
@@ -27,7 +26,6 @@ object ICD10Display
 }
 
 
-//case class ICDO3TDisplay(value: String) extends View[Coding[ICDO3T]]
 case class ICDO3TDisplay(value: String) extends AnyVal
 
 object ICDO3TDisplay
@@ -52,7 +50,6 @@ final case class DiagnosisView
   //TODO: statusHistory, histologyReports
   guidelineTreatmentStatus: String 
 )
-extends View[Diagnosis]
 
 
 object DiagnosisView
