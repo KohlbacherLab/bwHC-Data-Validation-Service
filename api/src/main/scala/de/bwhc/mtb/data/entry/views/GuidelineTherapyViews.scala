@@ -25,11 +25,11 @@ case class GuidelineTherapyView
 (
   id: TherapyId,
   diagnosis: Diagnosis.Id,
-  therapyLine: String Or TherapyLine,
-  period: String Or PeriodDisplay[LocalDate],
+  therapyLine: NotAvailable Or TherapyLine,
+  period: NotAvailable Or PeriodDisplay[LocalDate],
   medication: NonEmptyList[MedicationDisplay],
-  reasonStopped: String,
-  response: String Or ResponseDisplay
+  reasonStopped: NotAvailable Or String,
+  response: NotAvailable Or ResponseDisplay
 )
 
 object GuidelineTherapyView
@@ -43,7 +43,7 @@ case class PreviousGuidelineTherapyView
 (
   id: TherapyId,
   diagnosis: Diagnosis.Id,
-  therapyLine: String Or TherapyLine,
+  therapyLine: NotAvailable Or TherapyLine,
   medication: NonEmptyList[MedicationDisplay],
 )
 
@@ -59,8 +59,8 @@ case class LastGuidelineTherapyView
 (
   id: TherapyId,
   diagnosis: Diagnosis.Id,
-  therapyLine: String Or TherapyLine,
-  period: String Or PeriodDisplay[LocalDate],
+  therapyLine: NotAvailable Or TherapyLine,
+  period: NotAvailable Or PeriodDisplay[LocalDate],
   medication: NonEmptyList[MedicationDisplay],
   reasonStopped: String
 )

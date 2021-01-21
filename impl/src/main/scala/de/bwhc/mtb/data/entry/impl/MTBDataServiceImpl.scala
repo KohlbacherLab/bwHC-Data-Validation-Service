@@ -23,6 +23,7 @@ import de.bwhc.util.Logging
 import de.bwhc.mtb.data.entry.api._
 
 import de.bwhc.mtb.data.entry.dtos._
+import de.bwhc.mtb.data.entry.views.MTBFileView
 import DataQualityReport.Issue.Severity
 
 
@@ -94,7 +95,7 @@ with Logging
   import MTBDataService.Error._
 
 
-  def process(
+  override def process(
     cmd: MTBDataService.Command
   )(
     implicit ec: ExecutionContext
@@ -195,7 +196,7 @@ with Logging
   }
 
 
-  def patientsWithIncompleteData(
+  override def patientsWithIncompleteData(
     implicit ec: ExecutionContext
   ): Future[Iterable[Patient]] = {
   
@@ -206,7 +207,7 @@ with Logging
   }
 
 
-  def mtbfile(
+  override def mtbfile(
     patient: Patient.Id
   )(
     implicit ec: ExecutionContext
@@ -219,7 +220,23 @@ with Logging
   }
 
 
-  def dataQualityReport(
+  override def mtbfileView(
+    patient: Patient.Id
+  )(
+    implicit ec: ExecutionContext
+  ): Future[Option[MTBFileView]] = {
+
+    import de.bwhc.mtb.data.entry.views.mappings._
+
+    for {
+      mtbf <- mtbfile(patient)
+      view =  mtbf.map(_.mapTo[MTBFileView])
+    } yield view
+
+  }
+
+
+  override def dataQualityReport(
     patient: Patient.Id
   )(
     implicit ec: ExecutionContext

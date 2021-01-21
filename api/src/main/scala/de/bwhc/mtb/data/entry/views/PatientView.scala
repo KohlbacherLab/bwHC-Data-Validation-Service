@@ -18,10 +18,10 @@ final case class PatientView
 (
   id: Patient.Id,
   gender: String,
-  birthDate: String Or LocalDate,
-  managingZPM: String Or ZPM,
-  insurance: String Or HealthInsurance.Id,
-  dateOfDeath: String Or LocalDate,
+  birthDate: NotAvailable Or LocalDate,
+  managingZPM: NotAvailable Or ZPM,
+  insurance: NotAvailable Or HealthInsurance.Id,
+  dateOfDeath: NotAvailable Or LocalDate,
 )
 
 

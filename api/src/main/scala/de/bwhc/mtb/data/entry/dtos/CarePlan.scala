@@ -34,9 +34,9 @@ case class CarePlan
 //  result: Either[NoTargetFinding,NonEmptyList[TherapyRecommendation.Id]] //TODO: consider this for result modelling 
   noTargetFinding: Option[NoTargetFinding],
   recommendations: Option[List[TherapyRecommendation.Id]],
-//  recommendations: NonEmptyList[TherapyRecommendation.Id],
   geneticCounsellingRequest: Option[GeneticCounsellingRequest.Id],
-  rebiopsyRequests: Option[List[RebiopsyRequest.Id]]
+  rebiopsyRequests: Option[List[RebiopsyRequest.Id]],
+  studyInclusionRequest: Option[StudyInclusionRequest.Id]
 )
 
 

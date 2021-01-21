@@ -35,9 +35,9 @@ final case class ClaimStatusView
   id: Claim.Id,
   therapy: TherapyRecommendation.Id,
   issueDate: LocalDate,
-  responseDate: String Or LocalDate,
-  status: String Or ClaimResponseStatusDisplay,
-  reason: String Or ClaimResponseReasonDisplay 
+  responseDate: NotAvailable Or LocalDate,
+  status: NotAvailable Or ClaimResponseStatusDisplay,
+  reason: NotAvailable Or ClaimResponseReasonDisplay 
 )
 
 object ClaimStatusView

@@ -15,8 +15,12 @@ import cats.data.NonEmptyList
 import de.bwhc.util.ddd.Event
 import de.bwhc.util.spi._
 
-import de.bwhc.mtb.data.entry.dtos._
+import de.bwhc.mtb.data.entry.dtos.{
+  Patient,
+  MTBFile
+}
 
+import de.bwhc.mtb.data.entry.views.MTBFileView
 
 
 trait MTBDataServiceProvider extends SPI[MTBDataService]
@@ -39,11 +43,20 @@ trait MTBDataService
   ): Future[Iterable[Patient]]
 
 
+  @Deprecated
   def mtbfile(
     patient: Patient.Id
   )(
     implicit ec: ExecutionContext
   ): Future[Option[MTBFile]]
+
+
+  def mtbfileView(
+    patient: Patient.Id
+  )(
+    implicit ec: ExecutionContext
+  ): Future[Option[MTBFileView]]
+
 
   def dataQualityReport(
     patient: Patient.Id

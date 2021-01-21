@@ -19,10 +19,10 @@ final case class SpecimenView
   id: Specimen.Id,
 //  patient: Patient.Id,
   icd10: ICD10Display,
-  `type`: String,
-  collectionDate: String Or LocalDate,
-  localization: String,
-  collectionMethod: String
+  `type`:  NotAvailable Or String,
+  collectionDate: NotAvailable Or LocalDate,
+  localization:  NotAvailable Or String,
+  collectionMethod:  NotAvailable Or String
 )
 
 

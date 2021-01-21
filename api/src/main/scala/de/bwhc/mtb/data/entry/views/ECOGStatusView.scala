@@ -16,13 +16,12 @@ import play.api.libs.json.Json
 final case class ECOGDisplay(value: String) extends AnyVal
 object ECOGDisplay
 {
-  implicit val format = Json.format[ECOGDisplay]
+  implicit val format = Json.valueFormat[ECOGDisplay]
 }
 
 
 final case class ECOGStatusView
 (
-//  patient: Patient.Id,
   values: List[TemporalValue[String,ECOGDisplay]]
 //  values: List[TemporalValue[LocalDate,ECOGDisplay]]
 )

@@ -19,8 +19,8 @@ final case class MolecularPathologyFindingView
   id: MolecularPathologyFinding.Id,
 //  patient: Patient.Id,
   specimen: Specimen.Id,
-  performingInstitute: String Or PathologyDept,
-  issuedOn: String Or LocalDate,
+  performingInstitute: NotAvailable Or PathologyDept,
+  issuedOn: NotAvailable Or LocalDate,
   note: String
 )
 

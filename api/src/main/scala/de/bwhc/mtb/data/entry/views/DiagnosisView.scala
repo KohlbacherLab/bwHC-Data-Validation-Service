@@ -22,7 +22,7 @@ object ICD10Display
 {
   implicit val format = Json.valueFormat[ICD10Display]
 
-  implicit val dflt: Default[ICD10Display] = Default(ICD10Display("N/A"))
+//  implicit val dflt = Default(ICD10Display("N/A"))
 }
 
 
@@ -32,7 +32,7 @@ object ICDO3TDisplay
 {
   implicit val format = Json.valueFormat[ICDO3TDisplay]
 
-  implicit val dflt: Default[ICDO3TDisplay] = Default(ICDO3TDisplay("-"))
+//  implicit val dflt = Default(ICDO3TDisplay("-"))
 }
 
 
@@ -41,11 +41,9 @@ final case class DiagnosisView
 (
   id: Diagnosis.Id,
   patient: Patient.Id,
-  recordedOn: String Or LocalDate,
+  recordedOn: NotAvailable Or LocalDate,
   icd10: ICD10Display,
   icdO3T: ICDO3TDisplay,
-//  icd10: String,
-//  icdO3T: String,
   whoGrade: String,
   //TODO: statusHistory, histologyReports
   guidelineTreatmentStatus: String 

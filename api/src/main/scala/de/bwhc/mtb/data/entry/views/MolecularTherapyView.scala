@@ -23,13 +23,13 @@ final case class MolecularTherapyView
   status: String,
   recordedOn: LocalDate,
   recommendation: TherapyRecommendation.Id,
-  period: String Or PeriodDisplay[LocalDate],
+  period: NotAvailable Or PeriodDisplay[LocalDate],
   notDoneReason: String,
   medication: List[MedicationDisplay],
   reasonStopped: String,
-  dosage: String Or Dosage.Value,
+  dosage: NotAvailable Or Dosage.Value,
   note: String,
-  response: String Or ResponseDisplay
+  response: NotAvailable Or ResponseDisplay
 )
 
 

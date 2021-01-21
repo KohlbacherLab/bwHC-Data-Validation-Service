@@ -29,9 +29,9 @@ final case class HistologyReportView
   id: HistologyReport.Id,
 //  patient: Patient.Id,
   specimen: Specimen.Id,
-  issuedOn: String Or LocalDate,
-  tumorMorphology: String Or ICDO3MDisplay,
-  tumorCellContent: String Or TumorCellContent,
+  issuedOn: NotAvailable Or LocalDate,
+  tumorMorphology: NotAvailable Or ICDO3MDisplay,
+  tumorCellContent: NotAvailable Or TumorCellContent,
   note: String
 )
 

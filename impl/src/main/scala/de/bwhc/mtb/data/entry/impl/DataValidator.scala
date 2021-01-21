@@ -615,10 +615,11 @@ object DefaultDataValidator
     diagnosisRefs: List[Diagnosis.Id],
     recommendationRefs: Seq[TherapyRecommendation.Id],
     counsellingRequestRefs: Seq[GeneticCounsellingRequest.Id],
-    rebiopsyRequestRefs: Seq[RebiopsyRequest.Id]
+    rebiopsyRequestRefs: Seq[RebiopsyRequest.Id],
+    studyInclusionRequestRefs: Seq[StudyInclusionRequest.Id]
   ): DataQualityValidator[CarePlan] = {
 
-    case cp @ CarePlan(CarePlan.Id(id),patient,diag,date,_,noTarget,recommendations,counsellingReq,rebiopsyRequests) =>
+    case cp @ CarePlan(CarePlan.Id(id),patient,diag,date,_,noTarget,recommendations,counsellingReq,rebiopsyRequests,studyInclusionReq) =>
 
       (
         (patient must be (validReference[Patient.Id](Location("CarePlan",id,"patient")))),
@@ -628,6 +629,7 @@ object DefaultDataValidator
         (date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("CarePlan",id,"issuedOn"))),
 
         // Check that Recommendations are defined unless "noTarget" is declared
+/*        
         recommendations mustBe defined otherwise (
           Error("Missing Therapy Recommendations") at Location("CarePlan",id,"recommendations")
         ) andThen (
@@ -636,9 +638,9 @@ object DefaultDataValidator
           _ => noTarget mustBe undefined otherwise (
             Error("'No target' declared despite TherapyRecommendations being defined") at Location("CarePlan",id,"recommendations")
           )
-        )
-        ,
-/*
+        ),
+*/
+
         noTarget couldBe defined andThen (
           nt => recommendations.getOrElse(List.empty[TherapyRecommendation.Id]) mustBe empty
         ) otherwise (
@@ -650,7 +652,7 @@ object DefaultDataValidator
              _.get must be (validReferences[TherapyRecommendation.Id](Location("CarePlan",id,"recommendations")))
           )
         ),
-*/
+
 /*
         // Check that Recommendations are defined or "noTarget" is declared
         recommendations mustBe defined otherwise (
@@ -670,7 +672,12 @@ object DefaultDataValidator
  
         rebiopsyRequests
           .map(_ must be (validReferences[RebiopsyRequest.Id](Location("CarePlan",id,"rebiopsyRequests"))))
-          .getOrElse(List.empty[RebiopsyRequest.Id].validNel[Issue]) 
+          .getOrElse(List.empty[RebiopsyRequest.Id].validNel[Issue]),
+
+        studyInclusionReq
+          .map(_ must be (validReference(studyInclusionRequestRefs)(Location("CarePlan",id,"studyInclusionRequest"))))
+          .getOrElse(None.validNel[Issue]),
+ 
       )
       .mapN { case _: Product => cp }
 
@@ -782,9 +789,7 @@ object DefaultDataValidator
   private val nctNumRegex = """(NCT\d{8})""".r
 
   implicit def studyInclusionRequestValidator(
-    implicit
-    patId: Patient.Id,
-    specimens: Seq[Specimen.Id]
+    implicit patId: Patient.Id,
   ): DataQualityValidator[StudyInclusionRequest] = {
 
     case req @ StudyInclusionRequest(StudyInclusionRequest.Id(id),patient,diag,NCTNumber(nct),date) =>
@@ -1056,6 +1061,9 @@ object DefaultDataValidator
   
         implicit val rebiopsyRequestRefs =
           rebiopsyRequests.getOrElse(List.empty[RebiopsyRequest]).map(_.id)
+  
+        implicit val studyInclusionRequestRefs =
+          studyInclusionRequests.getOrElse(List.empty[StudyInclusionRequest]).map(_.id)
   
         implicit val claimRefs =
           claims.getOrElse(List.empty[Claim]).map(_.id)

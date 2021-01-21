@@ -629,7 +629,10 @@ package object gens
     diag: Diagnosis,
     ngsReport: SomaticNGSReport,
     specimens: List[Specimen]
-  ): Gen[(CarePlan,NonEmptyList[TherapyRecommendation],Option[GeneticCounsellingRequest],List[RebiopsyRequest])] =
+  ): Gen[
+      (CarePlan,NonEmptyList[TherapyRecommendation],
+       Option[GeneticCounsellingRequest],List[RebiopsyRequest],Option[StudyInclusionRequest])
+     ] =
     for {
       id          <- Gen.uuidStrings.map(CarePlan.Id)
       patId       =  diag.patient
@@ -641,14 +644,16 @@ package object gens
                      )
       recRefs     =  recs.map(_.id).toList
       counsellingReq <- genCounsellingRequestFor(diag.patient)
-      rebiopyReqs    <- genRebiopsyRequestFor(specimens.head)
+      rebiopsyReqs    <- genRebiopsyRequestFor(specimens.head)
                           .map(List(_))
-      rebiopyReqRefs = rebiopyReqs.map(_.id)                 
+      rebiopsyReqRefs = rebiopsyReqs.map(_.id)
+      studyInclusion <- genStudyInclusionRequestFor(diag)
     } yield (
-      CarePlan(id,patId,diag.id,Some(date),Some(descr),None,Some(recRefs),Some(counsellingReq.id),Some(rebiopyReqRefs)),
+      CarePlan(id,patId,diag.id,Some(date),Some(descr),None,Some(recRefs),Some(counsellingReq.id),Some(rebiopsyReqRefs),Some(studyInclusion.id)),
       recs,
       Some(counsellingReq), 
-      rebiopyReqs
+      rebiopsyReqs,
+      Some(studyInclusion)
     )
 
 
@@ -811,10 +816,17 @@ package object gens
 
       cpData    <- genCarePlanFor(diagnosis,ngsReport,specimens)
 
+/*
       (carePlan,
        recommendations,
        counsellingReq,
        rebiopsyReqs) = cpData
+*/
+      (carePlan,
+       recommendations,
+       counsellingReq,
+       rebiopsyReqs,
+       studyInclusion) = cpData
 
       histoReeval <- Gen.oneOfEach(
                        specimens.map(
@@ -822,7 +834,7 @@ package object gens
                        )
                      )
 
-      studyInclusion <- Gen.listOf(2, genStudyInclusionRequestFor(diagnosis))
+//      studyInclusion <- Gen.listOf(2, genStudyInclusionRequestFor(diagnosis))
 
 
       claimData <- Gen.oneOfEach(
@@ -857,7 +869,8 @@ package object gens
       counsellingReq.map(List(_)),
       Some(rebiopsyReqs),
       Some(histoReeval),
-      Some(studyInclusion),
+//      Some(studyInclusion),
+      studyInclusion.map(List(_)),     
       Some(claims),
       Some(claimResponses),
       Some(molThDocs),
