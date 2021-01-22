@@ -19,7 +19,7 @@ final case class MTBFileView
   //TODO: NGSReports
   carePlans: List[CarePlanView], //TODO
   claimStatus: List[ClaimStatusView], 
-
+  molecularTherapies: List[MolecularTherapyView]
 )
 
 

@@ -8,34 +8,62 @@ import cats.data.NonEmptyList
 
 import play.api.libs.json.{Json,Writes, JsString}
 
+import de.bwhc.util.json._
+
 import de.bwhc.mtb.data.entry.dtos._
 
 
 sealed trait NoTarget
 object NoTarget extends NoTarget
 {
-  implicit val format: Writes[NoTarget] = Writes(nt => JsString("Kein Target"))
+  implicit val format: Writes[NoTarget] =
+    Writes(nt => JsString("Kein Target"))
 }
 
 
-case class CarePlanView
+final case class LevelOfEvidenceDisplay(value: String) extends AnyVal
+object LevelOfEvidenceDisplay
+{
+  implicit val format = Json.valueWrites[LevelOfEvidenceDisplay]
+}
+
+
+
+final case class TherapyRecommendationView
 (
-  id: CarePlan.Id,
-//  patient: Patient.Id,
-  diagnosis: Diagnosis.Id,
+  id: TherapyRecommendation.Id,
+//  diagnosis: Diagnosis.Id,
   icd10: ICD10Display,
-  issuedOn: String Or LocalDate,
-  protocol: String,
-//  recommendations: NoTarget Or List[TherapyRecommendation.Id],
-  geneticCounsellingRecommended: Boolean,
-  rebiopsyRequests: String Or List[RebiopsyRequest.Id],
-  inclusionInStudy: String Or List[NCTNumber]
+  medication: NonEmptyList[MedicationDisplay],
+  priority: NotAvailable Or TherapyRecommendation.Priority.Value,
+  levelOfEvidence: NotAvailable Or LevelOfEvidenceDisplay,
+  supportingVariants: List[Variant.Id]
 )
 
+object TherapyRecommendationView
+{
+  implicit val format = Json.writes[TherapyRecommendationView]
+}
+
+
+
+final case class CarePlanView
+(
+  id: CarePlan.Id,
+//  diagnosis: Diagnosis.Id,
+//  ngsReport: Option[SomaticNGSReport.Id],
+  icd10: ICD10Display,
+  issuedOn: NotAvailable Or LocalDate,
+  protocol: NotAvailable Or String,
+  geneticCounsellingRecommendation: No Or String,
+  inclusionInStudyRecommendation: NotAvailable Or NCTNumber,
+  targetAvailable: Yes Or No,
+  therapyRecommendations: List[TherapyRecommendationView],
+  rebiopsyRequests: NotAvailable Or List[RebiopsyRequest.Id],
+)
 
 object CarePlanView
 {
-  import de.bwhc.util.json._
-
   implicit val format = Json.writes[CarePlanView]
 }
+

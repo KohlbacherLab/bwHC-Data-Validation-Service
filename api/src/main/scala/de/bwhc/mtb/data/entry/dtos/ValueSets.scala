@@ -120,6 +120,16 @@ object ValueSets
     )
 
 
+  implicit val tumorContentMethod: ValueSet[TumorCellContent.Method.Value] =
+    ValueSet(
+      "Tumorgehalt-Bestimmungsmethode",
+      List(
+        Concept(TumorCellContent.Method.Histologic,    "histologisch"),
+        Concept(TumorCellContent.Method.Bioinformatic, "bioinformatisch"),
+      )
+    )
+
+
 
 
   implicit val molecularTherapyNotDoneReasonValueSet: ValueSet[MolecularTherapy.NotDoneReason.Value] =

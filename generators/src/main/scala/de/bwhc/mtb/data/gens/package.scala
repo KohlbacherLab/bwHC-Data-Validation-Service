@@ -816,12 +816,6 @@ package object gens
 
       cpData    <- genCarePlanFor(diagnosis,ngsReport,specimens)
 
-/*
-      (carePlan,
-       recommendations,
-       counsellingReq,
-       rebiopsyReqs) = cpData
-*/
       (carePlan,
        recommendations,
        counsellingReq,
@@ -834,9 +828,6 @@ package object gens
                        )
                      )
 
-//      studyInclusion <- Gen.listOf(2, genStudyInclusionRequestFor(diagnosis))
-
-
       claimData <- Gen.oneOfEach(
                      recommendations.toList.map(genClaimWithResponseFor)
                    ) 
@@ -848,7 +839,10 @@ package object gens
                    )
 
       responses <- Gen.oneOfEach(
-                     molThDocs.map(_.history.head.id).map(genResponseFor(patient,_))
+//                     molThDocs.map(_.history.head.id).map(genResponseFor(patient,_))
+                     molThDocs.map(_.history.head)
+                       .filterNot(_.status == MolecularTherapy.Status.NotDone)
+                       .map(th => genResponseFor(patient,th.id))
                    )
 
     } yield MTBFile(

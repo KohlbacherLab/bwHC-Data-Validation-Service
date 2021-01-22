@@ -21,8 +21,6 @@ case class ICD10Display(value: String) extends AnyVal
 object ICD10Display
 {
   implicit val format = Json.valueFormat[ICD10Display]
-
-//  implicit val dflt = Default(ICD10Display("N/A"))
 }
 
 
@@ -31,8 +29,6 @@ case class ICDO3TDisplay(value: String) extends AnyVal
 object ICDO3TDisplay
 {
   implicit val format = Json.valueFormat[ICDO3TDisplay]
-
-//  implicit val dflt = Default(ICDO3TDisplay("-"))
 }
 
 
@@ -42,8 +38,8 @@ final case class DiagnosisView
   id: Diagnosis.Id,
   patient: Patient.Id,
   recordedOn: NotAvailable Or LocalDate,
-  icd10: ICD10Display,
-  icdO3T: ICDO3TDisplay,
+  icd10: NotAvailable Or ICD10Display,
+  icdO3T: NotAvailable Or ICDO3TDisplay,
   whoGrade: String,
   //TODO: statusHistory, histologyReports
   guidelineTreatmentStatus: String 

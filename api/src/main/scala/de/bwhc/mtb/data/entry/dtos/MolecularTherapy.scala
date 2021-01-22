@@ -239,7 +239,6 @@ final case class OngoingTherapy
 }
 
 
-
 /*
 final case class MolecularTherapyView
 (

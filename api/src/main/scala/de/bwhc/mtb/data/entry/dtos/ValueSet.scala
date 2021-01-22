@@ -14,6 +14,10 @@ final case class ValueSet[C]
 {
   def concept(c: C) =
     concepts.find(_.code == c)
+
+  def displayOf(c: C): Option[String] =
+    concepts.find(_.code == c).map(_.display)
+    
 }
 
 

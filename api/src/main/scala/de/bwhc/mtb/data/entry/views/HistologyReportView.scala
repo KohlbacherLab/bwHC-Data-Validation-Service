@@ -31,7 +31,7 @@ final case class HistologyReportView
   specimen: Specimen.Id,
   issuedOn: NotAvailable Or LocalDate,
   tumorMorphology: NotAvailable Or ICDO3MDisplay,
-  tumorCellContent: NotAvailable Or TumorCellContent,
+  tumorCellContent: NotAvailable Or TumorCellContentDisplay,
   note: String
 )
 

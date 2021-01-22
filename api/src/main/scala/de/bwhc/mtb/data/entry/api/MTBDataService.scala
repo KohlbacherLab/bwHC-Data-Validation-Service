@@ -43,7 +43,7 @@ trait MTBDataService
   ): Future[Iterable[Patient]]
 
 
-  @Deprecated
+//  @deprecated
   def mtbfile(
     patient: Patient.Id
   )(

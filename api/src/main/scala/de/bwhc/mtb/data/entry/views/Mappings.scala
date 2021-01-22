@@ -65,7 +65,7 @@ trait mappings
     pat =>
       PatientView(
         pat.id,
-        ValueSet[Gender.Value].concept(pat.gender).map(_.display).get,
+        ValueSet[Gender.Value].displayOf(pat.gender).get,
         pat.birthDate.toRight(NotAvailable),
         pat.managingZPM.toRight(NotAvailable),
         pat.insurance.toRight(NotAvailable),
@@ -134,15 +134,14 @@ trait mappings
         diag.id,
         diag.patient,
         diag.recordedOn.toRight(NotAvailable),
-        diag.icd10.map(_.mapTo[ICD10Display]).getOrElse(ICD10Display("N/A")),
-        diag.icdO3T.map(_.mapTo[ICDO3TDisplay]).getOrElse(ICDO3TDisplay("N/A")),
+        diag.icd10.map(_.mapTo[ICD10Display]).toRight(NotAvailable),
+        diag.icdO3T.map(_.mapTo[ICDO3TDisplay]).toRight(NotAvailable),
         diag.whoGrade
-          .flatMap(c => ValueSet[WHOGrade.Value].concept(c.code))
-          .map(c => s"${c.code} - ${c.display}")
+          .map(_.code)
+          .flatMap(c => ValueSet[WHOGrade.Value].displayOf(c).map(d => s"${c} - ${d}"))
           .getOrElse("-"),
         diag.guidelineTreatmentStatus
-          .flatMap(c => ValueSet[GuidelineTreatmentStatus.Value].concept(c))
-          .map(_.display)
+          .flatMap(ValueSet[GuidelineTreatmentStatus.Value].displayOf)
           .getOrElse("-")
 
       )
@@ -155,9 +154,8 @@ trait mappings
       FamilyMemberDiagnosisView(
         fmdiag.id,
         ValueSet[FamilyMember.Relationship.Value]
-          .concept(fmdiag.relationship.code)
+          .displayOf(fmdiag.relationship.code)
           .get
-          .display
       )
   }
 
@@ -166,15 +164,12 @@ trait mappings
   implicit val responseToDisplay: Response => ResponseDisplay = {
     resp =>
       ValueSet[RECIST.Value]
-        .concept(resp.value.code)
-        .map(c => ResponseDisplay(c.display))
+        .displayOf(resp.value.code)
+        .map(ResponseDisplay(_))
         .get
   }
 
 
-//  implicit def guidelineTherapyToView[T <: GuidelineTherapy](
-//    implicit responses: List[Response]
-//  ): T => GuidelineTherapyView = {
   implicit def guidelineTherapyToView[T <: GuidelineTherapy]: ((T,Option[Response])) => GuidelineTherapyView = {
 
     case (therapy,response) =>
@@ -201,8 +196,7 @@ trait mappings
             th.therapyLine.toRight(NotAvailable),
             th.period.map(_.mapTo[PeriodDisplay[LocalDate]]).toRight(NotAvailable),
             th.medication.map(_.mapTo[MedicationDisplay]),
-            th.reasonStopped.flatMap(c => ValueSet[GuidelineTherapy.StopReason.Value].concept(c.code))
-              .map(_.display)
+            th.reasonStopped.flatMap(c => ValueSet[GuidelineTherapy.StopReason.Value].displayOf(c.code))
               .toRight(NotAvailable),
             response
               .map(_.mapTo[ResponseDisplay])
@@ -218,8 +212,7 @@ trait mappings
   implicit val ecogToDisplay: Coding[ECOG.Value] => ECOGDisplay = {
     ecog =>
       ValueSet[ECOG.Value]
-        .concept(ecog.code)
-        .map(_.display) 
+        .displayOf(ecog.code)
         .map(ECOGDisplay(_))
         .get  // safe to call 
   }
@@ -243,17 +236,14 @@ trait mappings
       SpecimenView(
         specimen.id,
         specimen.icd10.mapTo[ICD10Display],
-        specimen.`type`.flatMap(ValueSet[Specimen.Type.Value].concept(_))
-          .map(_.display)
+        specimen.`type`.flatMap(ValueSet[Specimen.Type.Value].displayOf)
           .toRight(NotAvailable),
         specimen.collection.map(_.date).toRight(NotAvailable),
         specimen.collection.map(_.localization)
-          .flatMap(ValueSet[Specimen.Collection.Localization.Value].concept(_))
-          .map(_.display)
+          .flatMap(ValueSet[Specimen.Collection.Localization.Value].displayOf)
           .toRight(NotAvailable),
         specimen.collection.map(_.method)
-          .flatMap(ValueSet[Specimen.Collection.Method.Value].concept(_))
-          .map(_.display)
+          .flatMap(ValueSet[Specimen.Collection.Method.Value].displayOf)
           .toRight(NotAvailable),
       )
   }
@@ -271,6 +261,16 @@ trait mappings
   }
 
 
+
+  implicit val tumorCellContentToDisplay: TumorCellContent => TumorCellContentDisplay = {
+    tc =>
+      val valuePercent = tc.value * 100
+      val method       = ValueSet[TumorCellContent.Method.Value].displayOf(tc.method).get
+
+      TumorCellContentDisplay(s"$valuePercent % ($method)")
+  }
+
+
   implicit val histologyReportToView: HistologyReport => HistologyReportView = {
     report =>
       HistologyReportView(
@@ -278,7 +278,7 @@ trait mappings
         report.specimen,
         report.issuedOn.toRight(NotAvailable),
         report.tumorMorphology.map(_.value.mapTo[ICDO3MDisplay]).toRight(NotAvailable),
-        report.tumorCellContent.toRight(NotAvailable),
+        report.tumorCellContent.map(_.mapTo[TumorCellContentDisplay]).toRight(NotAvailable),
         report.tumorMorphology.flatMap(_.note).getOrElse("-"),
       )
   }
@@ -310,9 +310,15 @@ trait mappings
 
 
   implicit val carePlanToDisplay:
-    ((CarePlan, Diagnosis, List[TherapyRecommendation], Option[StudyInclusionRequest])) => CarePlanView = {
+    ((
+      CarePlan,
+      Diagnosis,
+      List[TherapyRecommendation],
+      Option[StudyInclusionRequest],
+      Option[GeneticCounsellingRequest]),
+    ) => CarePlanView = {
 
-    case (carePlan,diagnosis,recommendations,studyInclusion) =>
+    case (carePlan,diagnosis,recommendations,studyInclusionRequest,geneticCounsellingRequest) =>
 
       implicit val icd10 = diagnosis.icd10.map(_.mapTo[ICD10Display]).get
 
@@ -321,8 +327,8 @@ trait mappings
         icd10,
         carePlan.issuedOn.toRight(NotAvailable),
         carePlan.description.toRight(NotAvailable),
-        carePlan.geneticCounsellingRequest.isDefined,
-        studyInclusion.map(_.nctNumber).toRight(NotAvailable),
+        geneticCounsellingRequest.map(_.reason).toRight(No),
+        studyInclusionRequest.map(_.nctNumber).toRight(NotAvailable),
         carePlan.noTargetFinding.isDefined,
         recommendations.map(_.mapTo[TherapyRecommendationView]),
         carePlan.rebiopsyRequests.toRight(NotAvailable),
@@ -336,23 +342,22 @@ trait mappings
       (List[CarePlan],
        List[Diagnosis],
        List[TherapyRecommendation],
-       List[StudyInclusionRequest])
+       List[StudyInclusionRequest],
+       List[GeneticCounsellingRequest]),
     ) => List[CarePlanView] = {
 
-      case (carePlans,diagnoses,recommendations,studyInclusionReqs) =>
+      case (carePlans,diagnoses,recommendations,studyInclusionReqs,geneticCounsellingReqs) =>
 
         carePlans.map {
           cp =>
-
-//            val cpRecs = cp.recommendations.getOrElse(List.empty[TherapyRecommendation.Id])
-
             (
               cp,
               diagnoses.find(_.id == cp.diagnosis).get,
-//              recommendations.filter(rec => cpRecs contains rec.id),
               cp.recommendations.fold(List.empty[TherapyRecommendation])(recs => recommendations.filter(rec => recs contains rec.id)),
               cp.studyInclusionRequest
-                .flatMap(reqId => studyInclusionReqs.find(_.id == reqId))
+                .flatMap(reqId => studyInclusionReqs.find(_.id == reqId)),
+              cp.geneticCounsellingRequest
+                .flatMap(reqId => geneticCounsellingReqs.find(_.id == reqId))
             )
             .mapTo[CarePlanView]
         }
@@ -375,14 +380,22 @@ trait mappings
         claim.issuedOn,
         response.map(_.issuedOn).toRight(NotAvailable),
         response.map(_.status)
-          .flatMap(s => ValueSet[ClaimResponse.Status.Value].concept(s))
-          .map(c => ClaimResponseStatusDisplay(c.display))
+          .flatMap(ValueSet[ClaimResponse.Status.Value].displayOf)
+          .map(ClaimResponseStatusDisplay(_))
           .toRight(NotAvailable),
         response.flatMap(_.reason)
-          .flatMap(s => ValueSet[ClaimResponse.Reason.Value].concept(s))
-          .map(c => ClaimResponseReasonDisplay(c.display))
+          .flatMap(ValueSet[ClaimResponse.Reason.Value].displayOf)
+          .map(ClaimResponseReasonDisplay(_))
           .toRight(NotAvailable),
       )
+  }
+
+  implicit val claimsWithResponsesToDisplay: ((List[Claim],List[ClaimResponse])) => List[ClaimStatusView] = {
+    case (claims,claimResponses) =>
+      claims.map(
+        cl => (cl,claimResponses.find(_.claim == cl.id)).mapTo[ClaimStatusView]
+      )
+
   }
 
 
@@ -391,7 +404,7 @@ trait mappings
 
     case (molTh,resp) =>
 
-    val status   = ValueSet[MolecularTherapy.Status.Value].concept(molTh.status).get.display
+    val status   = ValueSet[MolecularTherapy.Status.Value].displayOf(molTh.status).get
     val note     = molTh.note.getOrElse("-")
     val response = resp.map(_.mapTo[ResponseDisplay]).toRight(NotAvailable)
 
@@ -404,7 +417,7 @@ trait mappings
           th.recordedOn,
           th.basedOn,
           NotAvailable.asLeft[PeriodDisplay[LocalDate]],
-          ValueSet[MolecularTherapy.NotDoneReason.Value].concept(th.notDoneReason.code).get.display,
+          ValueSet[MolecularTherapy.NotDoneReason.Value].displayOf(th.notDoneReason.code).get,
           List.empty[MedicationDisplay],
           "-",
           NotAvailable.asLeft[Dosage.Value],
@@ -421,7 +434,7 @@ trait mappings
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
           "-",
           th.medication.toList.map(_.mapTo[MedicationDisplay]),
-          ValueSet[MolecularTherapy.StopReason.Value].concept(th.reasonStopped.code).get.display,
+          ValueSet[MolecularTherapy.StopReason.Value].displayOf(th.reasonStopped.code).get,
           th.dosage.toRight(NotAvailable),
           note,
           response
@@ -462,8 +475,12 @@ trait mappings
   }
 
 
-
-
+  implicit val molecularTherapiesToView: ((List[MolecularTherapy],List[Response])) => List[MolecularTherapyView] = {
+    case (therapies,responses) =>
+      therapies.map(
+        th => (th,responses.find(_.therapy == th.id)).mapTo[MolecularTherapyView]
+      )
+  }
 
 
 
@@ -474,54 +491,53 @@ trait mappings
 
       val responses = mtbfile.responses.getOrElse(List.empty[Response])
 
-      val claimResponses = mtbfile.claimResponses.getOrElse(List.empty[ClaimResponse])
-
 
       MTBFileView(
         mtbfile.patient.mapTo[PatientView],
 
-        mtbfile.diagnoses
-          .getOrElse(List.empty[Diagnosis])
+        mtbfile.diagnoses.getOrElse(List.empty[Diagnosis])
           .map(_.mapTo[DiagnosisView]),
 
-        mtbfile.familyMemberDiagnoses
-          .getOrElse(List.empty[FamilyMemberDiagnosis])
+        mtbfile.familyMemberDiagnoses.getOrElse(List.empty[FamilyMemberDiagnosis])
           .map(_.mapTo[FamilyMemberDiagnosisView]),
 
-        mtbfile.previousGuidelineTherapies
-          .getOrElse(List.empty[PreviousGuidelineTherapy])
-          .map(th => (th,responses.find(_.therapy == th.id)))
-          .map(_.mapTo[GuidelineTherapyView]) ++
+        mtbfile.previousGuidelineTherapies.getOrElse(List.empty[PreviousGuidelineTherapy])
+          .map(th => (th,responses.find(_.therapy == th.id)).mapTo[GuidelineTherapyView]) ++
             mtbfile.lastGuidelineTherapy
-              .map(th => (th,responses.find(_.therapy == th.id)))
-              .map(_.mapTo[GuidelineTherapyView]),
+              .map(th => (th,responses.find(_.therapy == th.id)).mapTo[GuidelineTherapyView]),
 
-        mtbfile.ecogStatus.map(_.mapTo[ECOGStatusView]),
+        mtbfile.ecogStatus
+          .map(_.mapTo[ECOGStatusView]),
 
-        mtbfile.specimens
-          .getOrElse(List.empty[Specimen])
+        mtbfile.specimens.getOrElse(List.empty[Specimen])
           .map(_.mapTo[SpecimenView]),
 
-        mtbfile.molecularPathologyFindings
-          .getOrElse(List.empty[MolecularPathologyFinding])
+        mtbfile.molecularPathologyFindings.getOrElse(List.empty[MolecularPathologyFinding])
           .map(_.mapTo[MolecularPathologyFindingView]),
 
-        mtbfile.histologyReports
-          .getOrElse(List.empty[HistologyReport])
+        mtbfile.histologyReports.getOrElse(List.empty[HistologyReport])
           .map(_.mapTo[HistologyReportView]),
 
         (
           mtbfile.carePlans.getOrElse(List.empty[CarePlan]),
           mtbfile.diagnoses.getOrElse(List.empty[Diagnosis]),
           mtbfile.recommendations.getOrElse(List.empty[TherapyRecommendation]),
-          mtbfile.studyInclusionRequests.getOrElse(List.empty[StudyInclusionRequest])
+          mtbfile.studyInclusionRequests.getOrElse(List.empty[StudyInclusionRequest]),
+          mtbfile.geneticCounsellingRequests.getOrElse(List.empty[GeneticCounsellingRequest])
         )
         .mapTo[List[CarePlanView]],
 
-        mtbfile.claims
-          .getOrElse(List.empty[Claim])
-          .map(cl => (cl,claimResponses.find(_.claim == cl.id)))
-          .map(_.mapTo[ClaimStatusView])
+        (
+          mtbfile.claims.getOrElse(List.empty[Claim]),
+          mtbfile.claimResponses.getOrElse(List.empty[ClaimResponse])
+        )
+        .mapTo[List[ClaimStatusView]],
+
+        (
+          mtbfile.molecularTherapies.getOrElse(List.empty[MolecularTherapyDocumentation])
+            .filterNot(_.history.isEmpty).map(_.history.head),
+          responses 
+        ).mapTo[List[MolecularTherapyView]]
       )
 
   }
