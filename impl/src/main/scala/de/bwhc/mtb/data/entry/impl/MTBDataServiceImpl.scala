@@ -21,10 +21,12 @@ import cats.syntax.either._
 import de.bwhc.util.Logging
 
 import de.bwhc.mtb.data.entry.api._
+import DataQualityReport.Issue.Severity
 
 import de.bwhc.mtb.data.entry.dtos._
-import de.bwhc.mtb.data.entry.views.MTBFileView
-import DataQualityReport.Issue.Severity
+import de.bwhc.mtb.data.entry.views.{MTBFileView,NotAvailable}
+import de.bwhc.mtb.data.entry.views.mappings._
+
 
 
 
@@ -93,6 +95,17 @@ with Logging
   import MTBDataService.Command._
   import MTBDataService.Response._
   import MTBDataService.Error._
+
+
+  implicit val patientDataInfo: ((Patient,DataQualityReport)) => PatientDataInfo = {
+    case (patient,dataQC) =>
+      PatientDataInfo(
+        patient.id,
+        patient.gender,
+        patient.birthDate.toRight(NotAvailable),
+        dataQC.issues.size
+      )
+  }
 
 
   override def process(
@@ -198,11 +211,24 @@ with Logging
 
   override def patientsWithIncompleteData(
     implicit ec: ExecutionContext
-  ): Future[Iterable[Patient]] = {
+  ): Future[Iterable[PatientDataInfo]] = {
+//  ): Future[Iterable[Patient]] = {
   
     log.info(s"Handling request for Patients with data quality issues")
 
-    db.mtbfiles.map(_.map(_.patient))  
+//    db.mtbfiles.map(_.map(_.patient))  
+
+    for {
+      mtbfiles <- db.mtbfiles
+      infos    <- Future.sequence(
+                    mtbfiles.map { mtbfile =>
+                      val patient = mtbfile.patient
+                      db.dataQcReportOf(patient.id)
+                        .map(qc => (patient,qc.get).mapTo[PatientDataInfo])
+                    }
+                  )
+    } yield infos 
+    
 
   }
 
@@ -225,8 +251,6 @@ with Logging
   )(
     implicit ec: ExecutionContext
   ): Future[Option[MTBFileView]] = {
-
-    import de.bwhc.mtb.data.entry.views.mappings._
 
     for {
       mtbf <- mtbfile(patient)

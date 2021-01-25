@@ -436,7 +436,8 @@ object DefaultDataValidator
       (
         (value must be (in (tcRange))
           otherwise (
-            Error(s"Tumor content value '$value' not in reference range $tcRange") at Location("TumorContent",id,"value"))
+            Error(s"Tumor content value '$value' (${value*100} %) not in reference range $tcRange")
+              at Location("TumorContent",id,"value"))
           )
           .map(_ => tc),
 
@@ -570,13 +571,13 @@ object DefaultDataValidator
         (tumorContent validate),
        
         (brcaness shouldBe defined otherwise (Info("Missing BRCAness value") at Location("SomaticNGSReport",id,"brcaness")))
-          .andThen(
+          .andThen {
             opt =>
               opt.get.value must be (in (brcanessRange)) otherwise (
                   Error(s"BRCAness value '${opt.get.value}' not in reference range $brcanessRange")
                     at Location("SomaticNGSReport",id,"brcaness")
                 )
-              ),
+              },
              
         (msi shouldBe defined otherwise (Info("Missing MSI value") at Location("SomaticNGSReport",id,"msi")))
           .andThen(

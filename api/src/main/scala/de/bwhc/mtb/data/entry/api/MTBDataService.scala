@@ -1,7 +1,7 @@
 package de.bwhc.mtb.data.entry.api
 
 
-import java.time.Instant
+import java.time.{Instant,LocalDate}
 
 import scala.util.Either
 
@@ -14,9 +14,11 @@ import cats.data.NonEmptyList
 
 import de.bwhc.util.ddd.Event
 import de.bwhc.util.spi._
+import de.bwhc.util.json._
 
 import de.bwhc.mtb.data.entry.dtos.{
   Patient,
+  Gender,
   MTBFile
 }
 
@@ -24,6 +26,7 @@ import de.bwhc.mtb.data.entry.views.MTBFileView
 
 
 trait MTBDataServiceProvider extends SPI[MTBDataService]
+
 
 
 trait MTBDataService
@@ -40,10 +43,10 @@ trait MTBDataService
 
   def patientsWithIncompleteData(
     implicit ec: ExecutionContext
-  ): Future[Iterable[Patient]]
+//  ): Future[Iterable[Patient]]
+  ): Future[Iterable[PatientDataInfo]]
 
 
-//  @deprecated
   def mtbfile(
     patient: Patient.Id
   )(

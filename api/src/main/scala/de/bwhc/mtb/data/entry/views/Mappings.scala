@@ -25,18 +25,19 @@ import de.bwhc.catalogs.med
 import de.bwhc.catalogs.med.MedicationCatalog
 
 
-//object mappings
 trait mappings
 {
 
   import ValueSets._
 
 
-  val icd10gmCatalog: ICD10GMCatalogs
+  implicit val icd10gmCatalog: ICD10GMCatalogs
 
-  val icdO3Catalog: ICDO3Catalogs
+  implicit val icdO3Catalog: ICDO3Catalogs
 
-  val medicationCatalog: MedicationCatalog
+  implicit val medicationCatalog: MedicationCatalog
+
+  implicit val hgncCatalog: HGNCCatalog  
 
 
 
@@ -48,7 +49,7 @@ trait mappings
 
   implicit class TemporalFormattingOps[T <: Temporal](val t: T)
   {
-     def format: String = {
+     def toISOFormat: String = {
        t match {
          case ld:  LocalDate     => ISO_LOCAL_DATE.format(ld)
          case ldt: LocalDateTime => ISO_LOCAL_DATE_TIME.format(ldt)
@@ -78,58 +79,62 @@ trait mappings
   implicit def periodToDisplay[T <: Temporal, P <: Period[T]]: P => PeriodDisplay[T] = {
 
     case OpenEndPeriod(start,end) =>
-      PeriodDisplay(s"${start.format} - ${end.map(_.format).getOrElse("N/A")}")
+      PeriodDisplay(s"${start.toISOFormat} - ${end.map(_.toISOFormat).getOrElse("N/A")}")
 
     case ClosedPeriod(start,end) =>
-      PeriodDisplay(s"${start.format} - ${end.format}")
+      PeriodDisplay(s"${start.toISOFormat} - ${end.toISOFormat}")
 
   }
 
 
 
-  implicit val icd10ToDisplay: Coding[ICD10GM] => ICD10Display = {
+  implicit def icd10ToDisplay(
+    implicit icd10gm: ICD10GMCatalogs
+  ): Coding[ICD10GM] => ICD10Display = {
      icd10 =>
-       icd10gmCatalog.code(
+       icd10gm.code(
          icd.ICD10GM.Code(icd10.code.value),
-//         icd.ICD10GM.Version(icd10.version.get)
-      )
-         .map(c => ICD10Display(s"${c.code.value} - ${c.display.get}"))
-         .getOrElse(ICD10Display(s"${icd10.code.value} - ${icd10.display.getOrElse("N/A")}"))
+       )
+       .map(c => ICD10Display(s"${c.code.value}: ${c.display.get}"))
+       .getOrElse(ICD10Display(s"${icd10.code.value}: ${icd10.display.getOrElse("N/A")}"))
   }
 
 
-  implicit val icdO3TtoDisplay: Coding[ICDO3T] => ICDO3TDisplay = {
+  implicit def icdO3TtoDisplay(
+    implicit icdO3: ICDO3Catalogs
+  ): Coding[ICDO3T] => ICDO3TDisplay = {
      icdO3T =>
-      icdO3Catalog.topographyCodings()
+      icdO3.topographyCodings()
         .find(_.code == icd.ICDO3.TopographyCode(icdO3T.code.value))
-        .map(c => ICDO3TDisplay(s"${c.code.value} - ${c.display.get}"))
-        .getOrElse(ICDO3TDisplay(s"${icdO3T.code.value} - ${icdO3T.display.getOrElse("N/A")}"))
+        .map(c => ICDO3TDisplay(s"${c.code.value}: ${c.display.get}"))
+        .getOrElse(ICDO3TDisplay(s"${icdO3T.code.value}: ${icdO3T.display.getOrElse("N/A")}"))
   }
 
 
-  implicit val icdO3MtoDisplay: Coding[ICDO3M] => ICDO3MDisplay = {
+  implicit def icdO3MtoDisplay(
+    implicit icdO3: ICDO3Catalogs
+  ): Coding[ICDO3M] => ICDO3MDisplay = {
     icdO3M =>
-      icdO3Catalog.morphologyCodings()
+      icdO3.morphologyCodings()
         .find(_.code == icd.ICDO3.MorphologyCode(icdO3M.code.value))
-        .map(c => ICDO3MDisplay(s"${c.code.value} - ${c.display.get}"))
-        .getOrElse(ICDO3MDisplay(s"${icdO3M.code.value} - ${icdO3M.display.getOrElse("N/A")}"))
+        .map(c => ICDO3MDisplay(s"${c.code.value}: ${c.display.get}"))
+        .getOrElse(ICDO3MDisplay(s"${icdO3M.code.value}: ${icdO3M.display.getOrElse("N/A")}"))
   }
 
 
-  implicit val medicationToDisplay: Coding[Medication] => MedicationDisplay = {
+  implicit def medicationToDisplay(
+    implicit medications: MedicationCatalog
+  ): Coding[Medication] => MedicationDisplay = {
     c =>
-      medicationCatalog
+      medications
         .findByCode(med.Medication.Code(c.code.value))
         .map(c => MedicationDisplay(c.name.get))
         .getOrElse(MedicationDisplay(c.display.getOrElse("N/A")))
-//        .map(c => MedicationDisplay(s"${c.code.value} - ${c.name.get}"))
-//        .getOrElse(MedicationDisplay(s"${c.code.value} - ${c.display.getOrElse("N/A")}"))
   }
 
 
   implicit val diagnosisToView: Diagnosis => DiagnosisView = {
     diag => 
-
       DiagnosisView(
         diag.id,
         diag.patient,
@@ -138,14 +143,13 @@ trait mappings
         diag.icdO3T.map(_.mapTo[ICDO3TDisplay]).toRight(NotAvailable),
         diag.whoGrade
           .map(_.code)
-          .flatMap(c => ValueSet[WHOGrade.Value].displayOf(c).map(d => s"${c} - ${d}"))
+          .flatMap(c => ValueSet[WHOGrade.Value].displayOf(c).map(d => s"${c}: ${d}"))
           .getOrElse("-"),
         diag.guidelineTreatmentStatus
           .flatMap(ValueSet[GuidelineTreatmentStatus.Value].displayOf)
           .getOrElse("-")
 
       )
-
   }
 
 
@@ -284,43 +288,241 @@ trait mappings
   }
 
 
+  import SomaticNGSReport._
+ 
 
-  implicit val levelOfEvidenceToDisplay: LevelOfEvidence => LevelOfEvidenceDisplay = {
-    loe =>
-      LevelOfEvidenceDisplay(
-        s"${loe.grading.code}, Zusätze: ${loe.addendums.flatMap(_.map(_.code.toString).reduceOption((a1,a2) => s"$a1,$a2")).getOrElse("keine")}"
+  implicit val tmbToDisplay: TMB => TMBDisplay = {
+    tmb => TMBDisplay(s"${tmb.value} mut/MBase")   
+  }
+
+
+  import Variant.{StartEnd, Gene}
+
+  implicit val startEndToDisplay: StartEnd => StartEndDisplay = {
+    se =>
+      se.end.fold(
+        StartEndDisplay(se.start.toString)
+      )(
+        end => StartEndDisplay(s"${se.start} - $end")
+      )   
+  }
+
+
+  implicit def geneCodingToDisplay(
+    implicit hgnc: HGNCCatalog
+  ): Coding[Gene] => GeneDisplay = {
+    c =>
+      hgncCatalog
+        .geneWithSymbol(HGNCGene.Symbol(c.code.value))
+        .map(g => s"${g.symbol.value}: ${g.name.get}")
+        .map(GeneDisplay(_))
+        .getOrElse(GeneDisplay("N/A"))
+  }
+
+
+  implicit def genesToDisplay: List[Gene] => Option[GeneDisplay] = {
+    genes =>
+      genes.map(_.value)
+        .reduceLeftOption(_ + ", " + _).map(GeneDisplay(_))
+  }
+
+
+  implicit val simpleVariantToView: SimpleVariant => SimpleVariantView = {
+    sv =>
+      SimpleVariantView(
+        sv.chromosome,
+        sv.gene.mapTo[GeneDisplay],
+        sv.startEnd.mapTo[StartEndDisplay],
+        sv.refAllele,
+        sv.altAllele,
+        sv.functionalAnnotation.code,
+        sv.dnaChange.code,
+        sv.aminoAcidChange.code,
+        sv.readDepth,
+        sv.allelicFrequency,
+        sv.cosmicId.toRight(NotAvailable),
+        sv.dbSNPId.toRight(NotAvailable),
+        sv.interpretation.code
       )
   }
 
 
+  implicit val cnvToView: CNV => CNVView = {
+    cnv =>
+      CNVView(
+        cnv.chromosome,
+        cnv.startRange.mapTo[StartEndDisplay],
+        cnv.endRange.mapTo[StartEndDisplay],
+        cnv.totalCopyNumber,
+        cnv.relativeCopyNumber,
+        cnv.cnA.toRight(NotAvailable),
+        cnv.cnB.toRight(NotAvailable),
+        cnv.reportedAffectedGenes
+          .map(_.map(_.code))
+          .flatMap(_.mapTo[Option[GeneDisplay]])
+          .toRight(NotAvailable),
+        cnv.reportedFocality.toRight(NotAvailable),
+        cnv.`type`,
+        cnv.copyNumberNeutralLoH
+          .map(_.map(_.code))
+          .flatMap(_.mapTo[Option[GeneDisplay]])
+          .toRight(NotAvailable)
+      )
+  }
 
-  implicit def recommendationToDisplay(
-    implicit icd10: ICD10Display
-  ): TherapyRecommendation => TherapyRecommendationView = {
-    rec =>
+
+  implicit val dnaFusionToView: DNAFusion => DNAFusionView = {
+    case DNAFusion(
+      _,
+      DNAFusion.FunctionalDomain(chr5pr,pos5pr,gene5pr),
+      DNAFusion.FunctionalDomain(chr3pr,pos3pr,gene3pr),
+      numReads
+    ) =>
+
+      DNAFusionView(
+        s"${gene5pr.code.value} :: ${gene3pr.code.value} (${chr5pr.value}:${pos5pr} :: ${chr3pr.value}:${pos3pr})",
+        numReads
+      )
+
+  }
+
+  implicit val rnaFusionToView: RNAFusion => RNAFusionView = {
+    case RNAFusion(
+      _,
+      RNAFusion.FunctionalDomain(gene5pr,transcript5pr,exon5pr,pos5pr,strand5pr),
+      RNAFusion.FunctionalDomain(gene3pr,transcript3pr,exon3pr,pos3pr,strand3pr),
+      effect,
+      cosmicId,
+      numReads
+    ) =>
+
+    RNAFusionView(
+      s"${gene5pr.code.value} (${transcript5pr.value}: ${exon5pr.value}) :: ${gene3pr.code.value} (${transcript3pr.value}: ${exon3pr.value})",
+      pos5pr,
+      strand5pr,
+      pos3pr,
+      strand3pr,
+      effect.toRight(NotAvailable),
+      cosmicId.toRight(NotAvailable),
+      numReads
+    )
+  }
+
+
+
+  implicit val rnaSeqToView: RNASeq => RNASeqView = {
+    rnaSeq =>
+      RNASeqView(
+        rnaSeq.entrezId,
+        rnaSeq.ensemblId,
+        rnaSeq.gene.code,
+        rnaSeq.transcriptId,
+        rnaSeq.fragmentsPerKilobaseMillion,
+        rnaSeq.fromNGS,
+        rnaSeq.tissueCorrectedExpression,
+        rnaSeq.rawCounts,
+        rnaSeq.librarySize,
+        rnaSeq.cohortRanking.toRight(NotAvailable)
+      )
+  }
+
+  implicit val ngsReportToView: SomaticNGSReport => NGSReportView = {
+    report =>
+      NGSReportView(
+        report.id,
+        report.specimen,
+        report.issueDate,
+        report.sequencingType,
+        report.metadata,
+        report.tumorCellContent.mapTo[TumorCellContentDisplay],
+        report.brcaness.toRight(NotAvailable),
+        report.msi.toRight(NotAvailable),
+        report.tmb.mapTo[TMBDisplay],
+        report.simpleVariants.getOrElse(List.empty[SimpleVariant]).map(_.mapTo[SimpleVariantView]),
+        report.copyNumberVariants.getOrElse(List.empty[CNV]).map(_.mapTo[CNVView]),
+        report.dnaFusions.getOrElse(List.empty[DNAFusion]).map(_.mapTo[DNAFusionView]),
+        report.rnaFusions.getOrElse(List.empty[RNAFusion]).map(_.mapTo[RNAFusionView]),
+        report.rnaSeqs.getOrElse(List.empty[RNASeq]).map(_.mapTo[RNASeqView])
+     )
+  }
+
+
+
+  implicit val levelOfEvidenceToDisplay: LevelOfEvidence => LevelOfEvidenceDisplay = {
+    loe =>
+      LevelOfEvidenceDisplay(
+        s"${loe.grading.code}, Zusätze: ${loe.addendums.flatMap(_.map(_.code.toString).reduceOption(_ + ", " + _)).getOrElse("keine")}"
+      )
+  }
+
+
+  implicit val supportingVariantToDisplay: Variant => SupportingVariantDisplay = {
+    v => 
+      val repr = v match {
+        case snv: SimpleVariant =>
+          s"SNV ${snv.gene.code.value} ${snv.aminoAcidChange.code.value}"
+      
+        case cnv: CNV => {
+          val genes =
+            cnv.reportedAffectedGenes
+               .flatMap(_.map(_.code.value).reduceOption(_ + ", " + _))
+               .getOrElse("N/A")
+      
+          s"CNV [${genes}], ${cnv.`type`}"
+        }
+      
+        case dnaFusion: DNAFusion =>
+          s"DNA-Fusion ${dnaFusion.mapTo[DNAFusionView].representation}"
+      
+        case rnaFusion: RNAFusion =>
+          s"RNA-Fusion ${rnaFusion.mapTo[RNAFusionView].representation}"
+      
+        case rnaSeq: RNASeq =>
+          s"RNA-Seq ${rnaSeq.gene.code.value}"
+      
+      }
+
+      SupportingVariantDisplay(repr)
+  }
+
+
+
+  implicit val recommendationToDisplay:
+    ((
+     (TherapyRecommendation,ICD10Display),
+     List[Variant]
+    )) => TherapyRecommendationView = {
+
+
+    case ((rec,icd10),variants) =>
+
+      val supportingVariants = rec.supportingVariants.getOrElse(List.empty[Variant.Id])
+
       TherapyRecommendationView(
         rec.id,
         icd10,
         rec.medication.map(_.mapTo[MedicationDisplay]),
         rec.priority.toRight(NotAvailable),
         rec.levelOfEvidence.map(_.mapTo[LevelOfEvidenceDisplay]).toRight(NotAvailable),
-        rec.supportingVariants.getOrElse(List.empty[Variant.Id])
+        variants.filter(v => supportingVariants contains v.id).map(_.mapTo[SupportingVariantDisplay])
       )
   }
 
 
   implicit val carePlanToDisplay:
     ((
-      CarePlan,
+     (CarePlan,
       Diagnosis,
       List[TherapyRecommendation],
       Option[StudyInclusionRequest],
-      Option[GeneticCounsellingRequest]),
-    ) => CarePlanView = {
+      Option[GeneticCounsellingRequest]
+     ),
+     List[Variant]
+    )) => CarePlanView = {
 
-    case (carePlan,diagnosis,recommendations,studyInclusionRequest,geneticCounsellingRequest) =>
+    case ((carePlan,diagnosis,recommendations,studyInclusionRequest,geneticCounsellingRequest),variants) =>
 
-      implicit val icd10 = diagnosis.icd10.map(_.mapTo[ICD10Display]).get
+      val icd10 = diagnosis.icd10.map(_.mapTo[ICD10Display]).get
 
       CarePlanView(
         carePlan.id,
@@ -330,7 +532,7 @@ trait mappings
         geneticCounsellingRequest.map(_.reason).toRight(No),
         studyInclusionRequest.map(_.nctNumber).toRight(NotAvailable),
         carePlan.noTargetFinding.isDefined,
-        recommendations.map(_.mapTo[TherapyRecommendationView]),
+        recommendations.map(rec => ((rec,icd10),variants).mapTo[TherapyRecommendationView]),
         carePlan.rebiopsyRequests.toRight(NotAvailable),
       )
 
@@ -338,19 +540,22 @@ trait mappings
 
 
   implicit val carePlanDataToDisplay:
-    (
-      (List[CarePlan],
+    ((
+     (List[CarePlan],
        List[Diagnosis],
        List[TherapyRecommendation],
        List[StudyInclusionRequest],
-       List[GeneticCounsellingRequest]),
-    ) => List[CarePlanView] = {
+       List[GeneticCounsellingRequest]
+     ),
+     List[SomaticNGSReport]
+    )) => List[CarePlanView] = {
 
-      case (carePlans,diagnoses,recommendations,studyInclusionReqs,geneticCounsellingReqs) =>
+      case ((carePlans,diagnoses,recommendations,studyInclusionReqs,geneticCounsellingReqs), ngsReports) =>
+
 
         carePlans.map {
           cp =>
-            (
+            ((
               cp,
               diagnoses.find(_.id == cp.diagnosis).get,
               cp.recommendations.fold(List.empty[TherapyRecommendation])(recs => recommendations.filter(rec => recs contains rec.id)),
@@ -358,14 +563,12 @@ trait mappings
                 .flatMap(reqId => studyInclusionReqs.find(_.id == reqId)),
               cp.geneticCounsellingRequest
                 .flatMap(reqId => geneticCounsellingReqs.find(_.id == reqId))
-            )
-            .mapTo[CarePlanView]
+            ),
+            ngsReports.flatMap(_.variants)
+           ).mapTo[CarePlanView]
         }
 
   }
-
-
-
 
 
 
@@ -491,6 +694,8 @@ trait mappings
 
       val responses = mtbfile.responses.getOrElse(List.empty[Response])
 
+      val ngsReports = mtbfile.ngsReports.getOrElse(List.empty[SomaticNGSReport])
+
 
       MTBFileView(
         mtbfile.patient.mapTo[PatientView],
@@ -518,12 +723,15 @@ trait mappings
         mtbfile.histologyReports.getOrElse(List.empty[HistologyReport])
           .map(_.mapTo[HistologyReportView]),
 
+        ngsReports.map(_.mapTo[NGSReportView]),
+
         (
-          mtbfile.carePlans.getOrElse(List.empty[CarePlan]),
+          (mtbfile.carePlans.getOrElse(List.empty[CarePlan]),
           mtbfile.diagnoses.getOrElse(List.empty[Diagnosis]),
           mtbfile.recommendations.getOrElse(List.empty[TherapyRecommendation]),
           mtbfile.studyInclusionRequests.getOrElse(List.empty[StudyInclusionRequest]),
-          mtbfile.geneticCounsellingRequests.getOrElse(List.empty[GeneticCounsellingRequest])
+          mtbfile.geneticCounsellingRequests.getOrElse(List.empty[GeneticCounsellingRequest])),
+          ngsReports
         )
         .mapTo[List[CarePlanView]],
 
@@ -550,10 +758,12 @@ trait mappings
 object mappings extends mappings
 {
 
-  val icd10gmCatalog = ICD10GMCatalogs.getInstance.get
+  implicit val icd10gmCatalog = ICD10GMCatalogs.getInstance.get
 
-  val icdO3Catalog   = ICDO3Catalogs.getInstance.get
+  implicit val icdO3Catalog   = ICDO3Catalogs.getInstance.get
 
-  val medicationCatalog = MedicationCatalog.getInstance.get
+  implicit val medicationCatalog = MedicationCatalog.getInstance.get
+
+  implicit val hgncCatalog = HGNCCatalog.getInstance.get
 
 }

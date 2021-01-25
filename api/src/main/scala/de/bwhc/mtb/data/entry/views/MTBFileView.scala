@@ -17,7 +17,8 @@ final case class MTBFileView
   molecularPathologyFindings: List[MolecularPathologyFindingView],
   histologyReports: List[HistologyReportView],
   //TODO: NGSReports
-  carePlans: List[CarePlanView], //TODO
+  ngsReports: List[NGSReportView],
+  carePlans: List[CarePlanView],
   claimStatus: List[ClaimStatusView], 
   molecularTherapies: List[MolecularTherapyView]
 )

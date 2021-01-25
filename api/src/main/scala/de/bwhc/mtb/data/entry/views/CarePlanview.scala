@@ -28,16 +28,23 @@ object LevelOfEvidenceDisplay
 }
 
 
+case class SupportingVariantDisplay(value: String) extends AnyVal
+object SupportingVariantDisplay
+{
+  implicit val format = Json.valueWrites[SupportingVariantDisplay]
+}
+
+
 
 final case class TherapyRecommendationView
 (
   id: TherapyRecommendation.Id,
-//  diagnosis: Diagnosis.Id,
   icd10: ICD10Display,
   medication: NonEmptyList[MedicationDisplay],
   priority: NotAvailable Or TherapyRecommendation.Priority.Value,
   levelOfEvidence: NotAvailable Or LevelOfEvidenceDisplay,
-  supportingVariants: List[Variant.Id]
+//  supportingVariants: List[Variant.Id]
+  supportingVariants: List[SupportingVariantDisplay]
 )
 
 object TherapyRecommendationView
@@ -50,8 +57,6 @@ object TherapyRecommendationView
 final case class CarePlanView
 (
   id: CarePlan.Id,
-//  diagnosis: Diagnosis.Id,
-//  ngsReport: Option[SomaticNGSReport.Id],
   icd10: ICD10Display,
   issuedOn: NotAvailable Or LocalDate,
   protocol: NotAvailable Or String,
