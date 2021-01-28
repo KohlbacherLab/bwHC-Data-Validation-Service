@@ -39,7 +39,6 @@ object LevelOfEvidence
     implicit val format = Json.formatEnum(this)
     
     implicit val system = Coding.System[Addendum.Value]("MTB-CDS:Level-of-Evidence:Addendum")
-
   }
 
   implicit val format = Json.format[LevelOfEvidence]

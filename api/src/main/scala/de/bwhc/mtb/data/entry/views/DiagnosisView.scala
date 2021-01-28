@@ -17,7 +17,6 @@ import de.bwhc.mtb.data.entry.dtos.{
 
 
 case class ICD10Display(value: String) extends AnyVal
-
 object ICD10Display
 {
   implicit val format = Json.valueFormat[ICD10Display]
@@ -25,10 +24,16 @@ object ICD10Display
 
 
 case class ICDO3TDisplay(value: String) extends AnyVal
-
 object ICDO3TDisplay
 {
   implicit val format = Json.valueFormat[ICDO3TDisplay]
+}
+
+
+case class WHOGradeDisplay(value: String) extends AnyVal
+object WHOGradeDisplay
+{
+  implicit val format = Json.valueFormat[WHOGradeDisplay]
 }
 
 
@@ -40,9 +45,11 @@ final case class DiagnosisView
   recordedOn: NotAvailable Or LocalDate,
   icd10: NotAvailable Or ICD10Display,
   icdO3T: NotAvailable Or ICDO3TDisplay,
-  whoGrade: String,
-  //TODO: statusHistory, histologyReports
-  guidelineTreatmentStatus: String 
+  whoGrade: NotAvailable Or WHOGradeDisplay,
+  //TODO: histologyReports
+  //TODO: statusHistory,
+  statusHistory: NotAvailable Or String,
+  guidelineTreatmentStatus: NotAvailable Or String 
 )
 
 

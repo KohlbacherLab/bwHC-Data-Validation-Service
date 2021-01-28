@@ -14,34 +14,21 @@ package object views
   type Or[+T,+U] = Either[T,U]
 
 
-  sealed trait NotAvailable
+  sealed trait NoValue
+
+  sealed trait NotAvailable extends NoValue
   final case object NotAvailable extends NotAvailable
   {
     implicit val format: Writes[NotAvailable] =
       Writes(na => JsString("N/A"))
   }
 
-
-/*
-  sealed trait YesOrNo
-  final case object Yes extends YesOrNo
-  final case object No extends YesOrNo
-
-
-  object YesOrNo
-  {    
-    import scala.language.implicitConversions
-
-    implicit def fromBoolean(b: Boolean): YesOrNo =
-      if (true) Yes else No
-
-    implicit val format: Writes[YesOrNo] =
-      Writes {
-         case Yes => JsString("Ja")
-         case No  => JsString("Nein")
-      }
+  sealed trait Undefined extends NoValue
+  final case object Undefined extends Undefined
+  {
+    implicit val format: Writes[Undefined] =
+      Writes(u => JsString("-"))
   }
-*/
 
 
   sealed trait Yes
@@ -71,20 +58,16 @@ package object views
   }
 
 
-//  import java.time.temporal.Temporal
-
-//  final case class TemporalValue[T <: Temporal,V]
-  final case class TemporalValue[T,V]
+  final case class DatedValue[T,V]
   (
     date: T,
     value: V
   )
 
-  object TemporalValue
+  object DatedValue
   {
-//    implicit def formatTemporalValue[T <: Temporal: Format, V: Format] =
-    implicit def formatTemporalValue[T: Format, V: Format] =
-      Json.format[TemporalValue[T,V]]
+    implicit def formatDatedValue[T: Format, V: Format] =
+      Json.format[DatedValue[T,V]]
   }
 
 

@@ -143,11 +143,25 @@ trait mappings
         diag.icdO3T.map(_.mapTo[ICDO3TDisplay]).toRight(NotAvailable),
         diag.whoGrade
           .map(_.code)
-          .flatMap(c => ValueSet[WHOGrade.Value].displayOf(c).map(d => s"${c}: ${d}"))
-          .getOrElse("-"),
+          .flatMap(
+            c =>
+              ValueSet[WHOGrade.Value].displayOf(c)
+                .map(d => WHOGradeDisplay(s"${c}: ${d}"))
+          )
+          .toRight(NotAvailable),
+        diag.statusHistory
+          .filterNot(_.isEmpty)
+          .flatMap {
+            _.map{
+              case Diagnosis.StatusOnDate(status,date) =>
+                s"${date.toISOFormat}: ${ValueSet[Diagnosis.Status.Value].displayOf(status).get}"
+            }
+            .reduceLeftOption(_ + ", " + _)
+          } 
+          .toRight(NotAvailable),
         diag.guidelineTreatmentStatus
           .flatMap(ValueSet[GuidelineTreatmentStatus.Value].displayOf)
-          .getOrElse("-")
+          .toRight(NotAvailable)
 
       )
   }
@@ -225,8 +239,8 @@ trait mappings
     ecogs =>
       ECOGStatusView(
         ecogs.map(ecog =>
-          TemporalValue(
-            ecog.effectiveDate.map(_.format(ISO_LOCAL_DATE)).getOrElse("N/A"),
+          DatedValue(
+            ecog.effectiveDate.map(_.toISOFormat).getOrElse("N/A"),
             ecog.value.mapTo[ECOGDisplay]
           )
         )
@@ -563,9 +577,10 @@ trait mappings
                 .flatMap(reqId => studyInclusionReqs.find(_.id == reqId)),
               cp.geneticCounsellingRequest
                 .flatMap(reqId => geneticCounsellingReqs.find(_.id == reqId))
-            ),
-            ngsReports.flatMap(_.variants)
-           ).mapTo[CarePlanView]
+             ),
+             ngsReports.flatMap(_.variants)
+           )
+           .mapTo[CarePlanView]
         }
 
   }

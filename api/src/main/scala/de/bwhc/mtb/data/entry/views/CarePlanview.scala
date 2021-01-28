@@ -43,7 +43,6 @@ final case class TherapyRecommendationView
   medication: NonEmptyList[MedicationDisplay],
   priority: NotAvailable Or TherapyRecommendation.Priority.Value,
   levelOfEvidence: NotAvailable Or LevelOfEvidenceDisplay,
-//  supportingVariants: List[Variant.Id]
   supportingVariants: List[SupportingVariantDisplay]
 )
 

@@ -964,68 +964,68 @@ object DefaultDataValidator
 
           episode.validate,
 
-          diagnoses mustBe undefined otherwise (
-            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+          diagnoses.filter(_.isEmpty) mustBe undefined otherwise (
+            Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"diagnoses")),
 
-          familyMemberDiagnoses mustBe undefined otherwise (
-            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+          familyMemberDiagnoses.filter(_.isEmpty) mustBe undefined otherwise (
+            Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"familyMemberDiagnoses")),
 
-          previousGuidelineTherapies mustBe undefined otherwise (
-            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+          previousGuidelineTherapies.filter(_.isEmpty) mustBe undefined otherwise (
+            Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"previousGuidelineTherapies")),
 
           lastGuidelineTherapy mustBe undefined otherwise (
-            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+            Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"lastGuidelineTherapy")),
 
-          ecogStatus mustBe undefined otherwise (
-            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+          ecogStatus.filter(_.isEmpty) mustBe undefined otherwise (
+            Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"ecogStatus")),
 
-          specimens mustBe undefined otherwise (
-            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+          specimens.filter(_.isEmpty) mustBe undefined otherwise (
+            Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"specimens")),
 
-          histologyReports mustBe undefined otherwise (
-            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+          histologyReports.filter(_.isEmpty) mustBe undefined otherwise (
+            Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"histologyReports")),
 
-          ngsReports mustBe undefined otherwise (
-            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+          ngsReports.filter(_.isEmpty) mustBe undefined otherwise (
+            Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"ngsReports")),
 
-          carePlans mustBe undefined otherwise (
-            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+          carePlans.filter(_.isEmpty) mustBe undefined otherwise (
+            Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"carePlans")),
 
-          recommendations mustBe undefined otherwise (
-            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+          recommendations.filter(_.isEmpty) mustBe undefined otherwise (
+            Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"recommendations")),
 
-          counsellingRequests mustBe undefined otherwise (
-            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+          counsellingRequests.filter(_.isEmpty) mustBe undefined otherwise (
+            Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"counsellingRequests")),
 
-          rebiopsyRequests mustBe undefined otherwise (
-            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+          rebiopsyRequests.filter(_.isEmpty) mustBe undefined otherwise (
+            Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"rebiopsyRequests")),
 
-          claims mustBe undefined otherwise (
-            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+          claims.filter(_.isEmpty) mustBe undefined otherwise (
+            Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"claims")),
 
-          claimResponses mustBe undefined otherwise (
-            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+          claimResponses.filter(_.isEmpty) mustBe undefined otherwise (
+            Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"claimResponses")),
 
-          molecularTherapies mustBe undefined otherwise (
-            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+          molecularTherapies.filter(_.isEmpty) mustBe undefined otherwise (
+            Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"molecularTherapies")),
 
-          responses mustBe undefined otherwise (
-            Fatal(s"Data must not be defined for Consent '${consent.status}'")
+          responses.filter(_.isEmpty) mustBe undefined otherwise (
+            Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"responses")),
         )
         .mapN { case _: Product => mtbfile }
@@ -1080,19 +1080,79 @@ object DefaultDataValidator
           consent.validate,
           episode.validate,
   
-          (diagnoses ifUndefined (Error("Missing diagnosis records") at Location("MTBFile",patId.value,"diagnoses")))
-            andThen (_ ifEmpty (Error("Missing diagnoses records") at Location("MTBFile",patId.value,"diagnoses")))
-            andThen (_ validateEach),
+          diagnoses.filterNot(_.isEmpty) mustBe defined otherwise (
+            Error("Missing diagnosis records") at Location("MTBFile",patId.value,"diagnoses")
+          ) andThen (_.get validateEach),
   
           familyMemberDiagnoses
             .map(_ validateEach)
             .getOrElse(List.empty[FamilyMemberDiagnosis].validNel[Issue]),
 
-
-          (previousGuidelineTherapies ifUndefined (Warning("Missing previous Guideline Therapies") at Location("MTBFile",patId.value,"previousGuidelineTherapies")))
-            andThen (_ ifEmpty (Warning("Missing previous Guideline Therapies") at Location("MTBFile",patId.value,"previousGuidelineTherapies")))
-            andThen (_ validateEach),
+          previousGuidelineTherapies.filterNot(_.isEmpty) shouldBe defined otherwise (
+            Warning("Missing previous Guideline Therapies") at Location("MTBFile",patId.value,"previousGuidelineTherapies")
+          ) andThen (_.get validateEach),
   
+          lastGuidelineTherapy mustBe defined otherwise (
+            Error("Missing last Guideline Therapy") at Location("MTBFile",patId.value,"lastGuidelineTherapies")
+          ) andThen (_.get validate),
+  
+          ecogStatus.filterNot(_.isEmpty) shouldBe defined otherwise (
+            Warning("Missing ECOG Performance Status records") at Location("MTBFile",patId.value,"ecogStatus")
+          ) andThen (_.get validateEach),
+  
+          specimens.filterNot(_.isEmpty) shouldBe defined otherwise (
+            Warning("Missing Specimen records") at Location("MTBFile",patId.value,"specimens")
+          ) andThen (_.get validateEach),
+  
+          histologyReports.filterNot(_.isEmpty) shouldBe defined otherwise (
+            Warning("Missing HistologyReport records") at Location("MTBFile",patId.value,"histologyReports")
+          ) andThen (_.get validateEach),
+  
+          molPathoFindings.filterNot(_.isEmpty) shouldBe defined otherwise (
+            Warning("Missing MolecularPathology records") at Location("MTBFile",patId.value,"molecularPathologyFindings")
+          ) andThen (_.get validateEach),
+  
+          ngsReports.filterNot(_.isEmpty) shouldBe defined otherwise (
+            Warning("Missing SomaticNGSReport records") at Location("MTBFile",patId.value,"ngsReports")
+          ) andThen (_.get validateEach),
+  
+          carePlans.filterNot(_.isEmpty) shouldBe defined otherwise (
+            Warning("Missing CarePlan records") at Location("MTBFile",patId.value,"carePlans")
+          ) andThen (_.get validateEach),
+  
+          recommendations.filterNot(_.isEmpty) shouldBe defined otherwise (
+            Warning("Missing TherapyRecommendation records") at Location("MTBFile",patId.value,"recommendations")
+          ) andThen (_.get validateEach),
+  
+          counsellingRequests.filterNot(_.isEmpty).map(_ validateEach)
+            .getOrElse(List.empty[GeneticCounsellingRequest].validNel[Issue]),
+  
+          rebiopsyRequests.filterNot(_.isEmpty).map(_ validateEach)
+            .getOrElse(List.empty[RebiopsyRequest].validNel[Issue]),
+  
+          histologyReevaluationRequests.filterNot(_.isEmpty).map(_ validateEach)
+            .getOrElse(List.empty[HistologyReevaluationRequest].validNel[Issue]),
+  
+          studyInclusionRequests.filterNot(_.isEmpty).map(_ validateEach)
+            .getOrElse(List.empty[StudyInclusionRequest].validNel[Issue]),
+  
+          claims.filterNot(_.isEmpty) shouldBe defined otherwise (
+            Warning("Missing Insurance Claim records") at Location("MTBFile",patId.value,"claims")
+          ) andThen (_.get validateEach),
+  
+          claimResponses.filterNot(_.isEmpty) shouldBe defined otherwise (
+            Warning("Missing ClaimResponse records") at Location("MTBFile",patId.value,"claimResponses")
+          ) andThen (_.get validateEach),
+  
+          molecularTherapies.filterNot(_.isEmpty) shouldBe defined otherwise (
+            Warning("Missing MolecularTherapy records") at Location("MTBFile",patId.value,"molecularTherapies")
+          ) andThen (_.get.flatMap(_.history) validateEach),
+  
+          responses.filterNot(_.isEmpty) mustBe defined otherwise (
+            Warning("Missing Response records") at Location("MTBFile",patId.value,"responses")
+          ) andThen (_.get validateEach),
+         
+/*
           (lastGuidelineTherapy ifUndefined (Error("Missing last Guideline Therapy") at Location("MTBFile",patId.value,"lastGuidelineTherapies")))
             andThen (_ validate),
   
@@ -1147,8 +1207,7 @@ object DefaultDataValidator
           (molecularTherapies ifUndefined (Warning("Missing MolecularTherapy records") at Location("MTBFile",patId.value,"molecularTherapies")))
             andThen (_ ifEmpty (Warning("Missing MolecularTherapy records") at Location("MTBFile",patId.value,"molecularTherapies")))
             andThen (_.flatMap(_.history) validateEach),
-  
-          //TODO: validate Responses
+*/  
   
         )
         .mapN { case _: Product => mtbfile }

@@ -22,8 +22,7 @@ object ECOGDisplay
 
 final case class ECOGStatusView
 (
-  values: List[TemporalValue[String,ECOGDisplay]]
-//  values: List[TemporalValue[LocalDate,ECOGDisplay]]
+  values: List[DatedValue[String,ECOGDisplay]]
 )
 
 object ECOGStatusView
