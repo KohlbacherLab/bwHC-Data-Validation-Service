@@ -31,7 +31,6 @@ case class CarePlan
   diagnosis: Diagnosis.Id,
   issuedOn: Option[LocalDate],
   description: Option[String],
-//  result: Either[NoTargetFinding,NonEmptyList[TherapyRecommendation.Id]] //TODO: consider this for result modelling 
   noTargetFinding: Option[NoTargetFinding],
   recommendations: Option[List[TherapyRecommendation.Id]],
   geneticCounsellingRequest: Option[GeneticCounsellingRequest.Id],

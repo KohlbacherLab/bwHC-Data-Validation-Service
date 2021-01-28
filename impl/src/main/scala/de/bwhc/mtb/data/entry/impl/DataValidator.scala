@@ -129,18 +129,35 @@ object DefaultDataValidator
 
         insurance shouldBe defined otherwise (Warning("Missing Health Insurance") at Location("Patient",id,"insurance")),
 
-        (dod couldBe defined otherwise (
-           Info("Undefined date of death. Ensure if up to date") at Location("Patient",id,"dateOfDeath"))
-          ) andThen ( date =>
-            date.get must be (before (LocalDate.now))
-              otherwise (Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath"))
-          ),
+        dod map (
+          _ must be (before (LocalDate.now)) otherwise (
+            Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath")
+          )
+        ) getOrElse (dod.validNel[Issue]),
 
+/*
+        dod.fold(
+          dod.validNel[Issue])
+        )(
+          date => date must be (before (LocalDate.now)) otherwise (
+            Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath")
+          )
+        ),
+
+        dod couldBe defined otherwise (
+          Info("Undefined date of death. Ensure if up to date") at Location("Patient",id,"dateOfDeath")
+        ) andThen ( date =>
+          date.get must be (before (LocalDate.now))
+            otherwise (Error("Invalid Date of death in the future") at Location("Patient",id,"dateOfDeath"))
+        ),
+*/
         (birthDate, dod)
           .mapN(
-            (b,d) => d must be (after (b))
-                       otherwise (Error("Invalid Date of death before birthDate") at Location("Patient",id,"dateOfDeath"))
-           )
+            (b,d) =>
+              d must be (after (b)) otherwise (
+                Error("Invalid Date of death before birthDate") at Location("Patient",id,"dateOfDeath")
+              )
+          )
           .getOrElse(LocalDate.now.validNel[Issue])
       )
       .mapN { case _: Product => pat }
@@ -153,8 +170,7 @@ object DefaultDataValidator
 
     case consent @ Consent(id,patient,_) =>
 
-      (patient must be (validReference[Patient.Id](Location("Consent",id.value,"patient"))))
-        .map(_ => consent)
+      patient must be (validReference[Patient.Id](Location("Consent",id.value,"patient"))) map (_ => consent)
 
   }
 
@@ -164,8 +180,7 @@ object DefaultDataValidator
   ): DataQualityValidator[MTBEpisode] = {
     case episode @ MTBEpisode(id,patient,period) =>
 
-      (patient must be (validReference[Patient.Id](Location("MTBEpisode",id.value,"patient"))))
-        .map(_ => episode)
+      patient must be (validReference[Patient.Id](Location("MTBEpisode",id.value,"patient"))) map (_ => episode)
 
   }
 
@@ -182,18 +197,18 @@ object DefaultDataValidator
 
       case icd10 @ Coding(dtos.ICD10GM(code),_,version) =>
 
-        (version mustBe defined otherwise (Error("Missing ICD-10-GM Version") at Location("ICD-10-GM Coding","","version")))
-          .andThen ( v =>
+        version mustBe defined otherwise (
+          Error("Missing ICD-10-GM Version") at Location("ICD-10-GM Coding","","version")
+        ) andThen (
+          v =>
             attempt(icd.ICD10GM.Version(v.get)) otherwise (
               Error(s"Invalid ICD-10-GM Version '${v.get}'") at Location("ICD-10-GM Coding","","version")
             )
-          )
-          .andThen (
-            v =>
-              code must be (in (catalog.codings(v).map(_.code.value)))
-                otherwise (Error(s"Invalid ICD-10-GM code '$code'") at Location("ICD-10-GM Coding","","code"))
-          )
-          .map(c => icd10)
+        ) andThen (
+          v =>
+            code must be (in (catalog.codings(v).map(_.code.value)))
+              otherwise (Error(s"Invalid ICD-10-GM code '$code'") at Location("ICD-10-GM Coding","","code"))
+        ) map (c => icd10)
 
     }
 
@@ -205,19 +220,18 @@ object DefaultDataValidator
 
       case icdo3t @ Coding(ICDO3T(code),_,version) =>
 
-        (version mustBe defined otherwise (Error("Missing ICD-O-3 Version") at Location("ICD-O-3-T Coding","","version")))
-          .andThen(
-            v => 
-              attempt(icd.ICDO3.Version(v.get)) otherwise (
-                Error(s"Invalid ICD-O-3 Version '${v.get}'") at Location("ICD-O-3-T Coding","","version")
-              )
-          )
-          .andThen(
-            v =>
-              code must be (in (catalog.topographyCodings(v).map(_.code.value)))
-                otherwise (Error(s"Invalid ICD-O-3-T code '$code'") at Location("ICD-O-3-T Coding","","code"))
-          )
-          .map(c => icdo3t)
+        version mustBe defined otherwise (
+          Error("Missing ICD-O-3 Version") at Location("ICD-O-3-T Coding","","version")
+        ) andThen (
+          v => 
+            attempt(icd.ICDO3.Version(v.get)) otherwise (
+              Error(s"Invalid ICD-O-3 Version '${v.get}'") at Location("ICD-O-3-T Coding","","version")
+            )
+        ) andThen (
+          v =>
+            code must be (in (catalog.topographyCodings(v).map(_.code.value)))
+              otherwise (Error(s"Invalid ICD-O-3-T code '$code'") at Location("ICD-O-3-T Coding","","code"))
+        ) map (c => icdo3t)
 
     }
 
@@ -229,19 +243,18 @@ object DefaultDataValidator
 
       case icdo3m @ Coding(ICDO3M(code),_,version) =>
 
-        (version mustBe defined otherwise (Error("Missing ICD-O-3 Version") at Location("ICD-O-3-M Coding","","version")))
-          .andThen(
-            v =>
-              attempt(icd.ICDO3.Version(v.get)) otherwise (
-                Error(s"Invalid ICD-O-3 Version '${v.get}'") at Location("ICD-O-3-M Coding","","version")
-              )
-          )
-          .andThen(
-            v =>
-              code must be (in (catalog.morphologyCodings(v).map(_.code.value)))
-                otherwise (Error(s"Invalid ICD-O-3-M code '$code'") at Location("ICD-O-3-M Coding","","code"))
-          )
-          .map(c => icdo3m)
+        version mustBe defined otherwise (
+          Error("Missing ICD-O-3 Version") at Location("ICD-O-3-M Coding","","version")
+        ) andThen (
+          v =>
+            attempt(icd.ICDO3.Version(v.get)) otherwise (
+              Error(s"Invalid ICD-O-3 Version '${v.get}'") at Location("ICD-O-3-M Coding","","version")
+            )
+        ) andThen (
+          v =>
+            code must be (in (catalog.morphologyCodings(v).map(_.code.value)))
+              otherwise (Error(s"Invalid ICD-O-3-M code '$code'") at Location("ICD-O-3-M Coding","","code"))
+        ) map (c => icdo3m)
 
     }
 
@@ -255,11 +268,9 @@ object DefaultDataValidator
 
     case medication @ Coding(Medication(atcCode),_,_) =>
 
-      (atcCode must be (in (catalog.entries.map(_.code.value)))
-        otherwise (
-          Error(s"Invalid ATC Medication code '$atcCode'") at Location("Medication Coding","","code"))
-       )
-       .map(c => medication)
+      atcCode must be (in (catalog.entries.map(_.code.value))) otherwise (
+        Error(s"Invalid ATC Medication code '$atcCode'") at Location("Medication Coding","","code")
+      ) map (c => medication)
 
   }
 
@@ -281,10 +292,10 @@ object DefaultDataValidator
 
         date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("Diagnosis",id,"recordedOn")),
 
-        (icd10 mustBe defined otherwise (Error("Missing ICD-10-GM Coding") at Location("Diagnosis",id,"icd10")))
+        icd10 mustBe defined otherwise (Error("Missing ICD-10-GM Coding") at Location("Diagnosis",id,"icd10"))
           andThen (_.get validate),
 
-        (icdO3T couldBe defined otherwise (Info("Missing ICD-O-3-T Coding") at Location("Diagnosis",id,"icdO3T")))
+        icdO3T couldBe defined otherwise (Info("Missing ICD-O-3-T Coding") at Location("Diagnosis",id,"icdO3T"))
           andThen (_.get validate),
 
         histologyReportRefs
@@ -307,8 +318,7 @@ object DefaultDataValidator
   ): DataQualityValidator[FamilyMemberDiagnosis] = {
 
     diag =>
-      (diag.patient must be (validReference[Patient.Id](Location("FamilyMemberDiagnosis",diag.id.value,"patient"))))
-       .map(ref => diag)
+      diag.patient must be (validReference[Patient.Id](Location("FamilyMemberDiagnosis",diag.id.value,"patient"))) map (ref => diag)
   }
 
 
@@ -323,11 +333,11 @@ object DefaultDataValidator
 
     case th @ PreviousGuidelineTherapy(TherapyId(id),patient,diag,therapyLine,medication) =>
       (
-        (patient must be (validReference[Patient.Id](Location("PreviousGuidelineTherapy",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("PreviousGuidelineTherapy",id,"patient"))),
 
         diag must be (validReference(diagnosisRefs)(Location("PreviousGuidelineTherapy",id,"diagnosis"))),
 
-        (therapyLine ifUndefined (Warning("Missing Therapy Line") at Location("PreviousGuidelineTherapy",id,"therapyLine")))
+        therapyLine ifUndefined (Warning("Missing Therapy Line") at Location("PreviousGuidelineTherapy",id,"therapyLine"))
           andThen ( l =>
             l must be (in (therapyLines)) otherwise (Error(s"Invalid Therapy Line '${l.value}'") at Location("PreviousGuidelineTherapy",id,"therapyLine"))
           ),
@@ -349,7 +359,7 @@ object DefaultDataValidator
 
     case th @ LastGuidelineTherapy(TherapyId(id),patient,diag,therapyLine,period,medication,reasonStopped) =>
       (
-        (patient must be (validReference[Patient.Id](Location("LastGuidelineTherapy",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("LastGuidelineTherapy",id,"patient"))),
 
         diag must be (validReference(diagnosisRefs)(Location("LastGuidelineTherapy",id,"diagnosis"))),
 
@@ -358,17 +368,18 @@ object DefaultDataValidator
             p => p.end shouldBe defined otherwise (Warning("Missing Therapy end date") at Location("LastGuidelineTherapy",id,"period"))
           ),
 
-        (therapyLine ifUndefined (Warning("Missing Therapy Line") at Location("LastGuidelineTherapy",id,"therapyLine")))
+        therapyLine ifUndefined (Warning("Missing Therapy Line") at Location("LastGuidelineTherapy",id,"therapyLine"))
           andThen ( l =>
             l must be (in (therapyLines)) otherwise (Error(s"Invalid Therapy Line '${l.value}'") at Location("LastGuidelineTherapy",id,"therapyLine"))
           ),
         
         medication.toList.validateEach,
 
-        (reasonStopped ifUndefined (Warning("Missing Stop Reason") at Location("LastGuidelineTherapy",id,"reasonStopped"))),
+        reasonStopped ifUndefined (Warning("Missing Stop Reason") at Location("LastGuidelineTherapy",id,"reasonStopped")),
 
-        (th.id must be (in (therapyRefs))
-           otherwise (Warning("Missing Response") at Location("LastGuidelineTherapy",id,"response")))
+        th.id must be (in (therapyRefs)) otherwise (
+          Warning("Missing Response") at Location("LastGuidelineTherapy",id,"response")
+        )
       )
       .mapN { case _: Product => th }
 
@@ -383,7 +394,7 @@ object DefaultDataValidator
     case pfSt @ ECOGStatus(id,patient,date,value) =>
 
       (
-        (patient must be (validReference[Patient.Id](Location("ECOGStatus",id.value,"patient")))),
+        patient must be (validReference[Patient.Id](Location("ECOGStatus",id.value,"patient"))),
 
         date mustBe defined otherwise (
           Error("Missing effective date of ECOG Performance Status finding") at Location("ECOGStatus",id.value,"effectiveDate")
@@ -402,7 +413,7 @@ object DefaultDataValidator
 
     case sp @ Specimen(Specimen.Id(id),patient,icd10,typ,collection) =>
       (
-        (patient must be (validReference[Patient.Id](Location("Specimen",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("Specimen",id,"patient"))),
 
         icd10.validate
           andThen (
@@ -412,9 +423,9 @@ object DefaultDataValidator
               )
           ),
   
-        (typ ifUndefined (Warning(s"Missing Specimen type") at Location("Specimen",id,"type"))),
+        typ ifUndefined (Warning(s"Missing Specimen type") at Location("Specimen",id,"type")),
 
-        (collection ifUndefined (Warning(s"Missing Specimen collection") at Location("Specimen",id,"collection")))
+        collection ifUndefined (Warning(s"Missing Specimen collection") at Location("Specimen",id,"collection"))
        
       )
       .mapN { case _: Product => sp }
@@ -434,12 +445,10 @@ object DefaultDataValidator
     case tc @ TumorCellContent(TumorCellContent.Id(id),specimen,method,value) => {
 
       (
-        (value must be (in (tcRange))
-          otherwise (
-            Error(s"Tumor content value '$value' (${value*100} %) not in reference range $tcRange")
-              at Location("TumorContent",id,"value"))
-          )
-          .map(_ => tc),
+        value must be (in (tcRange)) otherwise (
+          Error(s"Tumor content value '$value' (${value*100} %) not in reference range $tcRange")
+            at Location("TumorContent",id,"value")
+        ) map (_ => tc),
 
         specimen must be (validReference(specimens)(Location("TumorContent",id,"specimen")))
       )
@@ -459,7 +468,7 @@ object DefaultDataValidator
     case morph @ TumorMorphology(TumorMorphology.Id(id),patient,specimen,icdO3M,notes) =>
 
       (
-        (patient must be (validReference[Patient.Id](Location("TumorMorphology",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("TumorMorphology",id,"patient"))),
 
         specimen must be (validReference(specimens)(Location("TumorMorphology",id,"specimen"))),
         
@@ -479,17 +488,17 @@ object DefaultDataValidator
     case histo @ HistologyReport(HistologyReport.Id(id),patient,specimen,date,morphology,tumorContent) =>
 
       (
-        (patient must be (validReference[Patient.Id](Location("HistologyReport",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("HistologyReport",id,"patient"))),
 
         specimen must be (validReference(specimens)(Location("HistologyReport",id,"specimen"))),
 
-        (date mustBe defined otherwise (Error("Missing issue date") at Location("HistologyReport",id,"issuedOn"))),
+        date mustBe defined otherwise (Error("Missing issue date") at Location("HistologyReport",id,"issuedOn")),
 
-        (morphology ifUndefined (Error("Missing TumorMorphology") at Location("HistologyReport",id,"tumorMorphology")))
+        morphology ifUndefined (Error("Missing TumorMorphology") at Location("HistologyReport",id,"tumorMorphology"))
           andThen (_ validate ),
 
-        (tumorContent ifUndefined (Error("Missing TumorCellContent") at Location("HistologyReport",id,"tumorCellContent")))
-          .andThen ( tc =>
+        tumorContent ifUndefined (Error("Missing TumorCellContent") at Location("HistologyReport",id,"tumorCellContent"))
+          andThen ( tc =>
             (
               tc.method must equal (TumorCellContent.Method.Histologic)
                 otherwise (Error(s"Expected TumorCellContent method ${TumorCellContent.Method.Histologic}")
@@ -514,11 +523,11 @@ object DefaultDataValidator
     case molPath @ MolecularPathologyFinding(MolecularPathologyFinding.Id(id),patient,specimen,_,date,_) =>
 
       (
-        (patient must be (validReference[Patient.Id](Location("MolecularPathologyFinding",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("MolecularPathologyFinding",id,"patient"))),
 
         specimen must be (validReference(specimens)(Location("MolecularPathologyFinding",id,"specimen"))),
 
-        (date mustBe defined otherwise (Error("Missing issue date") at Location("MolecularPathologyFinding",id,"issuedOn"))),
+        date mustBe defined otherwise (Error("Missing issue date") at Location("MolecularPathologyFinding",id,"issuedOn")),
 
       )
       .mapN { case _: Product => molPath }
@@ -537,9 +546,9 @@ object DefaultDataValidator
     location: => Location
   ): DataQualityValidator[Variant.Gene] = 
     symbol => 
-      (hgncCatalog.geneWithSymbol(symbol) mustBe defined otherwise 
-        (Error(s"Invalid Gene Symbol ${symbol.value}") at location))
-        .map(_ => symbol)
+      hgncCatalog.geneWithSymbol(symbol) mustBe defined otherwise (
+        Error(s"Invalid Gene Symbol ${symbol.value}") at location
+      ) map (_ => symbol)
   
 
 
@@ -560,7 +569,7 @@ object DefaultDataValidator
       val tmbRange      = ClosedInterval(0.0 -> 1e6)  // TMB in mut/MBase, so [0,1000000]
 
       (
-        (patient must be (validReference[Patient.Id](Location("SomaticNGSReport",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("SomaticNGSReport",id,"patient"))),
 
         specimen must be (validReference(specimens)(Location("SomaticNGSReport",id,"specimen"))),
 
@@ -568,10 +577,10 @@ object DefaultDataValidator
           otherwise (Error(s"Expected TumorCellContent method '${TumorCellContent.Method.Bioinformatic}'")
             at Location("SomaticNGSReport",id,"tumorContent")),
 
-        (tumorContent validate),
+        tumorContent validate,
        
-        (brcaness shouldBe defined otherwise (Info("Missing BRCAness value") at Location("SomaticNGSReport",id,"brcaness")))
-          .andThen {
+        brcaness shouldBe defined otherwise (Info("Missing BRCAness value") at Location("SomaticNGSReport",id,"brcaness"))
+          andThen {
             opt =>
               opt.get.value must be (in (brcanessRange)) otherwise (
                   Error(s"BRCAness value '${opt.get.value}' not in reference range $brcanessRange")
@@ -579,8 +588,8 @@ object DefaultDataValidator
                 )
               },
              
-        (msi shouldBe defined otherwise (Info("Missing MSI value") at Location("SomaticNGSReport",id,"msi")))
-          .andThen(
+        msi shouldBe defined otherwise (Info("Missing MSI value") at Location("SomaticNGSReport",id,"msi"))
+          andThen(
             opt =>
               opt.get.value must be (in (msiRange)) otherwise (
                 Error(s"MSI value '${opt.get.value}' not in reference range $msiRange") at Location("SomaticNGSReport",id,"msi")
@@ -623,11 +632,11 @@ object DefaultDataValidator
     case cp @ CarePlan(CarePlan.Id(id),patient,diag,date,_,noTarget,recommendations,counsellingReq,rebiopsyRequests,studyInclusionReq) =>
 
       (
-        (patient must be (validReference[Patient.Id](Location("CarePlan",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("CarePlan",id,"patient"))),
 
         diag must be (validReference(diagnosisRefs)(Location("CarePlan",id,"diagnosis"))),
 
-        (date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("CarePlan",id,"issuedOn"))),
+        date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("CarePlan",id,"issuedOn")),
 
         // Check that Recommendations are defined unless "noTarget" is declared
 /*        
@@ -699,13 +708,13 @@ object DefaultDataValidator
 
         diag must be (validReference(diagnosisRefs)(Location("TherapyRecommendation",id,"diagnosis"))),
 
-        (date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("TherapyRecommendation",id,"issuedOn"))),
+        date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("TherapyRecommendation",id,"issuedOn")),
 
-        (medication validateEach),
+        medication validateEach,
 
-        (priority shouldBe defined otherwise (Warning("Missing Priority") at Location("TherapyRecommendation",id,"priority"))),
+        priority shouldBe defined otherwise (Warning("Missing Priority") at Location("TherapyRecommendation",id,"priority")),
 
-        (loe shouldBe defined otherwise (Warning("Missing Level of Evidence") at Location("TherapyRecommendation",id,"levelOfEvidence"))),
+        loe shouldBe defined otherwise (Warning("Missing Level of Evidence") at Location("TherapyRecommendation",id,"levelOfEvidence")),
 
         optNgsId mustBe defined otherwise (
           Error(s"Missing Reference to SomaticNGSReport") at Location("TherapyRecommendation",id,"ngsReport")
@@ -737,9 +746,9 @@ object DefaultDataValidator
     case req @ GeneticCounsellingRequest(GeneticCounsellingRequest.Id(id),patient,date,_) =>
 
       (
-        (patient must be (validReference[Patient.Id](Location("GeneticCounsellingRequest",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("GeneticCounsellingRequest",id,"patient"))),
 
-        (date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("GeneticCounsellingRequest",id,"issuedOn"))),
+        date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("GeneticCounsellingRequest",id,"issuedOn")),
       )
       .mapN { case _: Product => req }
 
@@ -755,9 +764,9 @@ object DefaultDataValidator
     case req @ RebiopsyRequest(RebiopsyRequest.Id(id),patient,specimen,date) =>
 
       (
-        (patient must be (validReference[Patient.Id](Location("RebiopsyRequest",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("RebiopsyRequest",id,"patient"))),
 
-        (date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("RebiopsyRequest",id,"issuedOn"))),
+        date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("RebiopsyRequest",id,"issuedOn")),
 
         specimen must be (validReference(specimens)(Location("RebiopsyRequest",id,"specimen"))),
       )
@@ -775,9 +784,9 @@ object DefaultDataValidator
     case req @ HistologyReevaluationRequest(HistologyReevaluationRequest.Id(id),patient,specimen,date) =>
 
       (
-        (patient must be (validReference[Patient.Id](Location("HistologyReevaluationRequest",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("HistologyReevaluationRequest",id,"patient"))),
 
-        (date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("HistologyReevaluationRequest",id,"issuedOn"))),
+        date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("HistologyReevaluationRequest",id,"issuedOn")),
 
         specimen must be (validReference(specimens)(Location("HistologyReevaluationRequest",id,"specimen"))),
       )
@@ -819,7 +828,7 @@ object DefaultDataValidator
     case cl @ Claim(Claim.Id(id),patient,_,therapy) =>
 
       (
-        (patient must be (validReference[Patient.Id](Location("Claim",id,"patient")))),
+        patient must be (validReference[Patient.Id](Location("Claim",id,"patient"))),
 
         therapy must be (validReference(recommendationRefs)(Location("Claim",id,"specimen"))),
       )

@@ -151,6 +151,7 @@ trait mappings
           .toRight(NotAvailable),
         diag.statusHistory
           .filterNot(_.isEmpty)
+          .map(_.sortWith((t1,t2) => t1.date isBefore t2.date))
           .flatMap {
             _.map{
               case Diagnosis.StatusOnDate(status,date) =>
@@ -202,9 +203,7 @@ trait mappings
             NotAvailable.asLeft[PeriodDisplay[LocalDate]],
             th.medication.map(_.mapTo[MedicationDisplay]),
             NotAvailable.asLeft[String],
-            response
-              .map(_.mapTo[ResponseDisplay])
-              .toRight(NotAvailable)
+            response.map(_.mapTo[ResponseDisplay]).toRight(NotAvailable)
           )
         
         case th: LastGuidelineTherapy =>
@@ -214,11 +213,10 @@ trait mappings
             th.therapyLine.toRight(NotAvailable),
             th.period.map(_.mapTo[PeriodDisplay[LocalDate]]).toRight(NotAvailable),
             th.medication.map(_.mapTo[MedicationDisplay]),
-            th.reasonStopped.flatMap(c => ValueSet[GuidelineTherapy.StopReason.Value].displayOf(c.code))
+            th.reasonStopped
+              .flatMap(c => ValueSet[GuidelineTherapy.StopReason.Value].displayOf(c.code))
               .toRight(NotAvailable),
-            response
-              .map(_.mapTo[ResponseDisplay])
-              .toRight(NotAvailable)
+            response.map(_.mapTo[ResponseDisplay]).toRight(NotAvailable)
           )
       
       }
@@ -566,7 +564,6 @@ trait mappings
 
       case ((carePlans,diagnoses,recommendations,studyInclusionReqs,geneticCounsellingReqs), ngsReports) =>
 
-
         carePlans.map {
           cp =>
             ((
@@ -635,9 +632,9 @@ trait mappings
           th.recordedOn,
           th.basedOn,
           NotAvailable.asLeft[PeriodDisplay[LocalDate]],
-          ValueSet[MolecularTherapy.NotDoneReason.Value].displayOf(th.notDoneReason.code).get,
+          ValueSet[MolecularTherapy.NotDoneReason.Value].displayOf(th.notDoneReason.code).toRight(NotAvailable),
           List.empty[MedicationDisplay],
-          "-",
+          Undefined.asLeft[String],
           NotAvailable.asLeft[Dosage.Value],
           note,
           response
@@ -650,9 +647,9 @@ trait mappings
           th.recordedOn,
           th.basedOn,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
-          "-",
+          Undefined.asLeft[String],
           th.medication.toList.map(_.mapTo[MedicationDisplay]),
-          ValueSet[MolecularTherapy.StopReason.Value].displayOf(th.reasonStopped.code).get,
+          ValueSet[MolecularTherapy.StopReason.Value].displayOf(th.reasonStopped.code).toRight(NotAvailable),
           th.dosage.toRight(NotAvailable),
           note,
           response
@@ -665,9 +662,9 @@ trait mappings
           th.recordedOn,
           th.basedOn,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
-          "-",
+          Undefined.asLeft[String],
           th.medication.toList.map(_.mapTo[MedicationDisplay]),
-          "-",
+          Undefined.asLeft[String],
           th.dosage.toRight(NotAvailable),
           note,
           response
@@ -680,9 +677,9 @@ trait mappings
           th.recordedOn,
           th.basedOn,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
-          "-",
+          Undefined.asLeft[String],
           th.medication.toList.map(_.mapTo[MedicationDisplay]),
-          "-",
+          Undefined.asLeft[String],
           th.dosage.toRight(NotAvailable),
           note,
           response

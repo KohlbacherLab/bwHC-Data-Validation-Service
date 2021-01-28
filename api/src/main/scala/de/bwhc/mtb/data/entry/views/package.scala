@@ -30,6 +30,16 @@ package object views
       Writes(u => JsString("-"))
   }
 
+  object NoValue
+  {
+    implicit val format: Writes[NoValue] =
+      Writes {
+        case na: NotAvailable => Json.toJson(na)
+        case ud: Undefined    => Json.toJson(ud)
+      }
+  } 
+
+
 
   sealed trait Yes
   final case object Yes extends Yes
