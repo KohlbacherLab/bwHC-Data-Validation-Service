@@ -180,7 +180,7 @@ object DefaultDataValidator
   ): DataQualityValidator[MTBEpisode] = {
     case episode @ MTBEpisode(id,patient,period) =>
 
-      patient must be (validReference[Patient.Id](Location("MTBEpisode",id.value,"patient"))) map (_ => episode)
+      patient must be (validReference[Patient.Id](Location("MTB-Episode",id.value,"patient"))) map (_ => episode)
 
   }
 
@@ -318,7 +318,7 @@ object DefaultDataValidator
   ): DataQualityValidator[FamilyMemberDiagnosis] = {
 
     diag =>
-      diag.patient must be (validReference[Patient.Id](Location("FamilyMemberDiagnosis",diag.id.value,"patient"))) map (ref => diag)
+      diag.patient must be (validReference[Patient.Id](Location("Family Member Diagnosis",diag.id.value,"patient"))) map (ref => diag)
   }
 
 
@@ -333,14 +333,17 @@ object DefaultDataValidator
 
     case th @ PreviousGuidelineTherapy(TherapyId(id),patient,diag,therapyLine,medication) =>
       (
-        patient must be (validReference[Patient.Id](Location("PreviousGuidelineTherapy",id,"patient"))),
+        patient must be (validReference[Patient.Id](Location("Guideline Therapy",id,"patient"))),
 
-        diag must be (validReference(diagnosisRefs)(Location("PreviousGuidelineTherapy",id,"diagnosis"))),
+        diag must be (validReference(diagnosisRefs)(Location("Guideline Therapy",id,"diagnosis"))),
 
-        therapyLine ifUndefined (Warning("Missing Therapy Line") at Location("PreviousGuidelineTherapy",id,"therapyLine"))
-          andThen ( l =>
-            l must be (in (therapyLines)) otherwise (Error(s"Invalid Therapy Line '${l.value}'") at Location("PreviousGuidelineTherapy",id,"therapyLine"))
-          ),
+        therapyLine shouldBe defined otherwise (
+          Warning("Missing Therapy Line") at Location("Guideline Therapy",id,"therapyLine")
+        ) andThen ( l =>
+          l.get must be (in (therapyLines)) otherwise (
+            Error(s"Invalid Therapy Line '${l.get.value}'") at Location("Guideline Therapy",id,"therapyLine")
+          )
+        ),
 
         medication.toList.validateEach
         
@@ -359,26 +362,32 @@ object DefaultDataValidator
 
     case th @ LastGuidelineTherapy(TherapyId(id),patient,diag,therapyLine,period,medication,reasonStopped) =>
       (
-        patient must be (validReference[Patient.Id](Location("LastGuidelineTherapy",id,"patient"))),
+        patient must be (validReference[Patient.Id](Location("Guideline Therapy",id,"patient"))),
 
-        diag must be (validReference(diagnosisRefs)(Location("LastGuidelineTherapy",id,"diagnosis"))),
+        diag must be (validReference(diagnosisRefs)(Location("Guideline Therapy",id,"diagnosis"))),
 
-        period ifUndefined (Warning("Missing Therapy Period (Start/End)") at Location("LastGuidelineTherapy",id,"period"))
-          andThen (
-            p => p.end shouldBe defined otherwise (Warning("Missing Therapy end date") at Location("LastGuidelineTherapy",id,"period"))
-          ),
+        period shouldBe defined otherwise (
+          Warning("Missing Therapy Period (Start/End)") at Location("Guideline Therapy",id,"period")
+        ) andThen (
+          p => p.get.end shouldBe defined otherwise (Warning("Missing Therapy end date") at Location("Guideline Therapy",id,"period"))
+        ),
 
-        therapyLine ifUndefined (Warning("Missing Therapy Line") at Location("LastGuidelineTherapy",id,"therapyLine"))
-          andThen ( l =>
-            l must be (in (therapyLines)) otherwise (Error(s"Invalid Therapy Line '${l.value}'") at Location("LastGuidelineTherapy",id,"therapyLine"))
-          ),
+        therapyLine shouldBe defined otherwise (
+          Warning("Missing Therapy Line") at Location("Guideline Therapy",id,"therapyLine")
+        ) andThen ( l =>
+          l.get must be (in (therapyLines)) otherwise (
+            Error(s"Invalid Therapy Line '${l.get.value}'") at Location("Guideline Therapy",id,"therapyLine")
+          )
+        ),
         
         medication.toList.validateEach,
 
-        reasonStopped ifUndefined (Warning("Missing Stop Reason") at Location("LastGuidelineTherapy",id,"reasonStopped")),
+        reasonStopped shouldBe defined otherwise (
+          Warning("Missing Stop Reason") at Location("Guideline Therapy",id,"reasonStopped")
+        ),
 
         th.id must be (in (therapyRefs)) otherwise (
-          Warning("Missing Response") at Location("LastGuidelineTherapy",id,"response")
+          Warning("Missing Response") at Location("Guideline Therapy",id,"response")
         )
       )
       .mapN { case _: Product => th }
@@ -394,10 +403,10 @@ object DefaultDataValidator
     case pfSt @ ECOGStatus(id,patient,date,value) =>
 
       (
-        patient must be (validReference[Patient.Id](Location("ECOGStatus",id.value,"patient"))),
+        patient must be (validReference[Patient.Id](Location("ECOG Status",id.value,"patient"))),
 
         date mustBe defined otherwise (
-          Error("Missing effective date of ECOG Performance Status finding") at Location("ECOGStatus",id.value,"effectiveDate")
+          Error("Missing effective date of ECOG Performance Status finding") at Location("ECOG Status",id.value,"effectiveDate")
         ),
       )
       .mapN { case _: Product => pfSt }
@@ -423,9 +432,13 @@ object DefaultDataValidator
               )
           ),
   
-        typ ifUndefined (Warning(s"Missing Specimen type") at Location("Specimen",id,"type")),
+        typ shouldBe defined otherwise (
+          Warning(s"Missing Specimen type") at Location("Specimen",id,"type")
+        ),
 
-        collection ifUndefined (Warning(s"Missing Specimen collection") at Location("Specimen",id,"collection"))
+        collection shouldBe defined otherwise (
+          Warning(s"Missing Specimen collection") at Location("Specimen",id,"collection")
+        )
        
       )
       .mapN { case _: Product => sp }
@@ -446,11 +459,12 @@ object DefaultDataValidator
 
       (
         value must be (in (tcRange)) otherwise (
+//          Error(s"Tumor content value '$value' (${(value*100).toInt} %) not in reference range $tcRange")
           Error(s"Tumor content value '$value' (${value*100} %) not in reference range $tcRange")
             at Location("TumorContent",id,"value")
         ) map (_ => tc),
 
-        specimen must be (validReference(specimens)(Location("TumorContent",id,"specimen")))
+        specimen must be (validReference(specimens)(Location("Tumor Content",id,"specimen")))
       )
       .mapN { case _: Product => tc }
   
@@ -468,9 +482,9 @@ object DefaultDataValidator
     case morph @ TumorMorphology(TumorMorphology.Id(id),patient,specimen,icdO3M,notes) =>
 
       (
-        patient must be (validReference[Patient.Id](Location("TumorMorphology",id,"patient"))),
+        patient must be (validReference[Patient.Id](Location("Tumor Morphology",id,"patient"))),
 
-        specimen must be (validReference(specimens)(Location("TumorMorphology",id,"specimen"))),
+        specimen must be (validReference(specimens)(Location("Tumor Morphology",id,"specimen"))),
         
         icdO3M.validate
       )
@@ -488,21 +502,24 @@ object DefaultDataValidator
     case histo @ HistologyReport(HistologyReport.Id(id),patient,specimen,date,morphology,tumorContent) =>
 
       (
-        patient must be (validReference[Patient.Id](Location("HistologyReport",id,"patient"))),
+        patient must be (validReference[Patient.Id](Location("Histology Report",id,"patient"))),
 
-        specimen must be (validReference(specimens)(Location("HistologyReport",id,"specimen"))),
+        specimen must be (validReference(specimens)(Location("Histology Report",id,"specimen"))),
 
-        date mustBe defined otherwise (Error("Missing issue date") at Location("HistologyReport",id,"issuedOn")),
+        date mustBe defined otherwise (Error("Missing issue date") at Location("Histology Report",id,"issuedOn")),
 
-        morphology ifUndefined (Error("Missing TumorMorphology") at Location("HistologyReport",id,"tumorMorphology"))
-          andThen (_ validate ),
+        morphology mustBe defined otherwise (
+          Error("Missing TumorMorphology") at Location("Histology Report",id,"tumorMorphology")
+        ) andThen (_.get validate),
 
-        tumorContent ifUndefined (Error("Missing TumorCellContent") at Location("HistologyReport",id,"tumorCellContent"))
-          andThen ( tc =>
+        tumorContent mustBe defined otherwise (
+          Error("Missing TumorCellContent") at Location("Histology Report",id,"tumorCellContent")
+        ) map (_.get) andThen (
+          tc =>
             (
               tc.method must equal (TumorCellContent.Method.Histologic)
-                otherwise (Error(s"Expected TumorCellContent method ${TumorCellContent.Method.Histologic}")
-                  at Location("HistologyReport",id,"tumorContent")),
+                otherwise (Error(s"Expected Tumor Cell Content method ${TumorCellContent.Method.Histologic}")
+                  at Location("Histology Report",id,"tumorContent")),
     
               tc validate
             )
@@ -523,11 +540,11 @@ object DefaultDataValidator
     case molPath @ MolecularPathologyFinding(MolecularPathologyFinding.Id(id),patient,specimen,_,date,_) =>
 
       (
-        patient must be (validReference[Patient.Id](Location("MolecularPathologyFinding",id,"patient"))),
+        patient must be (validReference[Patient.Id](Location("Molecular Pathology Finding",id,"patient"))),
 
-        specimen must be (validReference(specimens)(Location("MolecularPathologyFinding",id,"specimen"))),
+        specimen must be (validReference(specimens)(Location("Molecular Pathology Finding",id,"specimen"))),
 
-        date mustBe defined otherwise (Error("Missing issue date") at Location("MolecularPathologyFinding",id,"issuedOn")),
+        date mustBe defined otherwise (Error("Missing issue date") at Location("Molecular Pathology Finding",id,"issuedOn")),
 
       )
       .mapN { case _: Product => molPath }
@@ -569,42 +586,42 @@ object DefaultDataValidator
       val tmbRange      = ClosedInterval(0.0 -> 1e6)  // TMB in mut/MBase, so [0,1000000]
 
       (
-        patient must be (validReference[Patient.Id](Location("SomaticNGSReport",id,"patient"))),
+        patient must be (validReference[Patient.Id](Location("Somatic NGS-Report",id,"patient"))),
 
-        specimen must be (validReference(specimens)(Location("SomaticNGSReport",id,"specimen"))),
+        specimen must be (validReference(specimens)(Location("Somatic NGS-Report",id,"specimen"))),
 
         tumorContent.method must equal (TumorCellContent.Method.Bioinformatic)
-          otherwise (Error(s"Expected TumorCellContent method '${TumorCellContent.Method.Bioinformatic}'")
-            at Location("SomaticNGSReport",id,"tumorContent")),
+          otherwise (Error(s"Expected Tumor Cell Content method '${TumorCellContent.Method.Bioinformatic}'")
+            at Location("Somatic NGS-Report",id,"tumorContent")),
 
         tumorContent validate,
        
-        brcaness shouldBe defined otherwise (Info("Missing BRCAness value") at Location("SomaticNGSReport",id,"brcaness"))
+        brcaness shouldBe defined otherwise (Info("Missing BRCAness value") at Location("Somatic NGS-Report",id,"brcaness"))
           andThen {
             opt =>
               opt.get.value must be (in (brcanessRange)) otherwise (
                   Error(s"BRCAness value '${opt.get.value}' not in reference range $brcanessRange")
-                    at Location("SomaticNGSReport",id,"brcaness")
+                    at Location("Somatic NGS-Report",id,"brcaness")
                 )
               },
              
-        msi shouldBe defined otherwise (Info("Missing MSI value") at Location("SomaticNGSReport",id,"msi"))
+        msi shouldBe defined otherwise (Info("Missing MSI value") at Location("Somatic NGS-Report",id,"msi"))
           andThen(
             opt =>
               opt.get.value must be (in (msiRange)) otherwise (
-                Error(s"MSI value '${opt.get.value}' not in reference range $msiRange") at Location("SomaticNGSReport",id,"msi")
+                Error(s"MSI value '${opt.get.value}' not in reference range $msiRange") at Location("Somatic NGS-Report",id,"msi")
               )
             ),
              
         tmb.value must be (in (tmbRange))
-          otherwise (Error(s"TMB value '${tmb.value}' not in reference range $tmbRange") at Location("SomaticNGSReport",id,"tmb")),             
+          otherwise (Error(s"TMB value '${tmb.value}' not in reference range $tmbRange") at Location("Somatic NGS-Report",id,"tmb")),             
 
         optSnvs.fold(
           List.empty[SimpleVariant].validNel[Issue]
         )(
           _ validateEach (
               snv => 
-                (snv.gene.code must be (validGeneSymbol(Location("SomaticNGSReport",id,s"SimpleVariant/${snv.id.value}"))))
+                (snv.gene.code must be (validGeneSymbol(Location("Somatic NGS-Report",id,s"SimpleVariant/${snv.id.value}"))))
                   .map(_ => snv)
             )
         )
@@ -704,31 +721,31 @@ object DefaultDataValidator
     case rec @ TherapyRecommendation(TherapyRecommendation.Id(id),patient,diag,date,medication,priority,loe,optNgsId,supportingVariants) =>
 
       (
-        (patient must be (validReference[Patient.Id](Location("TherapyRecommendation",id,"patient")))),
+        (patient must be (validReference[Patient.Id](Location("Therapy Recommendation",id,"patient")))),
 
-        diag must be (validReference(diagnosisRefs)(Location("TherapyRecommendation",id,"diagnosis"))),
+        diag must be (validReference(diagnosisRefs)(Location("Therapy Recommendation",id,"diagnosis"))),
 
-        date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("TherapyRecommendation",id,"issuedOn")),
+        date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("Therapy Recommendation",id,"issuedOn")),
 
         medication validateEach,
 
-        priority shouldBe defined otherwise (Warning("Missing Priority") at Location("TherapyRecommendation",id,"priority")),
+        priority shouldBe defined otherwise (Warning("Missing Priority") at Location("Therapy Recommendation",id,"priority")),
 
-        loe shouldBe defined otherwise (Warning("Missing Level of Evidence") at Location("TherapyRecommendation",id,"levelOfEvidence")),
+        loe shouldBe defined otherwise (Warning("Missing Level of Evidence") at Location("Therapy Recommendation",id,"levelOfEvidence")),
 
         optNgsId mustBe defined otherwise (
-          Error(s"Missing Reference to SomaticNGSReport") at Location("TherapyRecommendation",id,"ngsReport")
+          Error(s"Missing Reference to Somatic NGS-Report") at Location("Therapy Recommendation",id,"ngsReport")
         ) andThen (
           ngsId =>
             ngsReports.find(_.id == ngsId.get) mustBe defined otherwise (
-              Fatal(s"Invalid Reference to SomaticNGSReport/${ngsId.get.value}") at Location("TherapyRecommendation",id,"ngsReport")
+              Fatal(s"Invalid Reference to SomaticNGSReport/${ngsId.get.value}") at Location("Therapy Recommendation",id,"ngsReport")
             ) andThen (
               ngsReport =>
 
               supportingVariants shouldBe defined otherwise (
-                Warning("Missing Supporting Variants") at Location("TherapyRecommendation",id,"supportingVariants")
+                Warning("Missing Supporting Variants") at Location("Therapy Recommendation",id,"supportingVariants")
               ) andThen (refs =>
-                refs.get must be (validReferences(Location("TherapyRecommendation",id,"supportingVariants"))(ngsReport.get.variants.map(_.id))) 
+                refs.get must be (validReferences(Location("Therapy Recommendation",id,"supportingVariants"))(ngsReport.get.variants.map(_.id))) 
               )
             )
         )
@@ -746,9 +763,9 @@ object DefaultDataValidator
     case req @ GeneticCounsellingRequest(GeneticCounsellingRequest.Id(id),patient,date,_) =>
 
       (
-        patient must be (validReference[Patient.Id](Location("GeneticCounsellingRequest",id,"patient"))),
+        patient must be (validReference[Patient.Id](Location("Genetic Counselling Request",id,"patient"))),
 
-        date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("GeneticCounsellingRequest",id,"issuedOn")),
+        date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("Genetic Counselling Request",id,"issuedOn")),
       )
       .mapN { case _: Product => req }
 
@@ -764,11 +781,11 @@ object DefaultDataValidator
     case req @ RebiopsyRequest(RebiopsyRequest.Id(id),patient,specimen,date) =>
 
       (
-        patient must be (validReference[Patient.Id](Location("RebiopsyRequest",id,"patient"))),
+        patient must be (validReference[Patient.Id](Location("Rebiopsy Request",id,"patient"))),
 
-        date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("RebiopsyRequest",id,"issuedOn")),
+        date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("Rebiopsy Request",id,"issuedOn")),
 
-        specimen must be (validReference(specimens)(Location("RebiopsyRequest",id,"specimen"))),
+        specimen must be (validReference(specimens)(Location("Rebiopsy Request",id,"specimen"))),
       )
       .mapN { case _: Product => req }
 
@@ -784,11 +801,11 @@ object DefaultDataValidator
     case req @ HistologyReevaluationRequest(HistologyReevaluationRequest.Id(id),patient,specimen,date) =>
 
       (
-        patient must be (validReference[Patient.Id](Location("HistologyReevaluationRequest",id,"patient"))),
+        patient must be (validReference[Patient.Id](Location("Histology Reevaluation Request",id,"patient"))),
 
-        date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("HistologyReevaluationRequest",id,"issuedOn")),
+        date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("Histology Reevaluation Request",id,"issuedOn")),
 
-        specimen must be (validReference(specimens)(Location("HistologyReevaluationRequest",id,"specimen"))),
+        specimen must be (validReference(specimens)(Location("Histology Reevaluation Request",id,"specimen"))),
       )
       .mapN { case _: Product => req }
 
@@ -805,12 +822,12 @@ object DefaultDataValidator
     case req @ StudyInclusionRequest(StudyInclusionRequest.Id(id),patient,diag,NCTNumber(nct),date) =>
 
       (
-        patient must be (validReference[Patient.Id](Location("StudyInclusionRequest",id,"patient"))),
+        patient must be (validReference[Patient.Id](Location("Study Inclusion Request",id,"patient"))),
 
         nct must matchRegex (nctNumRegex) otherwise (
-          Error(s"Invalid NCT Number pattern '${nct}'") at Location("StudyInclusionRequest",id,"nctNumber")),  
+          Error(s"Invalid NCT Number pattern '${nct}'") at Location("Study Inclusion Request",id,"nctNumber")),  
 
-        date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("StudyInclusionRequest",id,"issuedOn")),
+        date shouldBe defined otherwise (Warning("Missing Recording Date") at Location("Study Inclusion Request",id,"issuedOn")),
 
       )
       .mapN { case _: Product => req }
@@ -846,13 +863,13 @@ object DefaultDataValidator
     case cl @ ClaimResponse(ClaimResponse.Id(id),claim,patient,_,status,reason) =>
 
       (
-        patient must be (validReference[Patient.Id](Location("ClaimResponse",id,"patient"))),
+        patient must be (validReference[Patient.Id](Location("Claim Response",id,"patient"))),
 
-        claim must be (validReference(claimRefs)(Location("ClaimResponse",id,"claim"))),
+        claim must be (validReference(claimRefs)(Location("Claim Response",id,"claim"))),
 
         if (status == ClaimResponse.Status.Rejected)
           reason shouldBe defined otherwise (
-            Warning("Missing Reason for Rejected ClaimResponse") at Location("ClaimResponse",id,"reason")
+            Warning("Missing Reason for rejected Claim Response") at Location("Claim Response",id,"reason")
           )
         else 
           reason.validNel[Issue]
@@ -871,9 +888,9 @@ object DefaultDataValidator
     case th @ NotDoneTherapy(TherapyId(id),patient,recordedOn,basedOn,notDoneReason,note) =>
 
       (
-        patient must be (validReference[Patient.Id](Location("MolecularTherapy",id,"patient"))),
+        patient must be (validReference[Patient.Id](Location("Molecular Therapy",id,"patient"))),
 
-        basedOn must be (validReference(recommendationRefs)(Location("MolecularTherapy",id,"basedOn")))
+        basedOn must be (validReference(recommendationRefs)(Location("Molecular Therapy",id,"basedOn")))
       )
       .mapN { case _: Product => th }
 
@@ -881,9 +898,9 @@ object DefaultDataValidator
     case th @ StoppedTherapy(TherapyId(id),patient,_,basedOn,_,medication,_,_,_) =>
 
       (
-        patient must be (validReference[Patient.Id](Location("MolecularTherapy",id,"patient"))),
+        patient must be (validReference[Patient.Id](Location("Molecular Therapy",id,"patient"))),
 
-        basedOn must be (validReference(recommendationRefs)(Location("MolecularTherapy",id,"basedOn"))),
+        basedOn must be (validReference(recommendationRefs)(Location("Molecular Therapy",id,"basedOn"))),
 
         medication.toList.validateEach
       )
@@ -893,9 +910,9 @@ object DefaultDataValidator
     case th @ CompletedTherapy(TherapyId(id),patient,_,basedOn,_,medication,_,_) =>
 
       (
-        patient must be (validReference[Patient.Id](Location("MolecularTherapy",id,"patient"))),
+        patient must be (validReference[Patient.Id](Location("Molecular Therapy",id,"patient"))),
 
-        basedOn must be (validReference(recommendationRefs)(Location("MolecularTherapy",id,"basedOn"))),
+        basedOn must be (validReference(recommendationRefs)(Location("Molecular Therapy",id,"basedOn"))),
 
         medication.toList.validateEach
       )
@@ -905,9 +922,9 @@ object DefaultDataValidator
     case th @ OngoingTherapy(TherapyId(id),patient,_,basedOn,_,medication,_,_) =>
 
       (
-        patient must be (validReference[Patient.Id](Location("MolecularTherapy",id,"patient"))),
+        patient must be (validReference[Patient.Id](Location("Molecular Therapy",id,"patient"))),
 
-        basedOn must be (validReference(recommendationRefs)(Location("MolecularTherapy",id,"basedOn"))),
+        basedOn must be (validReference(recommendationRefs)(Location("Molecular Therapy",id,"basedOn"))),
 
         medication.toList.validateEach
       )
@@ -1133,16 +1150,20 @@ object DefaultDataValidator
             Warning("Missing TherapyRecommendation records") at Location("MTBFile",patId.value,"recommendations")
           ) andThen (_.get validateEach),
   
-          counsellingRequests.filterNot(_.isEmpty).map(_ validateEach)
+          counsellingRequests.filterNot(_.isEmpty)
+            .map(_ validateEach)
             .getOrElse(List.empty[GeneticCounsellingRequest].validNel[Issue]),
   
-          rebiopsyRequests.filterNot(_.isEmpty).map(_ validateEach)
+          rebiopsyRequests.filterNot(_.isEmpty)
+            .map(_ validateEach)
             .getOrElse(List.empty[RebiopsyRequest].validNel[Issue]),
   
-          histologyReevaluationRequests.filterNot(_.isEmpty).map(_ validateEach)
+          histologyReevaluationRequests.filterNot(_.isEmpty)
+            .map(_ validateEach)
             .getOrElse(List.empty[HistologyReevaluationRequest].validNel[Issue]),
   
-          studyInclusionRequests.filterNot(_.isEmpty).map(_ validateEach)
+          studyInclusionRequests.filterNot(_.isEmpty)
+            .map(_ validateEach)
             .getOrElse(List.empty[StudyInclusionRequest].validNel[Issue]),
   
           claims.filterNot(_.isEmpty) shouldBe defined otherwise (
@@ -1161,63 +1182,6 @@ object DefaultDataValidator
             Warning("Missing Response records") at Location("MTBFile",patId.value,"responses")
           ) andThen (_.get validateEach),
          
-/*
-          (lastGuidelineTherapy ifUndefined (Error("Missing last Guideline Therapy") at Location("MTBFile",patId.value,"lastGuidelineTherapies")))
-            andThen (_ validate),
-  
-          (ecogStatus ifUndefined (Warning("Missing ECOG Performance Status records") at Location("MTBFile",patId.value,"ecogStatus")))
-            andThen (_ ifEmpty (Warning("Missing ECOG Performance Status records") at Location("MTBFile",patId.value,"ecogStatus")))
-            andThen (_ validateEach),
-  
-          (specimens ifUndefined (Warning("Missing Specimen records") at Location("MTBFile",patId.value,"specimens")))
-            andThen (_ ifEmpty (Warning("Missing Specimen records") at Location("MTBFile",patId.value,"specimens")))
-            andThen (_ validateEach),
-  
-          (histologyReports ifUndefined (Warning("Missing HistologyReport records") at Location("MTBFile",patId.value,"histologyReports")))
-            andThen (_ ifEmpty (Warning("Missing HistologyReport records") at Location("MTBFile",patId.value,"histologyReports")))
-            andThen (_ validateEach),
-  
-          (molPathoFindings ifUndefined (Warning("Missing MolecularPathology records") at Location("MTBFile",patId.value,"molecularPathologyFindings")))
-            andThen (_ ifEmpty (Warning("Missing MolecularPathology records") at Location("MTBFile",patId.value,"molecularPathologyFindings")))
-            andThen (_ validateEach),
-  
-          (ngsReports ifUndefined (Warning("Missing SomaticNGSReport records") at Location("MTBFile",patId.value,"ngsReports")))
-            andThen (_ ifEmpty (Warning("Missing SomaticNGSReport records") at Location("MTBFile",patId.value,"ngsReports")))
-            andThen (_ validateEach),
-  
-          (carePlans ifUndefined (Warning("Missing CarePlan records") at Location("MTBFile",patId.value,"carePlans")))
-            andThen (_ ifEmpty (Warning("Missing CarePlan records") at Location("MTBFile",patId.value,"carePlans")))
-            andThen (_ validateEach),
-  
-          (recommendations ifUndefined (Warning("Missing TherapyRecommendation records") at Location("MTBFile",patId.value,"recommendations")))
-            andThen (_ ifEmpty (Warning("Missing TherapyRecommendation records") at Location("MTBFile",patId.value,"recommendations")))
-            andThen (_ validateEach),
-  
-          counsellingRequests.map(_ validateEach)
-            .getOrElse(List.empty[GeneticCounsellingRequest].validNel[Issue]),
-  
-          rebiopsyRequests.map(_ validateEach)
-            .getOrElse(List.empty[RebiopsyRequest].validNel[Issue]),
-  
-          histologyReevaluationRequests.map(_ validateEach)
-            .getOrElse(List.empty[HistologyReevaluationRequest].validNel[Issue]),
-  
-          studyInclusionRequests.map(_ validateEach)
-            .getOrElse(List.empty[StudyInclusionRequest].validNel[Issue]),
-  
-          (claims ifUndefined (Warning("Missing Insurance Claim records") at Location("MTBFile",patId.value,"claims")))
-            andThen (_ ifEmpty (Warning("Missing Insurance Claim records") at Location("MTBFile",patId.value,"claims")))
-            andThen (_ validateEach),
-  
-          (claimResponses ifUndefined (Warning("Missing ClaimResponse records") at Location("MTBFile",patId.value,"claimResponses")))
-            andThen (_ ifEmpty (Warning("Missing ClaimResponse records") at Location("MTBFile",patId.value,"claimResponses")))
-            andThen (_ validateEach),
-  
-          (molecularTherapies ifUndefined (Warning("Missing MolecularTherapy records") at Location("MTBFile",patId.value,"molecularTherapies")))
-            andThen (_ ifEmpty (Warning("Missing MolecularTherapy records") at Location("MTBFile",patId.value,"molecularTherapies")))
-            andThen (_.flatMap(_.history) validateEach),
-*/  
-  
         )
         .mapN { case _: Product => mtbfile }
 

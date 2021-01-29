@@ -60,8 +60,7 @@ trait mappings
   }
 
 
-
-
+/*
   implicit val patientToView: Patient => PatientView = {
     pat =>
       PatientView(
@@ -72,7 +71,21 @@ trait mappings
         pat.insurance.toRight(NotAvailable),
         pat.dateOfDeath.toRight(NotAvailable)
       )
+  }
+*/
 
+  implicit val patientToView: ((Patient,Consent,MTBEpisode)) => PatientView = {
+    case (pat,consent,episode) =>
+      PatientView(
+        pat.id,
+        ValueSet[Gender.Value].displayOf(pat.gender).get,
+        pat.birthDate.toRight(NotAvailable),
+        pat.managingZPM.toRight(NotAvailable),
+        pat.insurance.toRight(NotAvailable),
+        pat.dateOfDeath.toRight(NotAvailable),
+        consent.status,
+        episode.period.start
+      )
   }
 
 
@@ -172,6 +185,7 @@ trait mappings
     fmdiag =>
       FamilyMemberDiagnosisView(
         fmdiag.id,
+        fmdiag.patient,
         ValueSet[FamilyMember.Relationship.Value]
           .displayOf(fmdiag.relationship.code)
           .get
@@ -189,19 +203,25 @@ trait mappings
   }
 
 
-  implicit def guidelineTherapyToView[T <: GuidelineTherapy]: ((T,Option[Response])) => GuidelineTherapyView = {
+  implicit def guidelineTherapyToView[T <: GuidelineTherapy]:
+    ((
+     T,
+     Option[Diagnosis],
+     Option[Response])) => GuidelineTherapyView = {
 
-    case (therapy,response) =>
+    case (therapy,diagnosis,response) =>
 
       therapy match { 
       
         case th: PreviousGuidelineTherapy =>
           GuidelineTherapyView(
             th.id,
-            th.diagnosis,
+            th.patient,
+            diagnosis.flatMap(_.icd10.map(_.mapTo[ICD10Display])).toRight(NotAvailable),
             th.therapyLine.toRight(NotAvailable),
             NotAvailable.asLeft[PeriodDisplay[LocalDate]],
-            th.medication.map(_.mapTo[MedicationDisplay]),
+            th.medication.map(_.mapTo[MedicationDisplay])
+              .foldLeft("")((acc,med) =>  s"$acc, ${med.value}"),
             NotAvailable.asLeft[String],
             response.map(_.mapTo[ResponseDisplay]).toRight(NotAvailable)
           )
@@ -209,10 +229,12 @@ trait mappings
         case th: LastGuidelineTherapy =>
           GuidelineTherapyView(
             th.id,
-            th.diagnosis,
+            th.patient,
+            diagnosis.flatMap(_.icd10.map(_.mapTo[ICD10Display])).toRight(NotAvailable),
             th.therapyLine.toRight(NotAvailable),
             th.period.map(_.mapTo[PeriodDisplay[LocalDate]]).toRight(NotAvailable),
-            th.medication.map(_.mapTo[MedicationDisplay]),
+            th.medication.map(_.mapTo[MedicationDisplay])
+              .foldLeft("")((acc,med) =>  s"$acc, ${med.value}"),
             th.reasonStopped
               .flatMap(c => ValueSet[GuidelineTherapy.StopReason.Value].displayOf(c.code))
               .toRight(NotAvailable),
@@ -233,9 +255,10 @@ trait mappings
         .get  // safe to call 
   }
 
-  implicit val ecogsToDisplay: List[ECOGStatus] => ECOGStatusView = {
-    ecogs =>
+  implicit val ecogsToDisplay: ((Patient,List[ECOGStatus])) => ECOGStatusView = {
+    case (patient,ecogs) =>
       ECOGStatusView(
+        patient.id,
         ecogs.map(ecog =>
           DatedValue(
             ecog.effectiveDate.map(_.toISOFormat).getOrElse("N/A"),
@@ -251,6 +274,7 @@ trait mappings
     specimen =>
       SpecimenView(
         specimen.id,
+        specimen.patient,
         specimen.icd10.mapTo[ICD10Display],
         specimen.`type`.flatMap(ValueSet[Specimen.Type.Value].displayOf)
           .toRight(NotAvailable),
@@ -269,6 +293,7 @@ trait mappings
     finding =>
       MolecularPathologyFindingView(
         finding.id,
+        finding.patient,
         finding.specimen,
         finding.performingInstitute.toRight(NotAvailable),
         finding.issuedOn.toRight(NotAvailable),
@@ -291,6 +316,7 @@ trait mappings
     report =>
       HistologyReportView(
         report.id,
+        report.patient,
         report.specimen,
         report.issuedOn.toRight(NotAvailable),
         report.tumorMorphology.map(_.value.mapTo[ICDO3MDisplay]).toRight(NotAvailable),
@@ -442,6 +468,7 @@ trait mappings
     report =>
       NGSReportView(
         report.id,
+        report.patient,
         report.specimen,
         report.issueDate,
         report.sequencingType,
@@ -512,6 +539,7 @@ trait mappings
 
       TherapyRecommendationView(
         rec.id,
+        rec.patient,
         icd10,
         rec.medication.map(_.mapTo[MedicationDisplay]),
         rec.priority.toRight(NotAvailable),
@@ -538,6 +566,7 @@ trait mappings
 
       CarePlanView(
         carePlan.id,
+        carePlan.patient,
         icd10,
         carePlan.issuedOn.toRight(NotAvailable),
         carePlan.description.toRight(NotAvailable),
@@ -591,6 +620,7 @@ trait mappings
 
       ClaimStatusView(
         claim.id,
+        claim.patient,
         claim.therapy,
         claim.issuedOn,
         response.map(_.issuedOn).toRight(NotAvailable),
@@ -615,12 +645,17 @@ trait mappings
 
 
 
-  implicit val molecularTherapyToView: ((MolecularTherapy,Option[Response])) => MolecularTherapyView = {
+  implicit val molecularTherapyToView:
+  ((
+    MolecularTherapy,
+    Option[Diagnosis],
+    Option[Response])) => MolecularTherapyView = {
 
-    case (molTh,resp) =>
+    case (molTh,diag,resp) =>
 
     val status   = ValueSet[MolecularTherapy.Status.Value].displayOf(molTh.status).get
     val note     = molTh.note.getOrElse("-")
+    val icd10    = diag.flatMap(_.icd10.map(_.mapTo[ICD10Display])).toRight(NotAvailable)
     val response = resp.map(_.mapTo[ResponseDisplay]).toRight(NotAvailable)
 
     molTh match { 
@@ -628,12 +663,14 @@ trait mappings
       case th: NotDoneTherapy => 
         MolecularTherapyView(
           th.id,
+          th.patient,
+          icd10,
           status,
           th.recordedOn,
           th.basedOn,
           NotAvailable.asLeft[PeriodDisplay[LocalDate]],
           ValueSet[MolecularTherapy.NotDoneReason.Value].displayOf(th.notDoneReason.code).toRight(NotAvailable),
-          List.empty[MedicationDisplay],
+          "N/A",
           Undefined.asLeft[String],
           NotAvailable.asLeft[Dosage.Value],
           note,
@@ -643,12 +680,15 @@ trait mappings
       case th: StoppedTherapy => 
         MolecularTherapyView(
           th.id,
+          th.patient,
+          icd10,
           status,
           th.recordedOn,
           th.basedOn,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
           Undefined.asLeft[String],
-          th.medication.toList.map(_.mapTo[MedicationDisplay]),
+          th.medication.toList.map(_.mapTo[MedicationDisplay])
+            .foldLeft("")((acc,med) => s"$acc, ${med.value}"),
           ValueSet[MolecularTherapy.StopReason.Value].displayOf(th.reasonStopped.code).toRight(NotAvailable),
           th.dosage.toRight(NotAvailable),
           note,
@@ -658,12 +698,15 @@ trait mappings
       case th: CompletedTherapy => 
         MolecularTherapyView(
           th.id,
+          th.patient,
+          icd10,
           status,
           th.recordedOn,
           th.basedOn,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
           Undefined.asLeft[String],
-          th.medication.toList.map(_.mapTo[MedicationDisplay]),
+          th.medication.toList.map(_.mapTo[MedicationDisplay])
+            .foldLeft("")((acc,med) => s"$acc, ${med.value}"),
           Undefined.asLeft[String],
           th.dosage.toRight(NotAvailable),
           note,
@@ -673,12 +716,15 @@ trait mappings
       case th: OngoingTherapy => 
         MolecularTherapyView(
           th.id,
+          th.patient,
+          icd10,
           status,
           th.recordedOn,
           th.basedOn,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
           Undefined.asLeft[String],
-          th.medication.toList.map(_.mapTo[MedicationDisplay]),
+          th.medication.toList.map(_.mapTo[MedicationDisplay])
+            .foldLeft("")((acc,med) => s"$acc, ${med.value}"),
           Undefined.asLeft[String],
           th.dosage.toRight(NotAvailable),
           note,
@@ -690,13 +736,30 @@ trait mappings
   }
 
 
-  implicit val molecularTherapiesToView: ((List[MolecularTherapy],List[Response])) => List[MolecularTherapyView] = {
-    case (therapies,responses) =>
+  implicit val molecularTherapiesToView:
+    ((
+     List[MolecularTherapy],
+     List[TherapyRecommendation],
+     List[Diagnosis],
+     List[Response]
+     )) => List[MolecularTherapyView] = {
+
+    case (therapies,recommendations,diagnoses,responses) =>
+
+      val diagsByRec =
+        recommendations.map(rec => (rec.id,diagnoses.find(_.id == rec.diagnosis))).toMap
+
       therapies.map(
-        th => (th,responses.find(_.therapy == th.id)).mapTo[MolecularTherapyView]
+        th =>
+          (
+           th,
+           diagsByRec.get(th.basedOn).flatten,
+//           recommendations.find(_.id == th.basedOn).flatMap(rec => diagnoses.find(_.id == rec.diagnosis)),
+           responses.find(_.therapy == th.id)
+          )
+          .mapTo[MolecularTherapyView]
       )
   }
-
 
 
 
@@ -704,27 +767,41 @@ trait mappings
 
     mtbfile =>
 
+      val diagnoses = mtbfile.diagnoses.getOrElse(List.empty[Diagnosis])
+
       val responses = mtbfile.responses.getOrElse(List.empty[Response])
 
       val ngsReports = mtbfile.ngsReports.getOrElse(List.empty[SomaticNGSReport])
 
 
       MTBFileView(
-        mtbfile.patient.mapTo[PatientView],
+        (mtbfile.patient,
+         mtbfile.consent,
+         mtbfile.episode).mapTo[PatientView],
+//        mtbfile.patient.mapTo[PatientView],
 
-        mtbfile.diagnoses.getOrElse(List.empty[Diagnosis])
-          .map(_.mapTo[DiagnosisView]),
+        diagnoses.map(_.mapTo[DiagnosisView]),
 
         mtbfile.familyMemberDiagnoses.getOrElse(List.empty[FamilyMemberDiagnosis])
           .map(_.mapTo[FamilyMemberDiagnosisView]),
 
         mtbfile.previousGuidelineTherapies.getOrElse(List.empty[PreviousGuidelineTherapy])
-          .map(th => (th,responses.find(_.therapy == th.id)).mapTo[GuidelineTherapyView]) ++
+          .map(
+            th =>
+             (th,
+              diagnoses.find(_.id == th.diagnosis),
+              responses.find(_.therapy == th.id)).mapTo[GuidelineTherapyView]
+          ) ++
             mtbfile.lastGuidelineTherapy
-              .map(th => (th,responses.find(_.therapy == th.id)).mapTo[GuidelineTherapyView]),
+              .map(
+                th =>
+                  (th,
+                   diagnoses.find(_.id == th.diagnosis),
+                   responses.find(_.therapy == th.id)).mapTo[GuidelineTherapyView]
+              ),
 
         mtbfile.ecogStatus
-          .map(_.mapTo[ECOGStatusView]),
+          .map((mtbfile.patient,_).mapTo[ECOGStatusView]),
 
         mtbfile.specimens.getOrElse(List.empty[Specimen])
           .map(_.mapTo[SpecimenView]),
@@ -756,8 +833,12 @@ trait mappings
         (
           mtbfile.molecularTherapies.getOrElse(List.empty[MolecularTherapyDocumentation])
             .filterNot(_.history.isEmpty).map(_.history.head),
+          mtbfile.recommendations.getOrElse(List.empty[TherapyRecommendation]), 
+          diagnoses,
           responses 
-        ).mapTo[List[MolecularTherapyView]]
+        )
+        .mapTo[List[MolecularTherapyView]]
+
       )
 
   }

@@ -96,12 +96,13 @@ with Logging
   import MTBDataService.Response._
   import MTBDataService.Error._
 
+  import ValueSets._
 
   implicit val patientDataInfo: ((Patient,DataQualityReport)) => PatientDataInfo = {
     case (patient,dataQC) =>
       PatientDataInfo(
         patient.id,
-        patient.gender,
+        ValueSet[Gender.Value].displayOf(patient.gender).get,
         patient.birthDate.toRight(NotAvailable),
         dataQC.issues.size
       )
@@ -212,11 +213,8 @@ with Logging
   override def patientsWithIncompleteData(
     implicit ec: ExecutionContext
   ): Future[Iterable[PatientDataInfo]] = {
-//  ): Future[Iterable[Patient]] = {
   
     log.info(s"Handling request for Patients with data quality issues")
-
-//    db.mtbfiles.map(_.map(_.patient))  
 
     for {
       mtbfiles <- db.mtbfiles

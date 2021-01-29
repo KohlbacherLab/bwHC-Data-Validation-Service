@@ -10,6 +10,7 @@ import de.bwhc.mtb.data.entry.dtos.{
   Patient,
   Gender,
   HealthInsurance,
+  Consent,
   ZPM
 }
 
@@ -22,6 +23,8 @@ final case class PatientView
   managingZPM: NotAvailable Or ZPM,
   insurance: NotAvailable Or HealthInsurance.Id,
   dateOfDeath: NotAvailable Or LocalDate,
+  constentStatus: Consent.Status.Value,
+  firstReferralDate: LocalDate
 )
 
 

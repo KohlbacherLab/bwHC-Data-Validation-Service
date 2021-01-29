@@ -20,12 +20,15 @@ import de.bwhc.mtb.data.entry.dtos.{
 final case class MolecularTherapyView
 (
   id: TherapyId,
+  patient: Patient.Id,
+  diagnosis: NotAvailable Or ICD10Display,
   status: String,
   recordedOn: LocalDate,
   recommendation: TherapyRecommendation.Id,
   period: NotAvailable Or PeriodDisplay[LocalDate],
   notDoneReason: NoValue Or String,
-  medication: List[MedicationDisplay],
+  medication: String,
+//  medication: List[MedicationDisplay],
   reasonStopped: NoValue Or String,
   dosage: NotAvailable Or Dosage.Value,
   note: String,

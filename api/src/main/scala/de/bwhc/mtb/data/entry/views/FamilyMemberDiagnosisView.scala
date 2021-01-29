@@ -15,6 +15,7 @@ import de.bwhc.mtb.data.entry.dtos.{
 final case class FamilyMemberDiagnosisView
 (
   id: FamilyMemberDiagnosis.Id,
+  patient: Patient.Id,
   relationship: String
 )
 

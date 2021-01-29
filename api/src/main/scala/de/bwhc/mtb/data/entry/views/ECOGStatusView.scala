@@ -22,6 +22,7 @@ object ECOGDisplay
 
 final case class ECOGStatusView
 (
+  patient: Patient.Id,
   values: List[DatedValue[String,ECOGDisplay]]
 )
 

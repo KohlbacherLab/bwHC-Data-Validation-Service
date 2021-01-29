@@ -24,10 +24,12 @@ import de.bwhc.mtb.data.entry.dtos.{
 case class GuidelineTherapyView
 (
   id: TherapyId,
-  diagnosis: Diagnosis.Id,
+  patient: Patient.Id,
+  diagnosis: NotAvailable Or ICD10Display,
   therapyLine: NotAvailable Or TherapyLine,
   period: NotAvailable Or PeriodDisplay[LocalDate],
-  medication: NonEmptyList[MedicationDisplay],
+  medication: String,
+//  medication: NonEmptyList[MedicationDisplay],
   reasonStopped: NotAvailable Or String,
   response: NotAvailable Or ResponseDisplay
 )
@@ -37,36 +39,3 @@ object GuidelineTherapyView
   implicit val format = Json.writes[GuidelineTherapyView]
 }
 
-
-/*
-case class PreviousGuidelineTherapyView
-(
-  id: TherapyId,
-  diagnosis: Diagnosis.Id,
-  therapyLine: NotAvailable Or TherapyLine,
-  medication: NonEmptyList[MedicationDisplay],
-)
-
-
-object PreviousGuidelineTherapyView
-{
-  implicit val format = Json.writes[PreviousGuidelineTherapyView]
-}
-
-
-
-case class LastGuidelineTherapyView
-(
-  id: TherapyId,
-  diagnosis: Diagnosis.Id,
-  therapyLine: NotAvailable Or TherapyLine,
-  period: NotAvailable Or PeriodDisplay[LocalDate],
-  medication: NonEmptyList[MedicationDisplay],
-  reasonStopped: String
-)
-
-object LastGuidelineTherapyView
-{
-  implicit val format = Json.writes[LastGuidelineTherapyView]
-}
-*/

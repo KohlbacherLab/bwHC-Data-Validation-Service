@@ -17,7 +17,7 @@ import de.bwhc.mtb.data.entry.dtos.{
 final case class MolecularPathologyFindingView
 (
   id: MolecularPathologyFinding.Id,
-//  patient: Patient.Id,
+  patient: Patient.Id,
   specimen: Specimen.Id,
   performingInstitute: NotAvailable Or PathologyDept,
   issuedOn: NotAvailable Or LocalDate,

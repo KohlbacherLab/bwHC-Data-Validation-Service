@@ -22,7 +22,7 @@ import de.bwhc.mtb.data.entry.views.{
 final case class PatientDataInfo
 (
   id: Patient.Id,
-  gender: Gender.Value,
+  gender: String,
   birthDate: NotAvailable Or LocalDate,
   numberOfIssues: Int
 )

@@ -8,6 +8,7 @@ import play.api.libs.json.Json
 import de.bwhc.util.json._
 
 import de.bwhc.mtb.data.entry.dtos.{
+  Patient,
   SomaticNGSReport,
   ReferenceGenome,
   Specimen,
@@ -138,6 +139,7 @@ object RNASeqView
 final case class NGSReportView
 (
   id: SomaticNGSReport.Id,
+  patient: Patient.Id,
   specimen: Specimen.Id,
   issueDate: LocalDate,
   sequencingType: SomaticNGSReport.SequencingType.Value,

@@ -33,6 +33,7 @@ object ClaimResponseReasonDisplay
 final case class ClaimStatusView
 (
   id: Claim.Id,
+  patient: Patient.Id,
   therapy: TherapyRecommendation.Id,
   issueDate: LocalDate,
   responseDate: NotAvailable Or LocalDate,

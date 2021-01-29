@@ -39,6 +39,7 @@ object SupportingVariantDisplay
 final case class TherapyRecommendationView
 (
   id: TherapyRecommendation.Id,
+  patient: Patient.Id,
   icd10: ICD10Display,
   medication: NonEmptyList[MedicationDisplay],
   priority: NotAvailable Or TherapyRecommendation.Priority.Value,
@@ -56,6 +57,7 @@ object TherapyRecommendationView
 final case class CarePlanView
 (
   id: CarePlan.Id,
+  patient: Patient.Id,
   icd10: ICD10Display,
   issuedOn: NotAvailable Or LocalDate,
   protocol: NotAvailable Or String,

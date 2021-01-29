@@ -27,7 +27,7 @@ object ICDO3MDisplay
 final case class HistologyReportView
 (
   id: HistologyReport.Id,
-//  patient: Patient.Id,
+  patient: Patient.Id,
   specimen: Specimen.Id,
   issuedOn: NotAvailable Or LocalDate,
   tumorMorphology: NotAvailable Or ICDO3MDisplay,

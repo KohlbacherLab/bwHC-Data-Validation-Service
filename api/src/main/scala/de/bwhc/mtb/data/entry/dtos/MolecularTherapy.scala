@@ -109,56 +109,6 @@ object MolecularTherapy
       }
     )
 
-/*
-  implicit val toMolecularTherapyView: MolecularTherapy => MolecularTherapyView = {
-  
-    case th: NotDoneTherapy => 
-      MolecularTherapyView(
-        th.id,th.status,th.patient,th.recordedOn,th.basedOn,
-        None,
-        Some(th.notDoneReason),
-        None,
-        None,
-        None,
-        th.note
-      )
-      
-    case th: StoppedTherapy => 
-      MolecularTherapyView(
-        th.id,th.status,th.patient,th.recordedOn,th.basedOn,
-        Some(OpenEndPeriod(th.period.start,Some(th.period.end))),
-        None,
-        Some(th.medication),
-        Some(th.reasonStopped),
-        th.dosage,
-        th.note
-      )
-      
-    case th: CompletedTherapy => 
-      MolecularTherapyView(
-        th.id,th.status,th.patient,th.recordedOn,th.basedOn,
-        Some(OpenEndPeriod(th.period.start,Some(th.period.end))),
-        None,
-        Some(th.medication),
-        None,
-        th.dosage,
-        th.note
-      )
-      
-    case th: OngoingTherapy => 
-      MolecularTherapyView(
-        th.id,th.status,th.patient,th.recordedOn,th.basedOn,
-        Some(OpenEndPeriod(th.period.start,th.period.end)),
-        None,
-        Some(th.medication),
-        None,
-        th.dosage,
-        th.note
-      )
-
-  }
-*/
-
 }
 
 
@@ -238,29 +188,6 @@ final case class OngoingTherapy
   val status = MolecularTherapy.Status.Ongoing
 }
 
-
-/*
-final case class MolecularTherapyView
-(
-  id: TherapyId,
-  status: MolecularTherapy.Status.Value,
-  patient: Patient.Id,
-  recordedOn: LocalDate,
-  basedOn: TherapyRecommendation.Id,
-  period: Option[OpenEndPeriod[LocalDate]],
-  notDoneReason: Option[Coding[MolecularTherapy.NotDoneReason.Value]],
-  medication: Option[NonEmptyList[Coding[Medication]]],
-  reasonStopped: Option[Coding[MolecularTherapy.StopReason.Value]],
-  dosage: Option[Dosage.Value],
-  note: Option[String]
-)
-
-object MolecularTherapyView
-{
-//  implicit val writes = Json.writes[MolecularTherapyView]
-  implicit val format = Json.format[MolecularTherapyView]
-}
-*/
 
 case class MolecularTherapyDocumentation
 (
