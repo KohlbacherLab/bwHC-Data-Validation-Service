@@ -41,7 +41,8 @@ final case class TherapyRecommendationView
   id: TherapyRecommendation.Id,
   patient: Patient.Id,
   icd10: ICD10Display,
-  medication: NonEmptyList[MedicationDisplay],
+  medication: MedicationDisplay,
+//  medication: NonEmptyList[MedicationDisplay],
   priority: NotAvailable Or TherapyRecommendation.Priority.Value,
   levelOfEvidence: NotAvailable Or LevelOfEvidenceDisplay,
   supportingVariants: List[SupportingVariantDisplay]

@@ -14,6 +14,7 @@ import java.time.format.DateTimeFormatter.{
 }
 
 
+import cats.data.NonEmptyList
 import cats.syntax.either._
 
 import de.bwhc.mtb.data.entry.dtos._
@@ -135,14 +136,34 @@ trait mappings
   }
 
 
+/*
   implicit def medicationToDisplay(
     implicit medications: MedicationCatalog
   ): Coding[Medication] => MedicationDisplay = {
     c =>
       medications
         .findByCode(med.Medication.Code(c.code.value))
-        .map(c => MedicationDisplay(c.name.get))
-        .getOrElse(MedicationDisplay(c.display.getOrElse("N/A")))
+//        .map(c => MedicationDisplay(c.name.get))
+//        .getOrElse(MedicationDisplay(c.display.getOrElse("N/A")))
+        .map(c => MedicationDisplay(s"${c.name.get} (${c.code.value})"))
+        .getOrElse(MedicationDisplay(s"${c.display.getOrElse("N/A")} (${c.code.value})"))
+  }
+*/
+
+  implicit def medicationToDisplay(
+    implicit medications: MedicationCatalog
+  ): NonEmptyList[Coding[Medication]] => MedicationDisplay = {
+    meds =>
+      MedicationDisplay(
+        meds.map(
+          m =>
+            medications
+              .findByCode(med.Medication.Code(m.code.value))
+              .map(c => s"${c.name.get} (${c.code.value})")
+              .getOrElse(s"${m.display.getOrElse("N/A")} (${m.code.value})")
+        )
+        .reduceLeft(_ + ", " + _)
+      )
   }
 
 
@@ -220,10 +241,12 @@ trait mappings
             diagnosis.flatMap(_.icd10.map(_.mapTo[ICD10Display])).toRight(NotAvailable),
             th.therapyLine.toRight(NotAvailable),
             NotAvailable.asLeft[PeriodDisplay[LocalDate]],
-            th.medication.map(_.mapTo[MedicationDisplay])
-              .foldLeft("")((acc,med) =>  s"$acc, ${med.value}"),
+            th.medication.mapTo[MedicationDisplay],
+//            th.medication.map(_.mapTo[MedicationDisplay])
+//              .foldLeft("")((acc,med) =>  s"$acc, ${med.value}"),
             NotAvailable.asLeft[String],
-            response.map(_.mapTo[ResponseDisplay]).toRight(NotAvailable)
+            response.map(_.mapTo[ResponseDisplay]).toRight(NotAvailable),
+            response.filter(_.value.code == RECIST.PD).map(_.effectiveDate).toRight(Undefined),
           )
         
         case th: LastGuidelineTherapy =>
@@ -233,12 +256,14 @@ trait mappings
             diagnosis.flatMap(_.icd10.map(_.mapTo[ICD10Display])).toRight(NotAvailable),
             th.therapyLine.toRight(NotAvailable),
             th.period.map(_.mapTo[PeriodDisplay[LocalDate]]).toRight(NotAvailable),
-            th.medication.map(_.mapTo[MedicationDisplay])
-              .foldLeft("")((acc,med) =>  s"$acc, ${med.value}"),
+            th.medication.mapTo[MedicationDisplay],
+//            th.medication.map(_.mapTo[MedicationDisplay])
+//              .foldLeft("")((acc,med) =>  s"$acc, ${med.value}"),
             th.reasonStopped
               .flatMap(c => ValueSet[GuidelineTherapy.StopReason.Value].displayOf(c.code))
               .toRight(NotAvailable),
-            response.map(_.mapTo[ResponseDisplay]).toRight(NotAvailable)
+            response.map(_.mapTo[ResponseDisplay]).toRight(NotAvailable),
+            response.filter(_.value.code == RECIST.PD).map(_.effectiveDate).toRight(Undefined),
           )
       
       }
@@ -541,7 +566,7 @@ trait mappings
         rec.id,
         rec.patient,
         icd10,
-        rec.medication.map(_.mapTo[MedicationDisplay]),
+        rec.medication.mapTo[MedicationDisplay],
         rec.priority.toRight(NotAvailable),
         rec.levelOfEvidence.map(_.mapTo[LevelOfEvidenceDisplay]).toRight(NotAvailable),
         variants.filter(v => supportingVariants contains v.id).map(_.mapTo[SupportingVariantDisplay])
@@ -657,6 +682,7 @@ trait mappings
     val note     = molTh.note.getOrElse("-")
     val icd10    = diag.flatMap(_.icd10.map(_.mapTo[ICD10Display])).toRight(NotAvailable)
     val response = resp.map(_.mapTo[ResponseDisplay]).toRight(NotAvailable)
+    val progressionDate = resp.filter(_.value.code == RECIST.PD).map(_.effectiveDate).toRight(Undefined)
 
     molTh match { 
  
@@ -670,11 +696,12 @@ trait mappings
           th.basedOn,
           NotAvailable.asLeft[PeriodDisplay[LocalDate]],
           ValueSet[MolecularTherapy.NotDoneReason.Value].displayOf(th.notDoneReason.code).toRight(NotAvailable),
-          "N/A",
+          Undefined.asLeft[MedicationDisplay],
           Undefined.asLeft[String],
           NotAvailable.asLeft[Dosage.Value],
           note,
-          response
+          response,
+          progressionDate
         )
        
       case th: StoppedTherapy => 
@@ -687,12 +714,12 @@ trait mappings
           th.basedOn,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
           Undefined.asLeft[String],
-          th.medication.toList.map(_.mapTo[MedicationDisplay])
-            .foldLeft("")((acc,med) => s"$acc, ${med.value}"),
+          th.medication.mapTo[MedicationDisplay].asRight[NoValue],
           ValueSet[MolecularTherapy.StopReason.Value].displayOf(th.reasonStopped.code).toRight(NotAvailable),
           th.dosage.toRight(NotAvailable),
           note,
-          response
+          response,
+          progressionDate
         )
         
       case th: CompletedTherapy => 
@@ -705,12 +732,12 @@ trait mappings
           th.basedOn,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
           Undefined.asLeft[String],
-          th.medication.toList.map(_.mapTo[MedicationDisplay])
-            .foldLeft("")((acc,med) => s"$acc, ${med.value}"),
+          th.medication.mapTo[MedicationDisplay].asRight[NoValue],
           Undefined.asLeft[String],
           th.dosage.toRight(NotAvailable),
           note,
-          response
+          response,
+          progressionDate
         )
         
       case th: OngoingTherapy => 
@@ -723,12 +750,12 @@ trait mappings
           th.basedOn,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
           Undefined.asLeft[String],
-          th.medication.toList.map(_.mapTo[MedicationDisplay])
-            .foldLeft("")((acc,med) => s"$acc, ${med.value}"),
+          th.medication.mapTo[MedicationDisplay].asRight[NoValue],
           Undefined.asLeft[String],
           th.dosage.toRight(NotAvailable),
           note,
-          response
+          response,
+          progressionDate
         )
 
     }

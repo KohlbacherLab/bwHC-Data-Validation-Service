@@ -28,10 +28,10 @@ case class GuidelineTherapyView
   diagnosis: NotAvailable Or ICD10Display,
   therapyLine: NotAvailable Or TherapyLine,
   period: NotAvailable Or PeriodDisplay[LocalDate],
-  medication: String,
-//  medication: NonEmptyList[MedicationDisplay],
+  medication: MedicationDisplay,
   reasonStopped: NotAvailable Or String,
-  response: NotAvailable Or ResponseDisplay
+  response: NotAvailable Or ResponseDisplay,
+  progressionDate: NoValue Or LocalDate
 )
 
 object GuidelineTherapyView

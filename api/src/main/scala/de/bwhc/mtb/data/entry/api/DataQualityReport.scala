@@ -61,7 +61,6 @@ object DataQualityReport
     sealed trait Builder
     {
       def at(loc: Location): Issue
-      def @@(loc: Location) = at(loc)
     }   
 
     private case class BuilderImpl

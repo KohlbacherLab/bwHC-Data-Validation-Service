@@ -27,12 +27,12 @@ final case class MolecularTherapyView
   recommendation: TherapyRecommendation.Id,
   period: NotAvailable Or PeriodDisplay[LocalDate],
   notDoneReason: NoValue Or String,
-  medication: String,
-//  medication: List[MedicationDisplay],
+  medication: NoValue Or MedicationDisplay,
   reasonStopped: NoValue Or String,
   dosage: NotAvailable Or Dosage.Value,
   note: String,
-  response: NotAvailable Or ResponseDisplay
+  response: NotAvailable Or ResponseDisplay,
+  progressionDate: NoValue Or LocalDate
 )
 
 
