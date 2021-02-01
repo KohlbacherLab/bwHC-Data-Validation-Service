@@ -10,79 +10,32 @@ import de.bwhc.mtb.data.entry.dtos._
 object Invalidators
 {
 
-  
 
-
-  implicit class InvalidationOps[T](val t: T) extends AnyVal
+  implicit class InvalidationOps(val mtbfile: MTBFile) extends AnyVal
   {
-    def invalidate(implicit f: T => T) = f(t)
-  }
 
-
-  implicit val mtbFileInvalidator: MTBFile => MTBFile = {
-
-    case mtbfile @ MTBFile(
-      patient,
-      consent,
-      episode,
-      diagnoses,
-      _,
-      previousGuidelineTherapies,
-      lastGuidelineTherapy,
-      ecogStatus,
-      specimens,
-      histologyResults,
-      _,
-      ngsReports,
-      carePlans,
-      recommendations,
-      counsellingRequests,
-      rebiopsyRequests,
-      _,
-      _,
-      claims,
-      claimResponses,
-      _,
-      responses
-    ) =>
-
+    def withFatalIssues: MTBFile =
       mtbfile.copy(
-        patient = patient.copy(birthDate = None)
+        diagnoses = mtbfile.diagnoses.map(_.map(_.copy(icd10 = None))),
+        specimens = None
       )
 
-  }
 
-/*
-  implicit val invalidMTBFile: MTBFile => MTBFile = {
-
-    case mtbfile @ MTBFile(
-      patient,
-      consent,
-      episode,
-      diagnoses,
-      _,
-      previousGuidelineTherapies,
-      lastGuidelineTherapy,
-      ecogStatus,
-      specimens,
-      histologyResults,
-      ngsReports,
-      carePlans,
-      recommendations,
-      counsellingRequests,
-      rebiopsyRequests,
-      claims,
-      claimResponses,
-      _,
-      responses
-    ) =>
-
+    def withErrors: MTBFile =
       mtbfile.copy(
-        patient = patient.copy(birthDate = None)
+        patient = mtbfile.patient.copy(birthDate = None),
       )
 
+
+    def withWarnings: MTBFile =
+      mtbfile.copy(
+        claims = None,
+        claimResponses = None,
+        responses = None,
+      )
+
+
   }
-*/
 
 
 }

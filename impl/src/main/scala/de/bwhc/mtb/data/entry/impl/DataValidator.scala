@@ -148,9 +148,13 @@ object DefaultDataValidator
     case pat @ Patient(Patient.Id(id),_,birthDate,_,insurance,dod) =>
 
       (
-        birthDate mustBe defined otherwise (Error("Fehlende Angabe: Geburtsdatum") at Location("Patient",id,"Geburtsdatum")),
+        birthDate mustBe defined otherwise (
+          Error("Fehlende Angabe: Geburtsdatum") at Location("Patient",id,"Geburtsdatum")
+        ),
 
-        insurance shouldBe defined otherwise (Warning("Fehlende Angabe: IK Krankenkasse") at Location("Patient",id,"IK Krankenkasse")),
+        insurance shouldBe defined otherwise (
+          Warning("Fehlende Angabe: IK Krankenkasse") at Location("Patient",id,"IK Krankenkasse")
+        ),
 
         dod map (
           date => date must be (before (LocalDate.now)) otherwise (
@@ -303,11 +307,9 @@ object DefaultDataValidator
 
         icd10 mustBe defined otherwise (Error("Fehlende Angabe: ICD-10-GM Kodierung") at Location("Diagnose",id,"ICD-10"))
           andThen (_.get.validate.leftMap(_.map(_.copy(location = Location("Diagnose",id,"ICD-10"))))),
-//          andThen (_.get validate),
 
         icdO3T couldBe defined otherwise (Info("Fehlende ICD-O-3-T Kodierung") at Location("Diagnose",id,"ICD-O-3-T"))
           andThen (_.get.validate.leftMap(_.map(_.copy(location = Location("Diagnose",id,"ICD-O-3-T"))))),
-//          andThen (_.get validate),
 
         histologyReportRefs
           .map(_ must be (validReferences[HistologyReport.Id](Location("Diagnose",id,"Histologie-Berichte"))))
@@ -519,7 +521,7 @@ object DefaultDataValidator
         date mustBe defined otherwise (Error("Fehlende Angabe: Datum") at Location("Histologie-Bericht",id,"Datum")),
 
         morphology mustBe defined otherwise (
-          Error("Fehlende Angabe: Tumor-Morphologie-Befund (ICD-O-3-M)") at Location("Histologie-Bericht",id,"Tumor-Morphologie")
+          Warning("Fehlende Angabe: Tumor-Morphologie-Befund (ICD-O-3-M)") at Location("Histologie-Bericht",id,"Tumor-Morphologie")
         ) andThen (_.get validate),
 
         tumorContent mustBe defined otherwise (
@@ -1140,7 +1142,7 @@ object DefaultDataValidator
           ) andThen (_.get validateEach),
   
           lastGuidelineTherapy mustBe defined otherwise (
-            Error("Fehlende Angabe: Letzte Leitlinien-Therapie") at Location("MTBFile",patId.value,"Letzte Leitlinien-Therapie")
+            Warning("Fehlende Angabe: Letzte Leitlinien-Therapie") at Location("MTBFile",patId.value,"Letzte Leitlinien-Therapie")
           ) andThen (_.get validate),
   
           ecogStatus.filterNot(_.isEmpty) shouldBe defined otherwise (
@@ -2209,7 +2211,7 @@ object DefaultDataValidator
           ) andThen (_.get validateEach),
   
           lastGuidelineTherapy mustBe defined otherwise (
-            Error("Missing last Guideline Therapy") at Location("MTBFile",patId.value,"lastGuidelineTherapies")
+            Warning("Missing last Guideline Therapy") at Location("MTBFile",patId.value,"lastGuidelineTherapies")
           ) andThen (_.get validate),
   
           ecogStatus.filterNot(_.isEmpty) shouldBe defined otherwise (

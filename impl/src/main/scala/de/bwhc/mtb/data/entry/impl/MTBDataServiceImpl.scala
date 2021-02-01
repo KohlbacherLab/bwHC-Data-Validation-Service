@@ -69,6 +69,15 @@ object Matchers
     }
   }
 
+
+  object Errors
+  {
+    def unapply(rep: DataQualityReport): Boolean = {
+      rep.issues.map(_.severity).toList contains Severity.Error
+    }
+  }
+
+
   object OnlyInfos
   {
     def unapply(rep: DataQualityReport): Boolean = {
@@ -76,6 +85,12 @@ object Matchers
     }
   }
 
+  object Acceptable
+  {
+    def unapply(rep: DataQualityReport): Boolean = {
+      !(rep.issues.map(_.severity).toList contains Severity.Error)
+    }
+  }
 }
 
 
@@ -141,9 +156,8 @@ with Logging
                       Future.successful(InvalidData(qcReport).asLeft[MTBDataService.Response])
                     }
 
-                    case OnlyInfos() => {
-                      log.info(s"Only 'Info' issues detected, forwarding data to QueryService")
-                      
+                    case Acceptable() => {
+                      log.info(s"No unacceptable issues detected, forwarding data to QueryService")
                       processClean(mtbfile)
                     }
 
@@ -153,14 +167,13 @@ with Logging
                       Apply[Future].*>(db save mtbfile)(db save qcReport)
                         .map(IssuesDetected(_).asRight[MTBDataService.Error])
                     }
+
                   }
                 
                 }
 
                 case Valid(_) => {
-  
                   log.info(s"No issues detected, forwarding data to QueryService")
- 
                   processClean(mtbfile)
                 }
   

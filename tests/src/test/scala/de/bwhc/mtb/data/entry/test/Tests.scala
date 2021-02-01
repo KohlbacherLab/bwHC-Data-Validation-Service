@@ -62,18 +62,40 @@ class Tests extends AsyncFlatSpec
   }
 
 
-  "Importing invalid MTBFile" should "return detected Issues" in {
+  "Importing referentially inconsistent MTBFile" should "have failed with Fatal Issues" in {
    
-    val mtbfile = Gen.of[MTBFile].next.invalidate
-    val patId = mtbfile.patient.id
+    val invalidMTBFile = Gen.of[MTBFile].next.withFatalIssues
+    val patId = invalidMTBFile.patient.id
 
     for {
 
-      response <- service ! Upload(mtbfile)
+      response <- service ! Upload(invalidMTBFile)
+
+      InvalidData(qcReport) = response.swap.toOption.value
+
+      _ = qcReport.patient mustBe patId
+
+      ok = qcReport.issues.map(_.severity).toList must contain (DataQualityReport.Issue.Severity.Fatal)
+
+    } yield ok
+
+  }
+
+
+  "Importing invalid MTBFile" should "have detected Error Issues" in {
+   
+    val invalidMTBFile = Gen.of[MTBFile].next.withErrors
+    val patId = invalidMTBFile.patient.id
+
+    for {
+
+      response <- service ! Upload(invalidMTBFile)
 
       IssuesDetected(qcReport,_) = response.toOption.value
 
       _ = qcReport.patient mustBe patId
+
+      _ = qcReport.issues.map(_.severity).toList must contain (DataQualityReport.Issue.Severity.Error)
 
       patients <- service.patientsWithIncompleteData 
 
@@ -86,6 +108,23 @@ class Tests extends AsyncFlatSpec
     } yield ok
 
   }
+
+
+  "Importing acceptable MTBFile (Warnings only)" should "have succeeded" in {
+   
+    val invalidMTBFile = Gen.of[MTBFile].next.withWarnings
+    val patId = invalidMTBFile.patient.id
+
+    for {
+
+      response <- service ! Upload(invalidMTBFile)
+
+      ok = response.toOption.value mustBe an [Imported]
+
+    } yield ok
+
+  }
+
 
 
 
