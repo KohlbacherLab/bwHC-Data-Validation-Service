@@ -7,7 +7,8 @@ import java.time.{
   LocalDateTime
 }
 import java.time.temporal.Temporal
-import java.time.format.DateTimeFormatter.{
+import java.time.format.DateTimeFormatter
+import DateTimeFormatter.{
   ISO_LOCAL_DATE,
   ISO_LOCAL_DATE_TIME,
   ISO_INSTANT
@@ -50,12 +51,18 @@ trait mappings
 
   implicit class TemporalFormattingOps[T <: Temporal](val t: T)
   {
+     private val ddMMyyyy = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+
      def toISOFormat: String = {
        t match {
          case ld:  LocalDate     => ISO_LOCAL_DATE.format(ld)
          case ldt: LocalDateTime => ISO_LOCAL_DATE_TIME.format(ldt)
          case t:   Instant       => ISO_INSTANT.format(t)
        }
+     }
+
+     def toGermanDate: String = {
+       ddMMyyyy.format(t)
      }
 
   }

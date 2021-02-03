@@ -740,17 +740,23 @@ object DefaultDataValidator
 
         diag must be (validReference(diagnosisRefs)(Location("Therapie-Empfehlung",id,"Diagnose"))),
 
-        date shouldBe defined otherwise (Warning("Fehlende Angabe: Datum") at Location("Therapie-Empfehlung",id,"Datum")),
+        date shouldBe defined otherwise (
+          Warning("Fehlende Angabe: Datum") at Location("Therapie-Empfehlung",id,"Datum")
+        ),
 
         medication.validateEach
           .leftMap(_.map(_.copy(location = Location("Therapie-Empfehlung",id,"Medication")))),
 
-        priority shouldBe defined otherwise (Warning("Fehlende Angabe: Priorität") at Location("Therapie-Empfehlung",id,"Priorität")),
+        priority shouldBe defined otherwise (
+          Warning("Fehlende Angabe: Priorität") at Location("Therapie-Empfehlung",id,"Priorität")
+        ),
 
-        loe shouldBe defined otherwise (Warning("Fehlende Angabe: Level of Evidence") at Location("Therapie-Empfehlung",id,"Level of Evidence")),
+        loe shouldBe defined otherwise (
+          Warning("Fehlende Angabe: Level of Evidence") at Location("Therapie-Empfehlung",id,"Level of Evidence")
+        ),
 
-        optNgsId mustBe defined otherwise (
-          Error(s"Fehlende Angabe: Referenz auf NGS-Befund") at Location("Therapie-Empfehlung",id,"NGS-Befund")
+        optNgsId shouldBe defined otherwise (
+          Warning(s"Fehlende Angabe: Referenz auf NGS-Befund") at Location("Therapie-Empfehlung",id,"NGS-Befund")
         ) andThen (
           ngsId =>
             ngsReports.find(_.id == ngsId.get) mustBe defined otherwise (
@@ -845,7 +851,8 @@ object DefaultDataValidator
         patient must be (validReference[Patient.Id](Location("Studien-Einschluss-Empfehlung",id,"Patient"))),
 
         nct must matchRegex (nctNumRegex) otherwise (
-          Error(s"Ungültige NCT-Number '${nct}'") at Location("Studien-Einschluss-Empfehlung",id,"NCT-Nummer")),  
+          Error(s"Ungültige NCT-Number '${nct}'") at Location("Studien-Einschluss-Empfehlung",id,"NCT-Nummer")
+        ),  
 
         date shouldBe defined otherwise (Warning("Fehlende Angabe: Datum") at Location("Studien-Einschluss-Empfehlung",id,"Datum")),
 
