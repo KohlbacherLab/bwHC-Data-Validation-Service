@@ -494,6 +494,7 @@ object DefaultDataValidator
         specimen must be (validReference(specimens)(Location("Tumor-Morphologie-Befund (ICD-O-3-M)",id,"Probe"))),
         
         icdO3M.validate
+          .leftMap(_.map(_.copy(location = Location("Tumor-Morphologie-Befund (ICD-O-3-M)",id,"ICD-O-3-M Wert")))),
       )
       .mapN {case _: Product => morph }
       
@@ -807,7 +808,7 @@ object DefaultDataValidator
       (
         patient must be (validReference[Patient.Id](Location("Re-Biopsie-Empfehlung",id,"Patient"))),
 
-        date shouldBe defined otherwise (Warning("Fehlende Angabe: Recording Date") at Location("Re-Biopsie-Empfehlung",id,"Datum")),
+        date shouldBe defined otherwise (Warning("Fehlende Angabe: Datum") at Location("Re-Biopsie-Empfehlung",id,"Datum")),
 
         specimen must be (validReference(specimens)(Location("Re-Biopsie-Empfehlung",id,"Probe"))),
       )

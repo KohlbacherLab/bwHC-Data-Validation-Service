@@ -68,20 +68,6 @@ trait mappings
   }
 
 
-/*
-  implicit val patientToView: Patient => PatientView = {
-    pat =>
-      PatientView(
-        pat.id,
-        ValueSet[Gender.Value].displayOf(pat.gender).get,
-        pat.birthDate.toRight(NotAvailable),
-        pat.managingZPM.toRight(NotAvailable),
-        pat.insurance.toRight(NotAvailable),
-        pat.dateOfDeath.toRight(NotAvailable)
-      )
-  }
-*/
-
   implicit val patientToView: ((Patient,Consent,MTBEpisode)) => PatientView = {
     case (pat,consent,episode) =>
       PatientView(
@@ -150,8 +136,6 @@ trait mappings
     c =>
       medications
         .findByCode(med.Medication.Code(c.code.value))
-//        .map(c => MedicationDisplay(c.name.get))
-//        .getOrElse(MedicationDisplay(c.display.getOrElse("N/A")))
         .map(c => MedicationDisplay(s"${c.name.get} (${c.code.value})"))
         .getOrElse(MedicationDisplay(s"${c.display.getOrElse("N/A")} (${c.code.value})"))
   }
@@ -249,8 +233,6 @@ trait mappings
             th.therapyLine.toRight(NotAvailable),
             NotAvailable.asLeft[PeriodDisplay[LocalDate]],
             th.medication.mapTo[MedicationDisplay],
-//            th.medication.map(_.mapTo[MedicationDisplay])
-//              .foldLeft("")((acc,med) =>  s"$acc, ${med.value}"),
             NotAvailable.asLeft[String],
             response.map(_.mapTo[ResponseDisplay]).toRight(NotAvailable),
             response.filter(_.value.code == RECIST.PD).map(_.effectiveDate).toRight(Undefined),
@@ -264,8 +246,6 @@ trait mappings
             th.therapyLine.toRight(NotAvailable),
             th.period.map(_.mapTo[PeriodDisplay[LocalDate]]).toRight(NotAvailable),
             th.medication.mapTo[MedicationDisplay],
-//            th.medication.map(_.mapTo[MedicationDisplay])
-//              .foldLeft("")((acc,med) =>  s"$acc, ${med.value}"),
             th.reasonStopped
               .flatMap(c => ValueSet[GuidelineTherapy.StopReason.Value].displayOf(c.code))
               .toRight(NotAvailable),
@@ -812,14 +792,13 @@ trait mappings
         (mtbfile.patient,
          mtbfile.consent,
          mtbfile.episode).mapTo[PatientView],
-//        mtbfile.patient.mapTo[PatientView],
 
         diagnoses.map(_.mapTo[DiagnosisView]),
 
-        mtbfile.familyMemberDiagnoses.getOrElse(List.empty[FamilyMemberDiagnosis])
+        mtbfile.familyMemberDiagnoses.getOrElse(List.empty)
           .map(_.mapTo[FamilyMemberDiagnosisView]),
 
-        mtbfile.previousGuidelineTherapies.getOrElse(List.empty[PreviousGuidelineTherapy])
+        mtbfile.previousGuidelineTherapies.getOrElse(List.empty)
           .map(
             th =>
              (th,
@@ -837,37 +816,36 @@ trait mappings
         mtbfile.ecogStatus
           .map((mtbfile.patient,_).mapTo[ECOGStatusView]),
 
-        mtbfile.specimens.getOrElse(List.empty[Specimen])
-          .map(_.mapTo[SpecimenView]),
+        mtbfile.specimens.getOrElse(List.empty).map(_.mapTo[SpecimenView]),
 
-        mtbfile.molecularPathologyFindings.getOrElse(List.empty[MolecularPathologyFinding])
+        mtbfile.molecularPathologyFindings.getOrElse(List.empty)
           .map(_.mapTo[MolecularPathologyFindingView]),
 
-        mtbfile.histologyReports.getOrElse(List.empty[HistologyReport])
+        mtbfile.histologyReports.getOrElse(List.empty)
           .map(_.mapTo[HistologyReportView]),
 
         ngsReports.map(_.mapTo[NGSReportView]),
 
         (
-          (mtbfile.carePlans.getOrElse(List.empty[CarePlan]),
-          mtbfile.diagnoses.getOrElse(List.empty[Diagnosis]),
-          mtbfile.recommendations.getOrElse(List.empty[TherapyRecommendation]),
-          mtbfile.studyInclusionRequests.getOrElse(List.empty[StudyInclusionRequest]),
-          mtbfile.geneticCounsellingRequests.getOrElse(List.empty[GeneticCounsellingRequest])),
+          (mtbfile.carePlans.getOrElse(List.empty),
+          mtbfile.diagnoses.getOrElse(List.empty),
+          mtbfile.recommendations.getOrElse(List.empty),
+          mtbfile.studyInclusionRequests.getOrElse(List.empty),
+          mtbfile.geneticCounsellingRequests.getOrElse(List.empty)),
           ngsReports
         )
         .mapTo[List[CarePlanView]],
 
         (
-          mtbfile.claims.getOrElse(List.empty[Claim]),
-          mtbfile.claimResponses.getOrElse(List.empty[ClaimResponse])
+          mtbfile.claims.getOrElse(List.empty),
+          mtbfile.claimResponses.getOrElse(List.empty)
         )
         .mapTo[List[ClaimStatusView]],
 
         (
-          mtbfile.molecularTherapies.getOrElse(List.empty[MolecularTherapyDocumentation])
+          mtbfile.molecularTherapies.getOrElse(List.empty)
             .filterNot(_.history.isEmpty).map(_.history.head),
-          mtbfile.recommendations.getOrElse(List.empty[TherapyRecommendation]), 
+          mtbfile.recommendations.getOrElse(List.empty), 
           diagnoses,
           responses 
         )

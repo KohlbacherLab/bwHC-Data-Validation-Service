@@ -62,35 +62,36 @@ object MTBDataServiceImpl
 object Matchers
 {
 
+  import Severity._
+
   object FatalErrors
   {
     def unapply(rep: DataQualityReport): Boolean = {
-      rep.issues.map(_.severity).toList contains Severity.Fatal
+      rep.issues.map(_.severity).toList contains Fatal
     }
   }
-
 
   object Errors
   {
     def unapply(rep: DataQualityReport): Boolean = {
-      rep.issues.map(_.severity).toList contains Severity.Error
+      rep.issues.map(_.severity).toList contains Error
     }
   }
 
+  object AtMostWarnings
+  {
+    def unapply(rep: DataQualityReport): Boolean = {
+      rep.issues.map(_.severity).toList forall (s => s == Warning || s == Info)
+    }
+  }
 
   object OnlyInfos
   {
     def unapply(rep: DataQualityReport): Boolean = {
-      rep.issues.map(_.severity).toList forall (_ == Severity.Info)
+      rep.issues.map(_.severity).toList forall (_ == Info)
     }
   }
 
-  object Acceptable
-  {
-    def unapply(rep: DataQualityReport): Boolean = {
-      !(rep.issues.map(_.severity).toList contains Severity.Error)
-    }
-  }
 }
 
 
@@ -152,29 +153,46 @@ with Logging
                   qcReport match {
 
                     case FatalErrors() => {
-                      log.error(s"Fatal issues detected, refusing data upload")
+                      log.error(s"FATAL issues detected, refusing data upload")
                       Future.successful(InvalidData(qcReport).asLeft[MTBDataService.Response])
                     }
 
-                    case Acceptable() => {
-                      log.info(s"No unacceptable issues detected, forwarding data to QueryService")
-                      processClean(mtbfile)
+                    case Errors() => {
+                      log.warn(s"'ERROR'-level issues detected, storing DataQualityReport")
+                      Apply[Future].*>(db save mtbfile)(db save qcReport)
+                        .map(IssuesDetected(_).asRight[MTBDataService.Error])
                     }
 
+                    case AtMostWarnings() => {
+                      log.info(s"At most 'WARNING'-level issues detected. Forwarding data to QueryService, but storing DataQualityReport")
+                      processAcceptable(mtbfile) andThen {
+                        case Success(_) => {
+                          db save mtbfile
+                          db save qcReport
+                        }
+                      }
+                    }
+
+                    case OnlyInfos() => {
+                      log.info(s"No issues detected, forwarding data to QueryService")
+                      processAcceptable(mtbfile)
+                    }
+
+/*
                     case _ => {
 
                       log.warn(s"Issues detected, storing DataQualityReport")
                       Apply[Future].*>(db save mtbfile)(db save qcReport)
                         .map(IssuesDetected(_).asRight[MTBDataService.Error])
                     }
-
+*/
                   }
                 
                 }
 
                 case Valid(_) => {
                   log.info(s"No issues detected, forwarding data to QueryService")
-                  processClean(mtbfile)
+                  processAcceptable(mtbfile)
                 }
   
               }
@@ -208,7 +226,7 @@ with Logging
   }
 
 
-  private def processClean(
+  private def processAcceptable(
     mtbfile: MTBFile
   )(
     implicit ec: ExecutionContext
