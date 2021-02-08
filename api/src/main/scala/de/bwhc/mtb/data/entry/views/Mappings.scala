@@ -522,11 +522,11 @@ trait mappings
           s"CNV [${genes}], ${cnv.`type`}"
         }
       
-        case dnaFusion: DNAFusion =>
-          s"DNA-Fusion ${dnaFusion.mapTo[DNAFusionView].representation}"
+        case DNAFusion(_,dom5pr,dom3pr,_) =>
+          s"DNA-Fusion ${dom5pr.gene.code.value} :: ${dom3pr.gene.code.value}"
       
-        case rnaFusion: RNAFusion =>
-          s"RNA-Fusion ${rnaFusion.mapTo[RNAFusionView].representation}"
+        case RNAFusion(_,dom5pr,dom3pr,_,_,_) =>
+          s"RNA-Fusion ${dom5pr.gene.code.value} :: ${dom3pr.gene.code.value}"
       
         case rnaSeq: RNASeq =>
           s"RNA-Seq ${rnaSeq.gene.code.value}"
