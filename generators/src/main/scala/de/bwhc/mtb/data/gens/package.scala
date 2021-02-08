@@ -702,7 +702,7 @@ package object gens
     Gen.enum(Dosage)
 
 
-  def getNotDoneTherapyFor(
+  def genNotDoneTherapyFor(
     rec: TherapyRecommendation
   ): Gen[NotDoneTherapy] =
     for {
@@ -715,7 +715,7 @@ package object gens
     } yield NotDoneTherapy(id,patId,date,basedOn,reason,Some(note))
 
 
-  def getStoppedTherapyFor(
+  def genStoppedTherapyFor(
     rec: TherapyRecommendation
   ): Gen[StoppedTherapy] =
     for {
@@ -731,7 +731,7 @@ package object gens
     } yield StoppedTherapy(id,patId,date,basedOn,period,meds,Some(dosage),reason,Some(note))
 
 
-  def getOngoingTherapyFor(
+  def genOngoingTherapyFor(
     rec: TherapyRecommendation
   ): Gen[OngoingTherapy] =
     for {
@@ -746,7 +746,7 @@ package object gens
     } yield OngoingTherapy(id,patId,date,basedOn,period,meds,Some(dosage),Some(note))
 
 
-  def getCompletedTherapyFor(
+  def genCompletedTherapyFor(
     rec: TherapyRecommendation
   ): Gen[CompletedTherapy] =
     for {
@@ -761,6 +761,7 @@ package object gens
     } yield CompletedTherapy(id,patId,date,basedOn,period,meds,Some(dosage),Some(note))
 
 
+/*
   def genMolecularTherapyDocFor(
     rec: TherapyRecommendation
   ): Gen[MolecularTherapyDocumentation] =
@@ -771,6 +772,27 @@ package object gens
       compl   <- getCompletedTherapyFor(rec)
       seq     =  List(notDone,ongoing,stopped,compl)
     } yield MolecularTherapyDocumentation(seq)
+*/
+
+  def genMolecularTherapyDocFor(
+    rec: TherapyRecommendation
+  ): Gen[MolecularTherapyDocumentation] = {
+
+    import MolecularTherapy.Status._
+ 
+    for {
+      status <- Gen.oneOf(NotDone,Ongoing,Stopped,Completed)
+      th <-
+        status match {
+          case NotDone   => genNotDoneTherapyFor(rec)
+          case Ongoing   => genOngoingTherapyFor(rec)
+          case Stopped   => genStoppedTherapyFor(rec)
+          case Completed => genCompletedTherapyFor(rec)
+        }
+      seq     =  List(th)
+    } yield MolecularTherapyDocumentation(seq)
+
+  }
 
 
   //---------------------------------------------------------------------------
