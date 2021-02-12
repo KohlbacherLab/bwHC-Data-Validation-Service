@@ -354,9 +354,15 @@ object DefaultDataValidator
           Warning("Fehlende Angabe: Therapielinie") at Location("Leitlinien-Therapie",id,"Therapielinie")
         ),
 
-        medication.toList 
-          .validateEach
-          .leftMap(_.map(_.copy(location = Location("Leitlinien-Therapie",id,"Medication")))),
+//        medication.toList 
+//          .validateEach
+//          .leftMap(_.map(_.copy(location = Location("Leitlinien-Therapie",id,"Medication")))),
+        medication.filterNot(_.isEmpty) shouldBe defined otherwise (
+          Warning("Fehlende Angabe: Wirkstoffe") at Location("Leitlinien-Therapie",id,"Medikation")
+        ) andThen (
+          _.get.validateEach
+           .leftMap(_.map(_.copy(location = Location("Leitlinien-Therapie",id,"Medikation"))))
+        ),
         
       )
       .mapN { case _: Product => th }
@@ -387,8 +393,14 @@ object DefaultDataValidator
           Warning("Fehlende Angabe: Therapielinie") at Location("Letzte Leitlinien-Therapie",id,"Therapielinie")
         ),
         
-        medication.toList.validateEach
-          .leftMap(_.map(_.copy(location = Location("Letzte Leitlinien-Therapie",id,"Medication")))),
+//        medication.toList.validateEach
+//          .leftMap(_.map(_.copy(location = Location("Letzte Leitlinien-Therapie",id,"Medication")))),
+        medication.filterNot(_.isEmpty) shouldBe defined otherwise (
+          Warning("Fehlende Angabe: Wirkstoffe") at Location("Leitlinien-Therapie",id,"Medikation")
+        ) andThen (
+          _.get.validateEach
+           .leftMap(_.map(_.copy(location = Location("Leitlinien-Therapie",id,"Medikation"))))
+        ),      
 
         reasonStopped shouldBe defined otherwise (
           Warning("Fehlende Angabe: Abbruchsgrund") at Location("Letzte Leitlinien-Therapie",id,"Abbruchsgrund")
@@ -745,8 +757,14 @@ object DefaultDataValidator
           Warning("Fehlende Angabe: Datum") at Location("Therapie-Empfehlung",id,"Datum")
         ),
 
-        medication.validateEach
-          .leftMap(_.map(_.copy(location = Location("Therapie-Empfehlung",id,"Medication")))),
+//        medication.validateEach
+//          .leftMap(_.map(_.copy(location = Location("Therapie-Empfehlung",id,"Medication")))),
+        medication.filterNot(_.isEmpty) shouldBe defined otherwise (
+          Warning("Fehlende Angabe: Wirkstoffe") at Location("Therapie-Empfehlung",id,"Medikation")
+        ) andThen (
+          _.get.validateEach
+           .leftMap(_.map(_.copy(location = Location("Therapie-Empfehlung",id,"Medikation"))))
+        ),      
 
         priority shouldBe defined otherwise (
           Warning("Fehlende Angabe: Priorität") at Location("Therapie-Empfehlung",id,"Priorität")
@@ -930,8 +948,15 @@ object DefaultDataValidator
 
         basedOn must be (validReference(recommendationRefs)(Location("Molekulare Therapie",id,"Therapie-Empfehlung"))),
 
-        medication.toList.validateEach
-          .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medication")))),
+//        medication.toList.validateEach
+//          .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medication")))),
+        medication.filterNot(_.isEmpty) shouldBe defined otherwise (
+          Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
+        ) andThen (
+          _.get.validateEach
+           .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
+        ),      
+
       )
       .mapN { case _: Product => th }
 
@@ -943,8 +968,15 @@ object DefaultDataValidator
 
         basedOn must be (validReference(recommendationRefs)(Location("Molekulare Therapie",id,"Therapie-Empfehlung"))),
 
-        medication.toList.validateEach
-          .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medication")))),
+//        medication.toList.validateEach
+//          .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medication")))),
+        medication.filterNot(_.isEmpty) shouldBe defined otherwise (
+          Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
+        ) andThen (
+          _.get.validateEach
+           .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
+        ),      
+
       )
       .mapN { case _: Product => th }
 
@@ -956,8 +988,15 @@ object DefaultDataValidator
 
         basedOn must be (validReference(recommendationRefs)(Location("Molekulare Therapie",id,"Therapie-Empfehlung"))),
 
-        medication.toList.validateEach
-          .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medication")))),
+//        medication.toList.validateEach
+//          .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medication")))),
+        medication.filterNot(_.isEmpty) shouldBe defined otherwise (
+          Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
+        ) andThen (
+          _.get.validateEach
+           .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
+        ),      
+
       )
       .mapN { case _: Product => th }
 

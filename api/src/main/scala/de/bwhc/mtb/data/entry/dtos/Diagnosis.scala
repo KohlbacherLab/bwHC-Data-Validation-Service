@@ -6,7 +6,6 @@ import java.time.{
   LocalDate,LocalDateTime
 }
 
-import cats.data.NonEmptyList
 
 import play.api.libs.json.Json
 

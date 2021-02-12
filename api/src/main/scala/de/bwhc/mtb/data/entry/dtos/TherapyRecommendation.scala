@@ -3,7 +3,7 @@ package de.bwhc.mtb.data.entry.dtos
 
 import java.time.LocalDate
 
-import cats.data.NonEmptyList
+//import cats.data.NonEmptyList
 
 import play.api.libs.json.Json
 
@@ -51,7 +51,8 @@ case class TherapyRecommendation
   patient: Patient.Id,
   diagnosis: Diagnosis.Id,
   issuedOn: Option[LocalDate],
-  medication: NonEmptyList[Coding[Medication]],
+  medication: Option[List[Coding[Medication]]],
+//  medication: NonEmptyList[Coding[Medication]],
   priority: Option[TherapyRecommendation.Priority.Value],
   levelOfEvidence: Option[LevelOfEvidence],
 //  ngsReport: SomaticNGSReport.Id,

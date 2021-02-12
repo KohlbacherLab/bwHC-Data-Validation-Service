@@ -412,7 +412,7 @@ package object gens
        kitType   <- Gen.const("Agilent ExomV6")
        kitManu   <- Gen.const("Agilent")
        sequencer <- Gen.const("Sequencer-XYZ")
-       refGenome <- Gen.enum(ReferenceGenome)
+       refGenome <- Gen.oneOf("HG19", "HG38", "GRCh37").map(ReferenceGenome(_))
        pipeline  <- Gen.const("dummy/uri/to/pipeline").map(URI.create)
      } yield SomaticNGSReport.MetaData(kitType,kitManu,sequencer,refGenome,Some(pipeline))
 
@@ -425,7 +425,7 @@ package object gens
       patId          =  specimen.patient
       spId           =  specimen.id
       date           =  LocalDate.now
-      seqType        <- Gen.enum(SomaticNGSReport.SequencingType)
+      seqType        <- Gen.oneOf("tNGS","WGS","WES").map(SomaticNGSReport.SequencingType(_))
       metadata       <- Gen.list(Gen.intsBetween(1,3), Gen.of[SomaticNGSReport.MetaData])
       tc             <- genTumorCellContentFor(specimen,TumorCellContent.Method.Bioinformatic)
       brcaness       <- Gen.of[BRCAness]
@@ -518,8 +518,8 @@ package object gens
     for {
       id    <- Gen.of[TherapyId]
       thl   <- Gen.oneOf(TherapyLine.values)
-      meds  <- Gen.of[NonEmptyList[Coding[Medication]]]
-    } yield PreviousGuidelineTherapy(id,diag.patient,diag.id,Some(thl),meds)
+      meds  <- Gen.of[List[Coding[Medication]]]
+    } yield PreviousGuidelineTherapy(id,diag.patient,diag.id,Some(thl),Some(meds))
 
 
   def genLastGLTherapyFor(
@@ -529,9 +529,9 @@ package object gens
       id         <- Gen.of[TherapyId]
       thl        <- Gen.oneOf(TherapyLine.values)
       period     =  OpenEndPeriod(LocalDate.now)
-      meds       <- Gen.of[NonEmptyList[Coding[Medication]]]
+      meds       <- Gen.of[List[Coding[Medication]]]
       stopReason <- Gen.of[GuidelineTherapy.StopReason.Value].map(Coding(_,None))
-    } yield LastGuidelineTherapy(id,diag.patient,diag.id,Some(thl),Some(period),meds,Some(stopReason))
+    } yield LastGuidelineTherapy(id,diag.patient,diag.id,Some(thl),Some(period),Some(meds),Some(stopReason))
 
 
 
@@ -572,13 +572,12 @@ package object gens
       id    <- Gen.uuidStrings.map(TherapyRecommendation.Id)
       date  =  LocalDate.now
       meds  <- Gen.of[List[Coding[Medication]]]
-                 .map(NonEmptyList.fromListUnsafe)
       prio  <- Gen.enum(TherapyRecommendation.Priority)
       loe   <- Gen.of[LevelOfEvidence]
       //TODO: ref supporting variant
       supportingVariantRefs <- Gen.subsets(ngsReport.variants).map(_.map(_.id))
     } yield TherapyRecommendation(
-      id,diag.patient,diag.id,Some(date),meds,Some(prio),Some(loe),Some(ngsReport.id),Some(supportingVariantRefs)
+      id,diag.patient,diag.id,Some(date),Some(meds),Some(prio),Some(loe),Some(ngsReport.id),Some(supportingVariantRefs)
     )
 
 

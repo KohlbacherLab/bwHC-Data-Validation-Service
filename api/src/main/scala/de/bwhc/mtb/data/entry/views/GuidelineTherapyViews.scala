@@ -28,7 +28,7 @@ case class GuidelineTherapyView
   diagnosis: NotAvailable Or ICD10Display,
   therapyLine: NotAvailable Or TherapyLine,
   period: NotAvailable Or PeriodDisplay[LocalDate],
-  medication: MedicationDisplay,
+  medication: NotAvailable Or MedicationDisplay,
   reasonStopped: NotAvailable Or String,
   response: NotAvailable Or ResponseDisplay,
   progressionDate: NoValue Or LocalDate

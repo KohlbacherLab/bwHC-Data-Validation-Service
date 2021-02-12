@@ -142,7 +142,7 @@ final case class NGSReportView
   patient: Patient.Id,
   specimen: Specimen.Id,
   issueDate: LocalDate,
-  sequencingType: SomaticNGSReport.SequencingType.Value,
+  sequencingType: SomaticNGSReport.SequencingType,
   metadata: List[SomaticNGSReport.MetaData],
   tumorCellContent: TumorCellContentDisplay,
   brcaness: NotAvailable Or BRCAness,

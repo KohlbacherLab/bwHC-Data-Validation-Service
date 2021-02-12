@@ -5,7 +5,7 @@ import java.time.LocalDate
 
 import play.api.libs.json.Json
 
-import cats.data.NonEmptyList
+//import cats.data.NonEmptyList
 
 import de.bwhc.util.json._
 
@@ -50,7 +50,8 @@ sealed trait GuidelineTherapy
   val patient: Patient.Id
   val diagnosis: Diagnosis.Id
   val therapyLine: Option[TherapyLine]
-  val medication: NonEmptyList[Coding[Medication]]
+  val medication: Option[List[Coding[Medication]]]
+//  val medication: NonEmptyList[Coding[Medication]]
 }
 
 
@@ -60,7 +61,8 @@ case class PreviousGuidelineTherapy
   patient: Patient.Id,
   diagnosis: Diagnosis.Id,
   therapyLine: Option[TherapyLine],
-  medication: NonEmptyList[Coding[Medication]],
+  medication: Option[List[Coding[Medication]]]
+//  medication: NonEmptyList[Coding[Medication]],
 )
 extends GuidelineTherapy
 
@@ -77,7 +79,8 @@ case class LastGuidelineTherapy
   diagnosis: Diagnosis.Id,
   therapyLine: Option[TherapyLine],
   period: Option[OpenEndPeriod[LocalDate]],
-  medication: NonEmptyList[Coding[Medication]],
+//  medication: NonEmptyList[Coding[Medication]],
+  medication: Option[List[Coding[Medication]]],
   reasonStopped: Option[Coding[GuidelineTherapy.StopReason.Value]]
 )
 extends GuidelineTherapy

@@ -129,21 +129,10 @@ trait mappings
   }
 
 
-/*
-  implicit def medicationToDisplay(
-    implicit medications: MedicationCatalog
-  ): Coding[Medication] => MedicationDisplay = {
-    c =>
-      medications
-        .findByCode(med.Medication.Code(c.code.value))
-        .map(c => MedicationDisplay(s"${c.name.get} (${c.code.value})"))
-        .getOrElse(MedicationDisplay(s"${c.display.getOrElse("N/A")} (${c.code.value})"))
-  }
-*/
 
   implicit def medicationToDisplay(
     implicit medications: MedicationCatalog
-  ): NonEmptyList[Coding[Medication]] => MedicationDisplay = {
+  ): List[Coding[Medication]] => MedicationDisplay = {
     meds =>
       MedicationDisplay(
         meds.map(
@@ -232,7 +221,7 @@ trait mappings
             diagnosis.flatMap(_.icd10.map(_.mapTo[ICD10Display])).toRight(NotAvailable),
             th.therapyLine.toRight(NotAvailable),
             NotAvailable.asLeft[PeriodDisplay[LocalDate]],
-            th.medication.mapTo[MedicationDisplay],
+            th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
             NotAvailable.asLeft[String],
             response.map(_.mapTo[ResponseDisplay]).toRight(NotAvailable),
             response.filter(_.value.code == RECIST.PD).map(_.effectiveDate).toRight(Undefined),
@@ -245,7 +234,7 @@ trait mappings
             diagnosis.flatMap(_.icd10.map(_.mapTo[ICD10Display])).toRight(NotAvailable),
             th.therapyLine.toRight(NotAvailable),
             th.period.map(_.mapTo[PeriodDisplay[LocalDate]]).toRight(NotAvailable),
-            th.medication.mapTo[MedicationDisplay],
+            th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
             th.reasonStopped
               .flatMap(c => ValueSet[GuidelineTherapy.StopReason.Value].displayOf(c.code))
               .toRight(NotAvailable),
@@ -553,7 +542,7 @@ trait mappings
         rec.id,
         rec.patient,
         icd10,
-        rec.medication.mapTo[MedicationDisplay],
+        rec.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
         rec.priority.toRight(NotAvailable),
         rec.levelOfEvidence.map(_.mapTo[LevelOfEvidenceDisplay]).toRight(NotAvailable),
         variants.filter(v => supportingVariants contains v.id).map(_.mapTo[SupportingVariantDisplay])
@@ -701,7 +690,7 @@ trait mappings
           th.basedOn,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
           Undefined.asLeft[String],
-          th.medication.mapTo[MedicationDisplay].asRight[NoValue],
+          th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
           ValueSet[MolecularTherapy.StopReason.Value].displayOf(th.reasonStopped.code).toRight(NotAvailable),
           th.dosage.toRight(NotAvailable),
           note,
@@ -719,7 +708,7 @@ trait mappings
           th.basedOn,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
           Undefined.asLeft[String],
-          th.medication.mapTo[MedicationDisplay].asRight[NoValue],
+          th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
           Undefined.asLeft[String],
           th.dosage.toRight(NotAvailable),
           note,
@@ -737,7 +726,7 @@ trait mappings
           th.basedOn,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
           Undefined.asLeft[String],
-          th.medication.mapTo[MedicationDisplay].asRight[NoValue],
+          th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
           Undefined.asLeft[String],
           th.dosage.toRight(NotAvailable),
           note,
