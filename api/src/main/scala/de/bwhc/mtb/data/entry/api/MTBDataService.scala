@@ -43,7 +43,6 @@ trait MTBDataService
 
   def patientsWithIncompleteData(
     implicit ec: ExecutionContext
-//  ): Future[Iterable[Patient]]
   ): Future[Iterable[PatientDataInfo]]
 
 
@@ -91,6 +90,14 @@ object MTBDataService extends SPILoader(classOf[MTBDataServiceProvider])
       timestamp: Instant = Instant.now
     ) extends Response
   
+/*
+    final case class AcceptedWithIssues
+    (
+      result: DataQualityReport,
+      timestamp: Instant = Instant.now
+    ) extends Response
+*/ 
+
     final case class IssuesDetected
     (
       result: DataQualityReport,

@@ -165,12 +165,16 @@ with Logging
 
                     case AtMostWarnings() => {
                       log.info(s"At most 'WARNING'-level issues detected. Forwarding data to QueryService, but storing DataQualityReport")
-                      processAcceptable(mtbfile) andThen {
-                        case Success(_) => {
-                          db save mtbfile
-                          db save qcReport
+
+                      (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
+                        .andThen {
+                          case Success(_) => {
+                            db save mtbfile
+                            db save qcReport
+                          }
                         }
-                      }
+                        .map(_ => Imported(mtbfile).asRight[MTBDataService.Error])
+
                     }
 
                     case OnlyInfos() => {
@@ -178,14 +182,6 @@ with Logging
                       processAcceptable(mtbfile)
                     }
 
-/*
-                    case _ => {
-
-                      log.warn(s"Issues detected, storing DataQualityReport")
-                      Apply[Future].*>(db save mtbfile)(db save qcReport)
-                        .map(IssuesDetected(_).asRight[MTBDataService.Error])
-                    }
-*/
                   }
                 
                 }
@@ -249,13 +245,14 @@ with Logging
 
     for {
       mtbfiles <- db.mtbfiles
-      infos    <- Future.sequence(
-                    mtbfiles.map { mtbfile =>
-                      val patient = mtbfile.patient
-                      db.dataQcReportOf(patient.id)
-                        .map(qc => (patient,qc.get).mapTo[PatientDataInfo])
-                    }
-                  )
+      infos    <-
+        Future.sequence(
+          mtbfiles.map { mtbfile =>
+            val patient = mtbfile.patient
+            db.dataQcReportOf(patient.id)
+              .map(qc => (patient,qc.get).mapTo[PatientDataInfo])
+          }
+        )
     } yield infos 
     
 
