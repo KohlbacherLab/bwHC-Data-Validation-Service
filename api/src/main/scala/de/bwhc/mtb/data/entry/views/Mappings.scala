@@ -142,7 +142,8 @@ trait mappings
               .map(c => s"${c.name.get} (${c.code.value})")
               .getOrElse(s"${m.display.getOrElse("N/A")} (${m.code.value})")
         )
-        .reduceLeft(_ + ", " + _)
+        .reduceLeftOption(_ + ", " + _)
+        .getOrElse("N/A")
       )
   }
 
