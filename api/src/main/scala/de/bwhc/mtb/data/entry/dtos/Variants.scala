@@ -109,15 +109,14 @@ case class SimpleVariant
   startEnd: StartEnd,
   refAllele: Allele,
   altAllele: Allele,
-  functionalAnnotation: Coding[FunctionalAnnotation],
+  functionalAnnotation: Option[Coding[FunctionalAnnotation]],
   dnaChange: Coding[SimpleVariant.DNAChange],
-  aminoAcidChange: Coding[SimpleVariant.AminoAcidChange],
+  aminoAcidChange: Option[Coding[SimpleVariant.AminoAcidChange]],
   readDepth: AllelicReadDepth,
   allelicFrequency: AllelicFrequency,
   cosmicId: Option[CosmicId],
   dbSNPId: Option[SimpleVariant.DbSNPId],
-//  dbSNPId: Coding[SimpleVariant.DbSNPId],
-  interpretation: Coding[Interpretation]
+  interpretation: Option[Coding[Interpretation]]
 )
 extends Variant
 

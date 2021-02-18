@@ -315,12 +315,11 @@ package object gens
       allelicFreq <- Gen.of[AllelicFrequency]
       cosmicId  <- Gen.of[CosmicId]
       dbSNPId   <- Gen.of[DbSNPId]
-//      dbSNPId   <- Gen.of[Coding[DbSNPId]]
       interpr   <- Gen.of[Coding[Interpretation]]
       id        <- Gen.uuidStrings.map(u => s"SNV_$u").map(Variant.Id)
     } yield SimpleVariant(
-      id,chr,gene,se,refAllele,altAllele,fnAnnot,dnaChg,aaChg,
-      readDpth,allelicFreq,Some(cosmicId),Some(dbSNPId),interpr
+      id,chr,gene,se,refAllele,altAllele,Some(fnAnnot),dnaChg,Some(aaChg),
+      readDpth,allelicFreq,Some(cosmicId),Some(dbSNPId),Some(interpr)
     )
 
   implicit val genCNV: Gen[CNV] =

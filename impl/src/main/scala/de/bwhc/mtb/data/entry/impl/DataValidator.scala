@@ -603,7 +603,7 @@ object DefaultDataValidator
 
 
     case ngs @
-      SomaticNGSReport(SomaticNGSReport.Id(id),patient,specimen,date,_,_,tumorContent,brcaness,msi,tmb,optSnvs,_,_,_,_) => {
+      SomaticNGSReport(SomaticNGSReport.Id(id),patient,specimen,date,_,_,tumorContent,brcaness,msi,tmb,snvs,cnvs,_,_,_) => {
 
       import SomaticNGSReport._
 
@@ -644,7 +644,7 @@ object DefaultDataValidator
         tmb.value must be (in (tmbRange))
           otherwise (Error(s"TMB Wert '${tmb.value}' nicht im Referenz-Bereich $tmbRange") at Location("Somatischer NGS-Befund",id,"TMB")),
 
-        optSnvs.fold(
+        snvs.fold(
           List.empty[SimpleVariant].validNel[Issue]
         )(
           _ validateEach (
@@ -652,9 +652,25 @@ object DefaultDataValidator
                 (snv.gene.code must be (validGeneSymbol(Location("Somatischer NGS-Befund",id,s"Einfache Variante ${snv.id.value}"))))
                   .map(_ => snv)
             )
-        )
+        ),
 
         //TODO: validate other variants, at least gene symbols
+        cnvs.fold(
+          List.empty[CNV].validNel[Issue]
+        )(
+          cnvList =>
+            cnvList validateEach (
+             cnv => 
+               cnv.reportedAffectedGenes.fold(
+                 List.empty[Coding[Variant.Gene]].validNel[Issue]
+               )(
+                 genes =>
+                   (genes validateEach (gene => gene.code must be (validGeneSymbol(Location("Somatischer NGS-Befund",id,s"CNV ${cnv.id.value}"))) map (_ => gene)))
+                     .map(_ => genes)
+               ) map (_ => cnv)
+            ) map (_ => cnvList)
+        )
+
       )
       .mapN { case _: Product => ngs }
 
@@ -699,12 +715,12 @@ object DefaultDataValidator
         noTarget couldBe defined andThen (
           nt => recommendations.getOrElse(List.empty[TherapyRecommendation.Id]) mustBe empty
         ) otherwise (
-          Error("Therapie-Empfehlungen vorhanden obwohl 'Kein Target' deklariert") at Location("MTB-Beschluss",id,"Therapie-Empfehlungen") 
+          Warning("Therapie-Empfehlungen vorhanden obwohl 'Kein Target' deklariert") at Location("MTB-Beschluss",id,"Therapie-Empfehlungen") 
         ) orElse (
-          recommendations mustBe defined otherwise (
+          recommendations.filterNot(_.isEmpty) mustBe defined otherwise (
             Error("Fehlende Angabe: Therapie-Empfehlungen") at Location("MTB-Beschluss",id,"Therapie-Empfehlungen")
           ) andThen (
-             _.get must be (validReferences[TherapyRecommendation.Id](Location("MTB-Beschluss",id,"Therapie-Empfehlungen")))
+            _.get must be (validReferences[TherapyRecommendation.Id](Location("MTB-Beschluss",id,"Therapie-Empfehlungen")))
           )
         ),
 
@@ -757,8 +773,6 @@ object DefaultDataValidator
           Warning("Fehlende Angabe: Datum") at Location("Therapie-Empfehlung",id,"Datum")
         ),
 
-//        medication.validateEach
-//          .leftMap(_.map(_.copy(location = Location("Therapie-Empfehlung",id,"Medication")))),
         medication.filterNot(_.isEmpty) shouldBe defined otherwise (
           Warning("Fehlende Angabe: Wirkstoffe") at Location("Therapie-Empfehlung",id,"Medikation")
         ) andThen (

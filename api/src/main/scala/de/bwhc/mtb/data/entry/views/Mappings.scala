@@ -363,7 +363,8 @@ trait mappings
   implicit def genesToDisplay: List[Gene] => Option[GeneDisplay] = {
     genes =>
       genes.map(_.value)
-        .reduceLeftOption(_ + ", " + _).map(GeneDisplay(_))
+        .reduceLeftOption(_ + ", " + _)
+        .map(GeneDisplay(_))
   }
 
 
@@ -375,14 +376,14 @@ trait mappings
         sv.startEnd.mapTo[StartEndDisplay],
         sv.refAllele,
         sv.altAllele,
-        sv.functionalAnnotation.code,
+        sv.functionalAnnotation.map(_.code).toRight(NotAvailable),
         sv.dnaChange.code,
-        sv.aminoAcidChange.code,
+        sv.aminoAcidChange.map(_.code).toRight(NotAvailable),
         sv.readDepth,
         sv.allelicFrequency,
         sv.cosmicId.toRight(NotAvailable),
         sv.dbSNPId.toRight(NotAvailable),
-        sv.interpretation.code
+        sv.interpretation.map(_.code).toRight(NotAvailable)
       )
   }
 
@@ -501,7 +502,7 @@ trait mappings
     v => 
       val repr = v match {
         case snv: SimpleVariant =>
-          s"SNV ${snv.gene.code.value} ${snv.aminoAcidChange.code.value}"
+          s"SNV ${snv.gene.code.value} ${snv.dnaChange.code.value}"
       
         case cnv: CNV => {
           val genes =
