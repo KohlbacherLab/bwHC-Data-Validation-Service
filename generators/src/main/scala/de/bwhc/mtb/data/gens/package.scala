@@ -318,8 +318,8 @@ package object gens
       interpr   <- Gen.of[Coding[Interpretation]]
       id        <- Gen.uuidStrings.map(u => s"SNV_$u").map(Variant.Id)
     } yield SimpleVariant(
-      id,chr,gene,se,refAllele,altAllele,Some(fnAnnot),dnaChg,Some(aaChg),
-      readDpth,allelicFreq,Some(cosmicId),Some(dbSNPId),Some(interpr)
+      id,chr,gene,se,refAllele,altAllele,Some(fnAnnot),dnaChg,aaChg,
+      readDpth,allelicFreq,Some(cosmicId),Some(dbSNPId),interpr
     )
 
   implicit val genCNV: Gen[CNV] =

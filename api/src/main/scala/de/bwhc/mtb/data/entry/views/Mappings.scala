@@ -378,12 +378,12 @@ trait mappings
         sv.altAllele,
         sv.functionalAnnotation.map(_.code).toRight(NotAvailable),
         sv.dnaChange.code,
-        sv.aminoAcidChange.map(_.code).toRight(NotAvailable),
+        sv.aminoAcidChange.code,
         sv.readDepth,
         sv.allelicFrequency,
         sv.cosmicId.toRight(NotAvailable),
         sv.dbSNPId.toRight(NotAvailable),
-        sv.interpretation.map(_.code).toRight(NotAvailable)
+        sv.interpretation.code
       )
   }
 

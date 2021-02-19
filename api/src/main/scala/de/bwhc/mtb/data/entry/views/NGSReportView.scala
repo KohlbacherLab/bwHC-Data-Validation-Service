@@ -54,12 +54,12 @@ final case class SimpleVariantView
   altAllele: Allele,
   functionalAnnotation: NotAvailable Or FunctionalAnnotation,
   dnaChange: SimpleVariant.DNAChange,
-  aminoAcidChange: NotAvailable Or SimpleVariant.AminoAcidChange,
+  aminoAcidChange: SimpleVariant.AminoAcidChange,
   readDepth: AllelicReadDepth,
   allelicFrequency: AllelicFrequency,
   cosmicId: NotAvailable Or CosmicId,
   dbSNPId: NotAvailable Or SimpleVariant.DbSNPId,
-  interpretation: NotAvailable Or Interpretation
+  interpretation: Interpretation
 )
 object SimpleVariantView
 {
