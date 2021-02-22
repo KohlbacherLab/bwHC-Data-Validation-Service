@@ -291,8 +291,7 @@ package object gens
       "Probably Inactivating",
       "Probably Function Changed",
       "Ambiguous",
-      "Benign",
-      "NotAvailable"
+      "Benign"
     )
     .map(Interpretation(_))
     .map(Coding(_,None))

@@ -613,13 +613,10 @@ object DefaultDataValidator
 
       val expectedMethod = TumorCellContent.Method.Bioinformatic
 
-      val acceptable: Validator[String,String] = {
-        s =>  
-        Validated.condNel(
-          !s.isEmpty && s != "null" && s != "NotAvailable",
-          s"Unacceptable String value '$s'",
-          s
-        )
+      val nonsense = Set("","null","notavailable","n/a")
+
+      val meaningful: Validator[String,String] = {
+        s => s.toLowerCase must not (be (in (nonsense))) 
       }
 
       (
@@ -662,28 +659,21 @@ object DefaultDataValidator
               (
                 snv.gene.code must be (validGeneSymbol(location)),
 
-                snv.dnaChange.code.value must be (acceptable) otherwise (
-                  Error(s"Unbrauchbarer Wert bei 'DNA-Change': ${snv.dnaChange.code.value}") at location
+                snv.dnaChange.code.value must be (meaningful) otherwise (
+                  Error(s"Unbrauchbarer Wert '${snv.dnaChange.code.value}' bei Pflicht-Feld DNA-Change") at location
                 ), 
 
-                snv.aminoAcidChange.code.value must be (acceptable) otherwise (
-                  Error(s"Unbrauchbarer Wert bei 'Amino-Acid-Change': ${snv.aminoAcidChange.code.value}") at location
+                snv.aminoAcidChange.code.value must be (meaningful) otherwise (
+                  Error(s"Unbrauchbarer Wert '${snv.aminoAcidChange.code.value}' bei Pflicht-Feld Amino-Acid-Change") at location
                 ), 
 
-                snv.interpretation.code.value must be (acceptable) otherwise (
-                  Error(s"Unbrauchbarer Wert bei 'Interpretation': ${snv.interpretation.code.value}") at location
+                snv.interpretation.code.value must be (meaningful) otherwise (
+                  Error(s"Unbrauchbarer Wert '${snv.interpretation.code.value}' bei Pflicht-Feld Interpretation") at location
                 ), 
 
               )
               .mapN { case _: Product => snv }
           }
-/*
-          _ validateEach (
-              snv => 
-                (snv.gene.code must be (validGeneSymbol(Location("Somatischer NGS-Befund",id,s"Einfache Variante ${snv.id.value}"))))
-                  .map(_ => snv)
-            )
-*/
         ),
 
         //TODO: validate other variants, at least gene symbols
@@ -697,7 +687,8 @@ object DefaultDataValidator
                  List.empty[Coding[Variant.Gene]].validNel[Issue]
                )(
                  genes =>
-                   (genes validateEach (gene => gene.code must be (validGeneSymbol(Location("Somatischer NGS-Befund",id,s"CNV ${cnv.id.value}"))) map (_ => gene)))
+                   (genes validateEach (
+                      gene => gene.code must be (validGeneSymbol(Location("Somatischer NGS-Befund",id,s"CNV ${cnv.id.value}"))) map (_ => gene)))
                      .map(_ => genes)
                ) map (_ => cnv)
             ) map (_ => cnvList)

@@ -356,7 +356,8 @@ trait mappings
         .geneWithSymbol(HGNCGene.Symbol(c.code.value))
         .map(g => s"${g.symbol.value}: ${g.name.get}")
         .map(GeneDisplay(_))
-        .getOrElse(GeneDisplay("N/A"))
+//        .getOrElse(GeneDisplay("N/A"))
+        .getOrElse(GeneDisplay(s"${c.code.value}: ${c.display.getOrElse("-")}"))
   }
 
 
