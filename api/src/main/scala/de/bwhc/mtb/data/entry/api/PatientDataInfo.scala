@@ -1,12 +1,13 @@
 package de.bwhc.mtb.data.entry.api
 
 
-import java.time.LocalDate
+import java.time.YearMonth
 
 
 import play.api.libs.json.Json
 
 import de.bwhc.util.json._
+import de.bwhc.util.json.time._
 
 import de.bwhc.mtb.data.entry.dtos.{
   Patient,
@@ -23,7 +24,7 @@ final case class PatientDataInfo
 (
   id: Patient.Id,
   gender: String,
-  birthDate: NotAvailable Or LocalDate,
+  birthDate: NotAvailable Or YearMonth,
   numberOfIssues: Int
 )
 

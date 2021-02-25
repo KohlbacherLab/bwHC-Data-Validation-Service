@@ -2,7 +2,7 @@ package de.bwhc.mtb.data
 
 
 import java.net.URI
-import java.time.LocalDate
+import java.time.{LocalDate,YearMonth}
 
 import cats.data.NonEmptyList
 
@@ -46,9 +46,11 @@ package object gens
       bd      <- DateTimeGens.localDatesBetween(
                    LocalDate.of(1950,1,1),
                    LocalDate.of(1980,12,31)
-                 )
+                 ) 
+                 .map(d => YearMonth.of(d.getYear,d.getMonth))
       diedAge <- Gen.intsBetween(55,75)
-      dod     =  Option(bd.plusYears(diedAge)).filterNot(_.isAfter(LocalDate.now.minusDays(1)))
+//      dod     =  Option(bd.plusYears(diedAge)).filterNot(_.isAfter(LocalDate.now.minusDays(1)))
+      dod     =  Option(bd.plusYears(diedAge)).filterNot(_.isAfter(YearMonth.now))
       ik      <- Gen.of[HealthInsurance.Id]
     } yield Patient(id,g,Some(bd),None,Some(ik),dod)
 
@@ -81,8 +83,8 @@ package object gens
     for {
       id      <- Gen.of[MTBEpisode.Id]
       start   <- DateTimeGens.localDatesBetween(
-                   pat.birthDate.get.plusYears(50),
-                   pat.birthDate.get.plusYears(55)
+                   pat.birthDate.get.plusYears(50).atEndOfMonth,
+                   pat.birthDate.get.plusYears(55).atEndOfMonth
                  )
     } yield MTBEpisode(id,pat.id,OpenEndPeriod(start))
 

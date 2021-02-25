@@ -1,7 +1,7 @@
 package de.bwhc.mtb.data.entry.impl
 
 
-import java.time.LocalDate
+import java.time.{LocalDate,YearMonth}
 import java.time.temporal.Temporal
 
 import scala.util.Either
@@ -91,15 +91,19 @@ object DefaultDataValidator
     import java.time.{
       Instant,
       LocalDate,
-      LocalDateTime
+      LocalDateTime,
+      YearMonth
     }
     import java.time.format.DateTimeFormatter
 
+    private val yyyyMM = DateTimeFormatter.ofPattern("yyyy-MM")
+    
      def toISOFormat: String = {
        t match {
          case ld:  LocalDate     => DateTimeFormatter.ISO_LOCAL_DATE.format(ld)
          case ldt: LocalDateTime => DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(ldt)
          case t:   Instant       => DateTimeFormatter.ISO_INSTANT.format(t)
+         case ym:  YearMonth     => yyyyMM.format(t)
        }
      }
 
@@ -157,7 +161,7 @@ object DefaultDataValidator
         ),
 
         dod map (
-          date => date must be (before (LocalDate.now)) otherwise (
+          date => date must be (before (YearMonth.now)) otherwise (
             Error(s"Ungültiges Todesdatum '${date.toISOFormat}': liegt in der Zukunft")
               at Location("Patient",id,"Todesdatum")
           )
@@ -594,6 +598,25 @@ object DefaultDataValidator
       ) map (_ => symbol)
   
 
+  def validStartEnd(location: Location): DataQualityValidator[Variant.StartEnd] = {
+    case startEnd @ Variant.StartEnd(start,end) =>
+      (
+        start must be (greaterThan(0L)) otherwise (
+          Warning(s"Negativer Wert '$start' bei Start-Position") at location
+        ),
+
+        end.map(
+          e => e must be (greaterThan(0L)) otherwise (
+            Warning(s"Negativer Wert '$e' bei End-Position") at location
+          )
+        )
+        .getOrElse(0L.validNel[Issue])
+        
+      )
+      .mapN((_,_) => startEnd)
+  }
+
+
 
   implicit def ngsReportValidator(
     implicit
@@ -624,31 +647,34 @@ object DefaultDataValidator
 
         specimen must be (validReference(specimens)(Location("Somatischer NGS-Befund",id,"Probe"))),
 
-        tumorContent.method must equal (expectedMethod)
-          otherwise (Error(s"Erwartete Tumorzellgehalt-Bestimmungsmethode '${ValueSet[TumorCellContent.Method.Value].displayOf(expectedMethod).get}'")
-            at Location("Somatischer NGS-Befund",id,"Tumorzellgehalt")),
+        tumorContent.method must equal (expectedMethod) otherwise (
+          Error(s"Erwartete Tumorzellgehalt-Bestimmungsmethode '${ValueSet[TumorCellContent.Method.Value].displayOf(expectedMethod).get}'")
+            at Location("Somatischer NGS-Befund",id,"Tumorzellgehalt")
+        ),
 
         tumorContent validate,
        
-        brcaness shouldBe defined otherwise (Info("Fehlende Angabe: BRCAness Wert") at Location("Somatischer NGS-Befund",id,"BRCAness"))
-          andThen {
-            opt =>
-              opt.get.value must be (in (brcanessRange)) otherwise (
-                  Error(s"BRCAness Wert '${opt.get.value}' nicht im Referenz-Bereich $brcanessRange")
-                    at Location("Somatischer NGS-Befund",id,"BRCAness")
-                )
-              },
+        brcaness shouldBe defined otherwise (
+          Info("Fehlende Angabe: BRCAness Wert") at Location("Somatischer NGS-Befund",id,"BRCAness")
+        ) andThen {
+          opt =>
+            opt.get.value must be (in (brcanessRange)) otherwise (
+              Error(s"BRCAness Wert '${opt.get.value}' nicht im Referenz-Bereich $brcanessRange") at Location("Somatischer NGS-Befund",id,"BRCAness")
+            )
+        },
              
-        msi shouldBe defined otherwise (Info("Fehlende Angabe: MSI Wert") at Location("Somatischer NGS-Befund",id,"MSI"))
-          andThen(
-            opt =>
-              opt.get.value must be (in (msiRange)) otherwise (
-                Error(s"MSI Wert '${opt.get.value}' nicht im Referenz-Bereich $msiRange") at Location("Somatischer NGS-Befund",id,"MSI")
-              )
-            ),
+        msi shouldBe defined otherwise (
+          Info("Fehlende Angabe: MSI Wert") at Location("Somatischer NGS-Befund",id,"MSI")
+        ) andThen (
+          opt =>
+            opt.get.value must be (in (msiRange)) otherwise (
+              Error(s"MSI Wert '${opt.get.value}' nicht im Referenz-Bereich $msiRange") at Location("Somatischer NGS-Befund",id,"MSI")
+            )
+        ),
              
-        tmb.value must be (in (tmbRange))
-          otherwise (Error(s"TMB Wert '${tmb.value}' nicht im Referenz-Bereich $tmbRange") at Location("Somatischer NGS-Befund",id,"TMB")),
+        tmb.value must be (in (tmbRange)) otherwise (
+          Error(s"TMB Wert '${tmb.value}' nicht im Referenz-Bereich $tmbRange") at Location("Somatischer NGS-Befund",id,"TMB")
+        ),
 
         snvs.fold(
           List.empty[SimpleVariant].validNel[Issue]
@@ -659,16 +685,18 @@ object DefaultDataValidator
               (
                 snv.gene.code must be (validGeneSymbol(location)),
 
+                snv.startEnd must be (validStartEnd(location)),
+
                 snv.dnaChange.code.value must be (meaningful) otherwise (
-                  Error(s"Unbrauchbarer Wert '${snv.dnaChange.code.value}' bei Pflicht-Feld DNA-Change") at location
+                  Warning(s"Unbrauchbarer Wert '${snv.dnaChange.code.value}' bei Pflicht-Feld DNA-Change") at location
                 ), 
 
                 snv.aminoAcidChange.code.value must be (meaningful) otherwise (
-                  Error(s"Unbrauchbarer Wert '${snv.aminoAcidChange.code.value}' bei Pflicht-Feld Amino-Acid-Change") at location
+                  Warning(s"Unbrauchbarer Wert '${snv.aminoAcidChange.code.value}' bei Pflicht-Feld Amino-Acid-Change") at location
                 ), 
 
                 snv.interpretation.code.value must be (meaningful) otherwise (
-                  Error(s"Unbrauchbarer Wert '${snv.interpretation.code.value}' bei Pflicht-Feld Interpretation") at location
+                  Warning(s"Unbrauchbarer Wert '${snv.interpretation.code.value}' bei Pflicht-Feld Interpretation") at location
                 ), 
 
               )
@@ -788,7 +816,7 @@ object DefaultDataValidator
     case rec @ TherapyRecommendation(TherapyRecommendation.Id(id),patient,diag,date,medication,priority,loe,optNgsId,supportingVariants) =>
 
       (
-        (patient must be (validReference[Patient.Id](Location("Therapie-Empfehlung",id,"Patient")))),
+        patient must be (validReference[Patient.Id](Location("Therapie-Empfehlung",id,"Patient"))),
 
         diag must be (validReference(diagnosisRefs)(Location("Therapie-Empfehlung",id,"Diagnose"))),
 
@@ -863,7 +891,9 @@ object DefaultDataValidator
       (
         patient must be (validReference[Patient.Id](Location("Re-Biopsie-Empfehlung",id,"Patient"))),
 
-        date shouldBe defined otherwise (Warning("Fehlende Angabe: Datum") at Location("Re-Biopsie-Empfehlung",id,"Datum")),
+        date shouldBe defined otherwise (
+          Warning("Fehlende Angabe: Datum") at Location("Re-Biopsie-Empfehlung",id,"Datum")
+        ),
 
         specimen must be (validReference(specimens)(Location("Re-Biopsie-Empfehlung",id,"Probe"))),
       )
@@ -985,8 +1015,6 @@ object DefaultDataValidator
 
         basedOn must be (validReference(recommendationRefs)(Location("Molekulare Therapie",id,"Therapie-Empfehlung"))),
 
-//        medication.toList.validateEach
-//          .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medication")))),
         medication.filterNot(_.isEmpty) shouldBe defined otherwise (
           Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
         ) andThen (
@@ -1005,8 +1033,6 @@ object DefaultDataValidator
 
         basedOn must be (validReference(recommendationRefs)(Location("Molekulare Therapie",id,"Therapie-Empfehlung"))),
 
-//        medication.toList.validateEach
-//          .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medication")))),
         medication.filterNot(_.isEmpty) shouldBe defined otherwise (
           Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
         ) andThen (
@@ -1025,8 +1051,6 @@ object DefaultDataValidator
 
         basedOn must be (validReference(recommendationRefs)(Location("Molekulare Therapie",id,"Therapie-Empfehlung"))),
 
-//        medication.toList.validateEach
-//          .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medication")))),
         medication.filterNot(_.isEmpty) shouldBe defined otherwise (
           Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
         ) andThen (

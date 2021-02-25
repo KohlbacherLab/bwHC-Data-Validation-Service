@@ -2,19 +2,14 @@ package de.bwhc.mtb.data.entry.dtos
 
 
 
-import java.time.LocalDate
+import java.time.{YearMonth,LocalDate}
 
-import play.api.libs.json.Json
-
-
-
-object Patient
-{
-  case class Id(value: String) extends AnyVal
-
-  implicit val formatId = Json.valueFormat[Id]
-
-  implicit val format = Json.format[Patient]
+import play.api.libs.json.{
+  Json,
+  JsString,
+  Format,
+  Reads,
+  Writes
 }
 
 
@@ -22,8 +17,22 @@ final case class Patient
 (
   id: Patient.Id,
   gender: Gender.Value,
-  birthDate: Option[LocalDate],
+  birthDate: Option[YearMonth],
   managingZPM: Option[ZPM],
   insurance: Option[HealthInsurance.Id],
-  dateOfDeath: Option[LocalDate]
+  dateOfDeath: Option[YearMonth]
 )
+
+
+object Patient
+{
+
+  case class Id(value: String) extends AnyVal
+
+  import de.bwhc.util.json.time._
+
+
+  implicit val formatId = Json.valueFormat[Id]
+
+  implicit val format = Json.format[Patient]
+}
