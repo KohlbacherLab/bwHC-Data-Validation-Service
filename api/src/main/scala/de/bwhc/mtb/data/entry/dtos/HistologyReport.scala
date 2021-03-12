@@ -24,7 +24,6 @@ final case class TumorMorphology
   id: TumorMorphology.Id,
   patient: Patient.Id,
   specimen: Specimen.Id,
-//  issuedOn: Option[LocalDate],
   value: Coding[ICDO3M],
   note: Option[String]
 )
@@ -45,7 +44,6 @@ final case class HistologyReport
   patient: Patient.Id,
   specimen: Specimen.Id,
   issuedOn: Option[LocalDate],
-//  tumorMorphology: Coding[ICDO3M],
   tumorMorphology: Option[TumorMorphology],
   tumorCellContent: Option[TumorCellContent],
 )
@@ -58,24 +56,3 @@ object HistologyReport
   implicit val format   = Json.format[HistologyReport]
 }
 
-
-/*
-final case class HistologyResult
-(
-  id: HistologyResult.Id,
-  patient: Patient.Id,
-  specimen: Specimen.Id,
-  issuedOn: Option[LocalDate],
-  icdO3M: Option[Coding[ICDO3M]],
-  note: Option[String]
-)
-
-
-object HistologyResult
-{
-  case class Id(value: String) extends AnyVal
-
-  implicit val formatId = Json.valueFormat[Id]
-  implicit val format   = Json.format[HistologyResult]
-}
-*/
