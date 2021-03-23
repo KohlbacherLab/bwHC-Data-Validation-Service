@@ -49,7 +49,6 @@ package object gens
                  ) 
                  .map(d => YearMonth.of(d.getYear,d.getMonth))
       diedAge <- Gen.intsBetween(55,75)
-//      dod     =  Option(bd.plusYears(diedAge)).filterNot(_.isAfter(LocalDate.now.minusDays(1)))
       dod     =  Option(bd.plusYears(diedAge)).filterNot(_.isAfter(YearMonth.now))
       ik      <- Gen.of[HealthInsurance.Id]
     } yield Patient(id,g,Some(bd),None,Some(ik),dod)
@@ -82,9 +81,12 @@ package object gens
   def genEpisodeFor(pat: Patient): Gen[MTBEpisode] = 
     for {
       id      <- Gen.of[MTBEpisode.Id]
+
+      dateOrder = Ordering[LocalDate]
+
       start   <- DateTimeGens.localDatesBetween(
-                   pat.birthDate.get.plusYears(50).atEndOfMonth,
-                   pat.birthDate.get.plusYears(55).atEndOfMonth
+                   dateOrder.min(pat.birthDate.get.plusYears(50).atEndOfMonth,LocalDate.now),
+                   dateOrder.min(pat.birthDate.get.plusYears(55).atEndOfMonth,LocalDate.now),
                  )
     } yield MTBEpisode(id,pat.id,OpenEndPeriod(start))
 
@@ -164,20 +166,6 @@ package object gens
   // HistologyReport
   //---------------------------------------------------------------------------
 
-/*
-  implicit val genHistologyResultId: Gen[HistologyResult.Id] =
-    Gen.uuidStrings.map(HistologyResult.Id)
-
-  def genHistologyResultFor(
-    specimen: Specimen
-  ): Gen[HistologyResult] =
-    for {
-      id     <- Gen.of[HistologyResult.Id]
-      icdO3M <- Gen.of[Coding[ICDO3M]]
-      note   =  Some("Histology finding notes...")
-    } yield HistologyResult(id,specimen.patient,specimen.id,Some(LocalDate.now),Some(icdO3M),note)
-*/
-
   def genTumorMorphologyFor(
     specimen: Specimen
   ): Gen[TumorMorphology] =
@@ -214,19 +202,6 @@ package object gens
   //---------------------------------------------------------------------------
   // NGS
   //---------------------------------------------------------------------------
-/*
-  def genTumorCellContentsFor(
-    specimen: Specimen
-  ): Gen[List[TumorCellContent]] = 
-    for {
-      path   <- Gen.doubles
-      bioinf <- Gen.doubles
-    } yield List(
-      TumorCellContent(specimen.id,TumorCellContent.Method.Histologic,path),
-      TumorCellContent(specimen.id,TumorCellContent.Method.Bioinformatic,bioinf)
-    )
-*/ 
-
 
   implicit val genSomaticNGSReportId: Gen[SomaticNGSReport.Id] =
     Gen.uuidStrings.map(SomaticNGSReport.Id)
@@ -255,8 +230,6 @@ package object gens
   implicit val genCosmicId: Gen[CosmicId] =
     Gen.uuidStrings.map(CosmicId(_))
 
-//  implicit val genDbSNPId: Gen[Coding[DbSNPId]] =
-//    Gen.uuidStrings.map(DbSNPId(_)).map(Coding(_,None))
   implicit val genDbSNPId: Gen[DbSNPId] =
     Gen.uuidStrings.map(DbSNPId(_))
 

@@ -32,6 +32,7 @@ final case class MTBFile
   responses: Option[List[Response]]
 )
 
+
 object MTBFile
 {
   implicit val format = Json.format[MTBFile]

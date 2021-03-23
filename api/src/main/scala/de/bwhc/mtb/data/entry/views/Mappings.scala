@@ -339,12 +339,13 @@ trait mappings
   import Variant.{StartEnd, Gene}
 
   implicit val startEndToDisplay: StartEnd => StartEndDisplay = {
-    se =>
-      se.end.fold(
-        StartEndDisplay(se.start.toString)
-      )(
-        end => StartEndDisplay(s"${se.start} - $end")
-      )   
+    case StartEnd(start,optEnd) =>
+      optEnd.map(
+        end => StartEndDisplay(s"${start} - $end")
+      )
+      .getOrElse(  
+        StartEndDisplay(start.toString)
+      )
   }
 
 
@@ -356,7 +357,6 @@ trait mappings
         .geneWithSymbol(HGNCGene.Symbol(c.code.value))
         .map(g => s"${g.symbol.value}: ${g.name.get}")
         .map(GeneDisplay(_))
-//        .getOrElse(GeneDisplay("N/A"))
         .getOrElse(GeneDisplay(s"${c.code.value}: ${c.display.getOrElse("-")}"))
   }
 

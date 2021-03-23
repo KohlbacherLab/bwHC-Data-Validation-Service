@@ -66,6 +66,5 @@ object ClaimResponse
   }
 
 
-
   implicit val format = Json.format[ClaimResponse]
 }
