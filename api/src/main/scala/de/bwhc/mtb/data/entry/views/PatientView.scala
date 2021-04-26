@@ -20,11 +20,9 @@ final case class PatientView
   id: Patient.Id,
   gender: String,
   birthDate: NotAvailable Or YearMonth,
-//  birthDate: NotAvailable Or LocalDate,
   managingZPM: NotAvailable Or ZPM,
   insurance: NotAvailable Or HealthInsurance.Id,
   dateOfDeath: NotAvailable Or YearMonth,
-//  dateOfDeath: NotAvailable Or LocalDate,
   consentStatus: Consent.Status.Value,
   firstReferralDate: LocalDate
 )

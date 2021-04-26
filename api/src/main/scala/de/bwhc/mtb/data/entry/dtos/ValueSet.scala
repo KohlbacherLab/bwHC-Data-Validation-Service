@@ -33,6 +33,15 @@ object ValueSet
 
   def apply[C](implicit vs: ValueSet[C]) = vs
 
+  def apply[C](
+    name: String,
+    concepts: (C,String)*
+  ): ValueSet[C] =
+    ValueSet(
+      name,
+      concepts.toList.map { case (c,d) => ValueSet.Concept(c,d) }
+    )
+
 
   implicit def formatConcept[C: Format] = Json.format[Concept[C]]
 
