@@ -349,13 +349,11 @@ object DefaultDataValidator
   }
 
 
-//  implicit val therapyLines = (0 to 9).map(TherapyLine(_))
   
   implicit def prevGuidelineTherapyValidator(
     implicit
     patId: Patient.Id,
     diagnosisRefs: List[Diagnosis.Id],
-//    therapyLines: Seq[TherapyLine]
   ): DataQualityValidator[PreviousGuidelineTherapy] = {
 
     case th @ PreviousGuidelineTherapy(TherapyId(id),patient,diag,therapyLine,medication) =>
@@ -384,7 +382,6 @@ object DefaultDataValidator
     implicit
     patId: Patient.Id,
     diagnosisRefs: List[Diagnosis.Id],
-//    therapyLines: Seq[TherapyLine],
     therapyRefs: Seq[TherapyId],
   ): DataQualityValidator[LastGuidelineTherapy] = {
 
@@ -406,8 +403,6 @@ object DefaultDataValidator
           Warning("Fehlende Angabe: Therapielinie") at Location("Letzte Leitlinien-Therapie",id,"Therapielinie")
         ),
         
-//        medication.toList.validateEach
-//          .leftMap(_.map(_.copy(location = Location("Letzte Leitlinien-Therapie",id,"Medication")))),
         medication.filterNot(_.isEmpty) shouldBe defined otherwise (
           Warning("Fehlende Angabe: Wirkstoffe") at Location("Leitlinien-Therapie",id,"Medikation")
         ) andThen (
@@ -544,15 +539,15 @@ object DefaultDataValidator
         specimen must be (validReference(specimens)(Location("Histologie-Bericht",id,"Specimen"))),
 
         date mustBe defined otherwise (
-          Error("Fehlende Angabe: Datum") at Location("Histologie-Bericht",id,"Datum")
+          Warning("Fehlende Angabe: Datum") at Location("Histologie-Bericht",id,"Datum")
         ),
 
         morphology mustBe defined otherwise (
-          Warning("Fehlende Angabe: Tumor-Morphologie-Befund (ICD-O-3-M)") at Location("Histologie-Bericht",id,"Tumor-Morphologie")
+          Error("Fehlende Angabe: Tumor-Morphologie-Befund (ICD-O-3-M)") at Location("Histologie-Bericht",id,"Tumor-Morphologie")
         ) andThen (_.get validate),
 
         tumorContent mustBe defined otherwise (
-          Error("Fehlende Angabe: Tumorzellgehalt") at Location("Histologie-Bericht",id,"Tumorzellgehalt")
+          Warning("Fehlende Angabe: Tumorzellgehalt") at Location("Histologie-Bericht",id,"Tumorzellgehalt")
         ) map (_.get) andThen (
           tc =>
             (

@@ -501,7 +501,9 @@ package object gens
     for {
       id         <- Gen.of[TherapyId]
       thl        <- Gen.oneOf(TherapyLine.values)
-      period     =  OpenEndPeriod(LocalDate.now)
+      start      =  diag.recordedOn.getOrElse(LocalDate.now)
+      period     =  OpenEndPeriod(start,Some(start.plusWeeks(3)))
+//      period     =  OpenEndPeriod(LocalDate.now.minusWeeks(4),Some(LocalDate.now))
       meds       <- Gen.of[List[Coding[Medication]]]
       stopReason <- Gen.of[GuidelineTherapy.StopReason.Value].map(Coding(_,None))
     } yield LastGuidelineTherapy(id,diag.patient,diag.id,Some(thl),Some(period),Some(meds),Some(stopReason))

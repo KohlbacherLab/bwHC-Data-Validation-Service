@@ -60,10 +60,15 @@ lazy val impl = project
     name := "data-entry-service-impl",
     settings,
     libraryDependencies ++= Seq(
+      dependencies.scalatest,
+      dependencies.hgnc_catalog_impl,
+      dependencies.icd_catalogs_impl,
+      dependencies.med_catalog_impl
     )
   )
   .dependsOn(
-    api
+    api,
+    generators % Test,
   )
 
 
