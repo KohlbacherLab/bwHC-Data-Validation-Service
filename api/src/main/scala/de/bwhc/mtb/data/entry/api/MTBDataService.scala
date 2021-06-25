@@ -28,7 +28,6 @@ import de.bwhc.mtb.data.entry.views.MTBFileView
 trait MTBDataServiceProvider extends SPI[MTBDataService]
 
 
-
 trait MTBDataService
 {
 
@@ -45,6 +44,15 @@ trait MTBDataService
     implicit ec: ExecutionContext
   ): Future[Iterable[PatientDataInfo]]
 
+/*
+  def patientsWithIncompleteData(
+//    patId: Patient.Id,
+    genders: Set[Gender.Value],
+    
+  )(
+    implicit ec: ExecutionContext
+  ): Future[Iterable[PatientDataInfo]]
+*/
 
   def mtbfile(
     patient: Patient.Id
@@ -119,6 +127,15 @@ object MTBDataService extends SPILoader(classOf[MTBDataServiceProvider])
     final case class UnspecificError(msg: String) extends Error
   }
 
+/*
+  final case class Filter
+  (
+    genders: Set[Gender.Value],
+    messagePattern: Option[String],
+    entryType: Option[String],
+    attribut: Option[String]
+  )
+*/
 
 
 }

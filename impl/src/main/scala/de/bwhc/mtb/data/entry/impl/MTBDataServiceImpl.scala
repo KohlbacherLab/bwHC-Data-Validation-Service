@@ -114,13 +114,32 @@ with Logging
 
   import ValueSets._
 
+
   implicit val patientDataInfo: ((Patient,DataQualityReport)) => PatientDataInfo = {
     case (patient,dataQC) =>
+
+      val issueMap =
+        dataQC.issues
+          .toList
+          .groupBy(_.severity)
+
       PatientDataInfo(
         patient.id,
         ValueSet[Gender.Value].displayOf(patient.gender).get,
         patient.birthDate.toRight(NotAvailable),
-        dataQC.issues.size
+        dataQC.issues.size,
+/*        
+        dataQC.issues
+          .toList
+          .groupBy(_.severity)
+          .map { case (severity -> issues) => PatientDataInfo.SeverityCount(severity,issues.size) }
+          .toList
+*/
+/*
+        issueMap.getOrElse(Severity.Error,  List.empty).size,
+        issueMap.getOrElse(Severity.Warning,List.empty).size,
+        issueMap.getOrElse(Severity.Info,   List.empty).size
+*/
       )
   }
 

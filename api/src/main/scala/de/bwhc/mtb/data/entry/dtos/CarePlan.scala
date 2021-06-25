@@ -40,9 +40,11 @@ case class CarePlan
 
 object CarePlan
 {
+
   case class Id(value: String) extends AnyVal
 
   implicit val formatId = Json.valueFormat[Id]
 
   implicit val format = Json.format[CarePlan]
+
 }
