@@ -127,19 +127,10 @@ with Logging
         patient.id,
         ValueSet[Gender.Value].displayOf(patient.gender).get,
         patient.birthDate.toRight(NotAvailable),
-        dataQC.issues.size,
-/*        
-        dataQC.issues
-          .toList
-          .groupBy(_.severity)
-          .map { case (severity -> issues) => PatientDataInfo.SeverityCount(severity,issues.size) }
-          .toList
-*/
-/*
+//        dataQC.issues.size,
         issueMap.getOrElse(Severity.Error,  List.empty).size,
         issueMap.getOrElse(Severity.Warning,List.empty).size,
         issueMap.getOrElse(Severity.Info,   List.empty).size
-*/
       )
   }
 
@@ -257,6 +248,59 @@ with Logging
 
 
   override def patientsWithIncompleteData(
+    filterCriteria: MTBDataService.Filter
+  )(
+    implicit ec: ExecutionContext
+  ): Future[Iterable[PatientDataInfo]] = {
+  
+//    import scala.language.implicitConversions
+
+//    implicit def filterToPredicate(filter: MTBDataService.Filter): ((MTBFile,DataQualityReport)) => Boolean = {
+    def toPredicate(filter: MTBDataService.Filter): ((MTBFile,DataQualityReport)) => Boolean = {
+ 
+      case (mtbFile,dataQC) => 
+ 
+        val MTBDataService.Filter(genders,errorMsg,entityType,attribute) = filter
+ 
+        genders.fold(true)(gs => gs.contains(mtbFile.patient.gender)) &&
+        errorMsg.fold(true)(msg => dataQC.issues.find(_.message contains (msg)).isDefined) &&
+        entityType.fold(true)(entity => dataQC.issues.map(_.location.entryType).find(_ contains (entity)).isDefined) &&
+        attribute.fold(true)(attr => dataQC.issues.map(_.location.attribute).find(_ contains (attr)).isDefined)
+ 
+    }
+
+
+    log.info(s"Handling request for Patients with data quality issues")
+
+    for {
+      mtbfiles <- db.mtbfiles
+
+      dataQC   <- db.dataQcReports
+
+      pairs = mtbfiles.map(mtbfile => (mtbfile,dataQC.find(_.patient == mtbfile.patient.id).get) )
+/*
+      pairs    <-
+        Future.sequence(
+          mtbfiles.map(
+            mtbfile =>
+            db.dataQcReportOf(mtbfile.patient.id)
+              .map(qc => (mtbfile,qc.get))
+          )
+        )
+*/
+      result =
+        pairs
+          .filter(toPredicate(filterCriteria))
+          .map {
+            case (mtbfile,qc) => (mtbfile.patient,qc).mapTo[PatientDataInfo]
+          }
+          
+    } yield result
+    
+  }
+
+
+  override def patientsWithIncompleteData(
     implicit ec: ExecutionContext
   ): Future[Iterable[PatientDataInfo]] = {
   
@@ -273,8 +317,7 @@ with Logging
           }
         )
     } yield infos 
-    
-
+   
   }
 
 

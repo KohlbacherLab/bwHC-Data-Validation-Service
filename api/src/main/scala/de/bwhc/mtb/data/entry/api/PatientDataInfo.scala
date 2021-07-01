@@ -25,29 +25,15 @@ final case class PatientDataInfo
   id: Patient.Id,
   gender: String,
   birthDate: NotAvailable Or YearMonth,
-  numberOfIssues: Int,
-//  issueDistribution: List[SeverityCount]
-/*  
-  errors: Int,
-  warnings: Int,
-  infos: Int
-*/
+//  numberOfIssues: Int,
+  numberOfErrors: Int,
+  numberOfWarnings: Int,
+  numberOfInfos: Int
 )
 
 
 object PatientDataInfo
 {
-/*
-  final case class SeverityCount
-  (
-    severity: DataQualityReport.Issue.Severity.Value,
-    count: Int
-  ) 
-
-  implicit val formatSeverityCount = Json.writes[SeverityCount]
-*/
   implicit val format = Json.writes[PatientDataInfo]
-
 }
-
 

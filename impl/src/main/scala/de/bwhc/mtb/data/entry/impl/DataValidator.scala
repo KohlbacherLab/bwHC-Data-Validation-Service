@@ -282,6 +282,7 @@ object DefaultDataValidator
 
   implicit val medicationCatalog = MedicationCatalog.getInstance.get
 
+/*
   implicit def medicationValidator(
     implicit
     catalog: MedicationCatalog
@@ -293,6 +294,22 @@ object DefaultDataValidator
         Error(s"Ungültiger ATC Medicationscode '$atcCode'") at Location("Medication Coding","","Code")
       ) map (c => medication)
 
+  }
+*/
+
+  implicit def medicationValidator(
+    implicit
+    catalog: MedicationCatalog
+  ): DataQualityValidator[Medication.Coding] = {
+
+    case medication @ Medication.Coding(Medication.Code(code),system,_,_) =>
+
+      if (system == Medication.System.ATC)
+        code must be (in (catalog.entries.map(_.code.value))) otherwise (
+          Error(s"Ungültiger ATC Medications-Code '$code'") at Location("Medication Coding","","Code")
+        ) map (c => medication)
+      else
+        medication.validNel[Issue]
   }
 
 
@@ -785,29 +802,6 @@ object DefaultDataValidator
         ),
 */
 
-/*
-       Ior.fromOptions(noTarget,recommendations) mustBe defined otherwise (
-         Error("Entweder 'kein Target' oder Therapie-Empfehlungen müssen aufgeführt sein") at Location("MTB-Beschluss",id,"Therapie-Empfehlungen")
-       ) andThen (
-         _.get match {
-           case Ior.Left(_) =>
-             recommendations.getOrElse(List.empty[TherapyRecommendation.Id]) mustBe empty otherwise (
-               Warning("Therapie-Empfehlungen vorhanden obwohl 'kein Target' deklariert") at Location("MTB-Beschluss",id,"Therapie-Empfehlungen")
-             )
-
-           case Ior.Right(_) =>
-             recommendations.filterNot(_.isEmpty) mustBe defined otherwise (
-               Error("Fehlende Angabe: Therapie-Empfehlungen") at Location("MTB-Beschluss",id,"Therapie-Empfehlungen")
-             ) andThen (
-               _.get must be (validReferences[TherapyRecommendation.Id](Location("MTB-Beschluss",id,"Therapie-Empfehlungen")))
-             )
-
-           case Ior.Both(_,_) =>
-             (Error("Widersprüchliche Angabe: 'Kein Target' und trotzdem Therapie-Empfehlungen vorhanden")
-               at Location("MTB-Beschluss",id,"Therapie-Empfehlungen")).invalidNel
-         }
-       ),
-*/
        Ior.fromOptions(noTarget,recommendations.filterNot(_.isEmpty)) mustBe defined otherwise (
          Error("Fehlende Angabe: Entweder 'kein Target' oder Therapie-Empfehlungen müssen aufgeführt sein") at Location("MTB-Beschluss",id,"Therapie-Empfehlungen")
        ) andThen (
@@ -1300,6 +1294,22 @@ object DefaultDataValidator
             .map(_ validateEach)
             .getOrElse(List.empty[FamilyMemberDiagnosis].validNel[Issue]),
 
+/*
+          (if (!entityWithoutGuidelinePresent)
+            previousGuidelineTherapies.filterNot(_.isEmpty) mustBe defined otherwise (
+              Warning("Fehlende Angabe: Vorherige Leitlinien-Therapien") at Location("MTBFile",patId.value,"Vorherige Leitlinien-Therapien")
+            ) andThen (pgls => validateEach(pgls.get))
+          else
+            previousGuidelineTherapies.validNel[Issue]),
+
+          (if (!entityWithoutGuidelinePresent)
+            lastGuidelineTherapy mustBe defined otherwise (
+              Warning("Fehlende Angabe: Letzte Leitlinien-Therapie") at Location("MTBFile",patId.value,"Letzte Leitlinien-Therapie")
+            ) andThen (lgl => validate(lgl.get))
+          else
+            lastGuidelineTherapy.validNel[Issue]),
+*/
+
           previousGuidelineTherapies.filterNot(_.isEmpty) match {
             case Some(gls) => validateEach(gls)
             case None =>
@@ -1317,16 +1327,6 @@ object DefaultDataValidator
               else 
                 (Warning("Fehlende Angabe: Letzte Leitlinien-Therapie") at Location("MTBFile",patId.value,"Letzte Leitlinien-Therapie")).invalidNel             
           },
-
-/*  
-          previousGuidelineTherapies.filterNot(_.isEmpty) shouldBe defined otherwise (
-            Warning("Fehlende Angabe: Vorherige Leitlinien-Therapien") at Location("MTBFile",patId.value,"Vorherige Leitlinien-Therapien")
-          ) andThen (_.get validateEach),
-  
-          lastGuidelineTherapy mustBe defined otherwise (
-            Warning("Fehlende Angabe: Letzte Leitlinien-Therapie") at Location("MTBFile",patId.value,"Letzte Leitlinien-Therapie")
-          ) andThen (_.get validate),
-*/  
 
           ecogStatus.filterNot(_.isEmpty) shouldBe defined otherwise (
             Warning("Fehlende Angabe: ECOG Performance Status") at Location("MTBFile",patId.value,"ECOG Status")

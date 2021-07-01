@@ -110,7 +110,10 @@ package object gens
   implicit val genWHOGrade: Gen[Coding[WHOGrade.Value]] =
     Gen.enum(WHOGrade).map(Coding(_,None,None))
 
-  implicit val genMedication: Gen[Coding[Medication]] = 
+//  implicit val genMedication: Gen[Coding[Medication]] = 
+//    Gen.oneOf(Medications.entries.filter(_.code.value.startsWith("L")))
+
+  implicit val genMedication: Gen[Medication.Coding] = 
     Gen.oneOf(Medications.entries.filter(_.code.value.startsWith("L")))
 
 
@@ -473,11 +476,14 @@ package object gens
   implicit val genTherapyId: Gen[TherapyId] =
     Gen.uuidStrings.map(TherapyId(_))
 
-  implicit val genMedications: Gen[List[Coding[Medication]]] =
-    Gen.list(Gen.intsBetween(1,4), Gen.of[Coding[Medication]])
+//  implicit val genMedications: Gen[List[Coding[Medication]]] =
+//    Gen.list(Gen.intsBetween(1,4), Gen.of[Coding[Medication]])
 
-  implicit val genMedicationNel: Gen[NonEmptyList[Coding[Medication]]] =
-    Gen.nonEmptyList(Gen.intsBetween(1,4), Gen.of[Coding[Medication]])
+  implicit val genMedications: Gen[List[Medication.Coding]] =
+    Gen.list(Gen.intsBetween(1,4), Gen.of[Medication.Coding])
+
+//  implicit val genMedicationNel: Gen[NonEmptyList[Coding[Medication]]] =
+//    Gen.nonEmptyList(Gen.intsBetween(1,4), Gen.of[Coding[Medication]])
 
 
 
@@ -491,7 +497,8 @@ package object gens
     for {
       id    <- Gen.of[TherapyId]
       thl   <- Gen.oneOf(TherapyLine.values)
-      meds  <- Gen.of[List[Coding[Medication]]]
+//      meds  <- Gen.of[List[Coding[Medication]]]
+      meds       <- Gen.of[List[Medication.Coding]]
     } yield PreviousGuidelineTherapy(id,diag.patient,diag.id,Some(thl),Some(meds))
 
 
@@ -503,8 +510,8 @@ package object gens
       thl        <- Gen.oneOf(TherapyLine.values)
       start      =  diag.recordedOn.getOrElse(LocalDate.now)
       period     =  OpenEndPeriod(start,Some(start.plusWeeks(3)))
-//      period     =  OpenEndPeriod(LocalDate.now.minusWeeks(4),Some(LocalDate.now))
-      meds       <- Gen.of[List[Coding[Medication]]]
+//      meds       <- Gen.of[List[Coding[Medication]]]
+      meds       <- Gen.of[List[Medication.Coding]]
       stopReason <- Gen.of[GuidelineTherapy.StopReason.Value].map(Coding(_,None))
     } yield LastGuidelineTherapy(id,diag.patient,diag.id,Some(thl),Some(period),Some(meds),Some(stopReason))
 
@@ -546,7 +553,8 @@ package object gens
     for {
       id    <- Gen.uuidStrings.map(TherapyRecommendation.Id)
       date  =  LocalDate.now
-      meds  <- Gen.of[List[Coding[Medication]]]
+//      meds  <- Gen.of[List[Coding[Medication]]]
+      meds  <- Gen.of[List[Medication.Coding]]
       prio  <- Gen.enum(TherapyRecommendation.Priority)
       loe   <- Gen.of[LevelOfEvidence]
       //TODO: ref supporting variant

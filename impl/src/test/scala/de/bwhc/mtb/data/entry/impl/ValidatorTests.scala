@@ -96,7 +96,8 @@ class ValidatorTests extends AnyFlatSpec
 
     validationIssuesOf(previousGLTherapy.copy(therapyLine = None)) must contain (Warning)
 
-    validationIssuesOf(previousGLTherapy.copy(medication = Some(List(Coding(Medication("wrong"),None))))) must contain (Error)
+//    validationIssuesOf(previousGLTherapy.copy(medication = Some(List(Coding(Medication("wrong"),None))))) must contain (Error)
+    validationIssuesOf(previousGLTherapy.copy(medication = Some(List(Medication.Coding(Medication.Code("wrong"),Medication.System.ATC))))) must contain (Error)
 
   }
 
@@ -107,7 +108,8 @@ class ValidatorTests extends AnyFlatSpec
     
     validationIssuesOf(lastGLTherapy.copy(therapyLine = None)) must contain (Warning)
 
-    validationIssuesOf(lastGLTherapy.copy(medication = Some(List(Coding(Medication("wrong"),None))))) must contain (Error)
+//    validationIssuesOf(lastGLTherapy.copy(medication = Some(List(Coding(Medication("wrong"),None))))) must contain (Error)
+    validationIssuesOf(lastGLTherapy.copy(medication = Some(List(Medication.Coding(Medication.Code("wrong"),Medication.System.ATC))))) must contain (Error)
 
     validationIssuesOf(lastGLTherapy.copy(reasonStopped = None)) must contain (Warning)
 

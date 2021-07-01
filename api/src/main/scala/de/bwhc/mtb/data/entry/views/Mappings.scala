@@ -129,10 +129,28 @@ trait mappings
   }
 
 
-
+/*
   implicit def medicationToDisplay(
     implicit medications: MedicationCatalog
   ): List[Coding[Medication]] => MedicationDisplay = {
+    meds =>
+      MedicationDisplay(
+        meds.map(
+          m =>
+            medications
+              .findByCode(med.Medication.Code(m.code.value))
+              .map(c => s"${c.name.get} (${c.code.value})")
+              .getOrElse(s"${m.display.getOrElse("N/A")} (${m.code.value})")
+        )
+        .reduceLeftOption(_ + ", " + _)
+        .getOrElse("N/A")
+      )
+  }
+*/
+
+  implicit def medicationCodingsToDisplay(
+    implicit medications: MedicationCatalog
+  ): List[Medication.Coding] => MedicationDisplay = {
     meds =>
       MedicationDisplay(
         meds.map(

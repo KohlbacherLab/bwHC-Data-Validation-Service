@@ -89,8 +89,8 @@ object Medications
       "L01XX43" -> "Vismodegib",
       "L01XX38" -> "Vorinostat"
    )
-   .map { case (c,d) => Coding[Medication](Medication(c),Some(d)) } 
-//   .map { case (c,d) => Medication(Medication.Code(c),Some(d)) } 
+//   .map { case (c,d) => Coding[Medication](Medication(c),Some(d)) } 
+   .map { case (c,d) => Medication.Coding(Medication.Code(c),Medication.System.ATC,Some(d),None) } 
   
   
   
