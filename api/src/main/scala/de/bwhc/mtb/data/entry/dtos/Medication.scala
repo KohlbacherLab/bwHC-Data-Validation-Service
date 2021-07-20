@@ -43,8 +43,8 @@ object Medication
   (
     code: Code,
     system: System.Value,
-    display: Option[String],// = None,
-    version: Option[String]// = None
+    display: Option[String],
+    version: Option[String]
   )
 
   object Coding {

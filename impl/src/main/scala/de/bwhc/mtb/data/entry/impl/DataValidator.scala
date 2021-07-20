@@ -1,10 +1,11 @@
 package de.bwhc.mtb.data.entry.impl
 
 
-import java.time.{LocalDate,YearMonth}
+import java.time.{LocalDate,YearMonth,Year}
 import java.time.temporal.Temporal
 
 import scala.util.Either
+import scala.util.Try
 import scala.concurrent.{
   ExecutionContext,
   Future
@@ -19,7 +20,7 @@ import de.bwhc.util.data.ClosedInterval
 import de.bwhc.util.data.Validation._
 import de.bwhc.util.data.Validation.dsl._
 import de.bwhc.util.syntax.piping._
-//import de.ekut.tbi.validation.Validator
+//import de.ekut.tbi.validation._
 //import de.ekut.tbi.validation.dsl._
 
 import de.bwhc.mtb.data.entry.dtos
@@ -68,14 +69,12 @@ class DefaultDataValidator extends DataValidator
 
 }
 
+
 object DefaultDataValidator
 {
 
   import DataQualityReport._
   import DataQualityReport.Issue._
-
-  import de.bwhc.util.data.Validation._
-  import de.bwhc.util.data.Validation.dsl._
 
   import cats.syntax.apply._
   import cats.syntax.traverse._
@@ -1368,7 +1367,6 @@ object DefaultDataValidator
 
   }
 
-
 }
 
 
@@ -1422,36 +1420,37 @@ object DefaultDataValidator
     location: => Location,
   )(
     implicit ref: Ref
-  ): DataQualityValidator[Ref] = {
-    r =>
-      r must be (ref) otherwise (
-        Fatal(s"Ungültige Referenz auf $r") at location
-      )
-  }
+  ) = NegatableValidator.fromValidation[DataQualityReport.Issue,Ref](
+      r =>
+        r must be (ref) otherwise (Fatal(s"Ungültige Referenz auf $r") at location)
+    )(
+      e => Warning(e) at location
+    )
 
   private def validReference[Ref, C[X] <: Iterable[X]](
     refs: C[Ref]
   )(
     location: => Location,
-  ): DataQualityValidator[Ref] = {
-    r =>
-      r must be (in (refs)) otherwise (
-        Fatal(s"Ungültige Referenz auf $r") at location
-      )
-  }
+  ) = NegatableValidator.fromValidation[DataQualityReport.Issue,Ref](
+      r =>
+        r must be (in (refs)) otherwise (Fatal(s"Ungültige Referenz auf $r") at location)
+    )(
+      e => Warning(e) at location
+    )
 
   private def validReferences[Ref](
     location: => Location,
   )(
     implicit refs: Iterable[Ref]
-  ): DataQualityValidator[List[Ref]] = {
-    rs =>
-      rs validateEach (
-        r => r must be (in (refs)) otherwise (
-          Fatal(s"Ungültige Referenz auf $r") at location
-        )
+  ) = NegatableValidator.fromValidation[DataQualityReport.Issue,List[Ref]](
+      rs =>
+        rs validateEach (
+          r => r must be (in (refs)) otherwise (Fatal(s"Ungültige Referenz auf $r") at location)
       )
-  }
+    )(
+      e => Warning(e) at location
+    )    
+  
 
 
 
@@ -1523,17 +1522,23 @@ object DefaultDataValidator
     case icd10 @ Coding(dtos.ICD10GM(code),_,version) =>
 
       version must be (defined) otherwise (
-        Error("Fehlende ICD-10-GM Version") at Location("ICD-10-GM Coding","","Version")
+        Error("Fehlende ICD-10-GM Version")
       ) andThen (
         v =>
-          attempt(icd.ICD10GM.Version(v.get)) otherwise (
-            Error(s"Ungültige ICD-10-GM Version '${v.get}'") at Location("ICD-10-GM Coding","","Version")
-          )
+          Try(Year.of(v.get.toInt)) must be (success) otherwise (
+            Error(s"Ungültige ICD-10-GM Version '${v.get}'")
+          ) map (_.get)
+      ) andThen (
+        v => v must be (in (catalog.availableVersions)) otherwise (
+          Error(s"Nicht unterstützte ICD-10-GM Version '$v'")
+        )
       ) andThen (
         v =>
           code must be (in (catalog.codings(v).map(_.code.value))) otherwise (
-            Error(s"Ungültiger ICD-10-GM Code '$code'") at Location("ICD-10-GM Coding","","Code")
+            Error(s"Ungültiger ICD-10-GM Code '$code'")
           )
+      ) leftMap(
+        _.map(_ at Location("ICD-10-GM Coding","","Code"))
       ) map (c => icd10)
 
   }
@@ -1550,9 +1555,13 @@ object DefaultDataValidator
           Error("Fehlende ICD-O-3 Version") at Location("ICD-O-3-T Coding","","Version")
         ) andThen (
           v => 
-            attempt(icd.ICDO3.Version(v.get)) otherwise (
+            Try(Year.of(v.get.toInt)) must be (success) otherwise (
               Error(s"Fehlende ICD-O-3 Version '${v.get}'") at Location("ICD-O-3-T Coding","","Version")
-            )
+            ) map (_.get)
+        ) andThen (
+          v => v must be (in (catalog.availableVersions)) otherwise (
+            Error(s"Nicht unterstützte ICD-O-3 Version '$v'") at Location("ICD-O-3-T Coding","","Version")
+          )
         ) andThen (
           v =>
             code must be (in (catalog.topographyCodings(v).map(_.code.value))) otherwise (
@@ -1574,15 +1583,19 @@ object DefaultDataValidator
           Error("Fehlende ICD-O-3 Version") at Location("ICD-O-3-M Coding","","Version")
         ) andThen (
           v =>
-            attempt(icd.ICDO3.Version(v.get)) otherwise (
+            Try(Year.of(v.get.toInt)) must be (success) otherwise (
               Error(s"Ungültige ICD-O-3 Version '${v.get}'") at Location("ICD-O-3-M Coding","","Version")
-            )
+            ) map (_.get)
+        ) andThen (
+           v => v must be (in (catalog.availableVersions)) otherwise (
+             Error(s"Nicht unterstützte ICD-O-3 Version '$v'") at Location("ICD-O-3-M Coding","","Version")
+           )
         ) andThen (
           v =>
-            code must be (in (catalog.morphologyCodings(v).map(_.code.value)))
-              otherwise (Error(s"Ungültiger ICD-O-3-M Code '$code'") at Location("ICD-O-3-M Coding","","Code"))
+            code must be (in (catalog.morphologyCodings(v).map(_.code.value))) otherwise (
+              Error(s"Ungültiger ICD-O-3-M Code '$code'") at Location("ICD-O-3-M Coding","","Code")
+            )
         ) map (c => icdo3m)
-
     }
 
 
@@ -1627,13 +1640,15 @@ object DefaultDataValidator
         icd10 must be (defined) otherwise (
           Error("Fehlende Angabe: ICD-10-GM Kodierung") at Location("Diagnose",id,"ICD-10")
         ) andThen (
-          opt => (opt.get must be (valid)).leftMap(_.map(_.copy(location = Location("Diagnose",id,"ICD-10"))))
+//          opt => (opt.get must be (valid)).leftMap(_.map(_.copy(location = Location("Diagnose",id,"ICD-10"))))
+          opt => validate(opt.get).leftMap(_.map(_.copy(location = Location("Diagnose",id,"ICD-10"))))
         ),
 
         icdO3T must be (defined) otherwise (
           Info("Fehlende ICD-O-3-T Kodierung") at Location("Diagnose",id,"ICD-O-3-T")
         ) andThen (
-          opt => (opt.get must be (valid)).leftMap(_.map(_.copy(location = Location("Diagnose",id,"ICD-O-3-T"))))
+          opt => validate(opt.get).leftMap(_.map(_.copy(location = Location("Diagnose",id,"ICD-O-3-T"))))
+//          opt => (opt.get must be (valid)).leftMap(_.map(_.copy(location = Location("Diagnose",id,"ICD-O-3-T"))))
         ),
 
         histologyReportRefs
@@ -1680,7 +1695,8 @@ object DefaultDataValidator
         medication.filterNot(_.isEmpty) must be (defined) otherwise (
           Warning("Fehlende Angabe: Wirkstoffe") at Location("Leitlinien-Therapie",id,"Medikation")
         ) andThen (
-          opt => (all(opt.get) must be (valid)).leftMap(_.map(_.copy(location = Location("Leitlinien-Therapie",id,"Medikation"))))
+//          opt => (all(opt.get) must be (valid)).leftMap(_.map(_.copy(location = Location("Leitlinien-Therapie",id,"Medikation"))))
+          opt => validateEach(opt.get).leftMap(_.map(_.copy(location = Location("Leitlinien-Therapie",id,"Medikation"))))
         ),
         
       )
@@ -1716,7 +1732,8 @@ object DefaultDataValidator
         medication.filterNot(_.isEmpty) must be (defined) otherwise (
           Warning("Fehlende Angabe: Wirkstoffe") at Location("Leitlinien-Therapie",id,"Medikation")
         ) andThen (
-          opt => (all(opt.get) must be (valid)).leftMap(_.map(_.copy(location = Location("Leitlinien-Therapie",id,"Medikation"))))
+          opt => validateEach(opt.get).leftMap(_.map(_.copy(location = Location("Leitlinien-Therapie",id,"Medikation"))))
+//          opt => (all(opt.get) must be (valid)).leftMap(_.map(_.copy(location = Location("Leitlinien-Therapie",id,"Medikation"))))
         ),      
 
         reasonStopped must be (defined) otherwise (
@@ -1761,7 +1778,8 @@ object DefaultDataValidator
       (
         patient must be (validReference[Patient.Id](Location("Tumor-Probe",id,"Patient"))),
 
-        icd10 must be (valid) andThen (
+//        icd10 must be (valid) andThen (
+        validate(icd10) andThen (
           icd =>
             icd.code must be (in (icd10codes)) otherwise (
               Fatal(s"Ungültige Referenz auf Entität ${icd.code.value}") at Location("Tumor-Probe",id,"Entität")
@@ -1780,6 +1798,16 @@ object DefaultDataValidator
       .mapN { case _: Product => sp }
 
   }
+
+
+  import de.bwhc.util.data.Interval
+
+  implicit def intervalContains[T]: CanContain[T,Interval[T]] =
+    new CanContain[T,Interval[T]]{
+      def contains(r: Interval[T])(t: T) = r.contains(t)
+
+      def containsOnly(r: Interval[T])(t: T): Boolean = ???
+    }
 
 
 
@@ -1822,7 +1850,8 @@ object DefaultDataValidator
 
         specimen must be (validReference(specimens)(Location("Tumor-Morphologie-Befund (ICD-O-3-M)",id,"Probe"))),
         
-        (icdO3M must be (valid))
+//        (icdO3M must be (valid))
+        validate(icdO3M)
           .leftMap(_.map(_.copy(location = Location("Tumor-Morphologie-Befund (ICD-O-3-M)",id,"ICD-O-3-M Wert")))),
       )
       .mapN {case _: Product => morph }
@@ -1854,14 +1883,14 @@ object DefaultDataValidator
 
         morphology must be (defined) otherwise (
           Error("Fehlende Angabe: Tumor-Morphologie-Befund (ICD-O-3-M)") at Location("Histologie-Bericht",id,"Tumor-Morphologie")
-        ) andThen (_.get must be (valid)),
+        ) map (_.get) andThen (validate(_)),
 
         tumorContent must be (defined) otherwise (
           Warning("Fehlende Angabe: Tumorzellgehalt") at Location("Histologie-Bericht",id,"Tumorzellgehalt")
         ) map (_.get) andThen (
           tc =>
             (
-              tc.method must be equalTo (expectedMethod) otherwise (
+              tc.method must be (expectedMethod) otherwise (
                 Error(s"Erwartete Tumorzellgehalt-Bestimmungsmethode '${ValueSet[TumorCellContent.Method.Value].displayOf(expectedMethod).get}'")
                   at Location("Histologie-Bericht",id,"Tumorzellgehalt")
               ),
@@ -1904,17 +1933,23 @@ object DefaultDataValidator
   implicit def toHGNCGeneSymbol(gene: Variant.Gene): HGNCGene.Symbol =
     HGNCGene.Symbol(gene.value)
 
+
   private def validGeneSymbol(
     location: => Location
-  ): DataQualityValidator[Variant.Gene] = 
+  ) = NegatableValidator.fromValidation[DataQualityReport.Issue,Variant.Gene](
     symbol => 
       hgncCatalog.geneWithSymbol(symbol) must be (defined) otherwise (
         Error(s"Ungültiges Gen-Symbol ${symbol.value}") at location
       ) map (_ => symbol)
-  
+    )(
+      e => Error(s"Gültiges Gen-Symbol") at location
+    )
 
-  def validStartEnd(location: Location): DataQualityValidator[Variant.StartEnd] = {
+  def validStartEnd(location: Location) =
+    NegatableValidator.fromValidation[DataQualityReport.Issue,Variant.StartEnd]{
+
     case startEnd @ Variant.StartEnd(start,end) =>
+
       (
         start must be (positive) otherwise (
           Warning(s"Negativer Wert '$start' bei Start-Position") at location
@@ -1928,16 +1963,28 @@ object DefaultDataValidator
         .getOrElse(0L.validNel[Issue])
       )
       .mapN((_,_) => startEnd)
-  }
+    }(
+      e => Warning("-") at location
+    )
 
 
 
   private val nonsense = Set("","null","notavailable","n/a")
 
-  private val meaningful: Validator[String,String] = {
-    s => s.toLowerCase must not (be (in (nonsense))) 
-  }
 
+  private val meaningful = NegatableValidator.fromValidation(
+    (s: String) => s.toLowerCase must not (be (in (nonsense)))
+  )(
+    e => e
+  ) 
+
+/*
+  private val meaningful = NegatableValidator.fromValidation[String,String](
+    s => s.toLowerCase must not (be (in (nonsense)))
+  )(
+    e => e
+  ) 
+*/
 
   implicit def simpleVariantValidator(
     implicit reportId: SomaticNGSReport.Id
@@ -1993,12 +2040,13 @@ object DefaultDataValidator
 
         specimen must be (validReference(specimens)(Location("Somatischer NGS-Befund",id,"Probe"))),
 
-        tumorContent.method must be (equalTo (expectedMethod)) otherwise (
+        tumorContent.method must be (expectedMethod) otherwise (
           Error(s"Erwartete Tumorzellgehalt-Bestimmungsmethode '${ValueSet[TumorCellContent.Method.Value].displayOf(expectedMethod).get}'")
             at Location("Somatischer NGS-Befund",id,"Tumorzellgehalt")
         ),
 
-        tumorContent must be (valid),
+//        tumorContent must be (valid),
+        validate(tumorContent),
        
         brcaness must be (defined) otherwise (
           Info("Fehlende Angabe: BRCAness Wert") at Location("Somatischer NGS-Befund",id,"BRCAness")
@@ -2025,7 +2073,7 @@ object DefaultDataValidator
         snvs.fold(
           List.empty[SimpleVariant].validNel[Issue]
         )(
-          all(_) must be (valid)
+          validateEach(_)
         ),
 
         //TODO: validate other variants, at least gene symbols
@@ -2078,7 +2126,7 @@ object DefaultDataValidator
 
         // Check that Recommendations are defined unless "noTarget" is declared
 
-        Ior.fromOptions(noTarget,recommendations.filterNot(_.isEmpty)) mustBe defined otherwise (
+        Ior.fromOptions(noTarget,recommendations.filterNot(_.isEmpty)) must be (defined) otherwise (
           Error("Fehlende Angabe: Entweder 'kein Target' oder Therapie-Empfehlungen müssen aufgeführt sein") at Location("MTB-Beschluss",id,"Therapie-Empfehlungen")
         ) andThen (
           _.get match {
@@ -2133,7 +2181,8 @@ object DefaultDataValidator
         medication.filterNot(_.isEmpty) must be (defined) otherwise (
           Warning("Fehlende Angabe: Wirkstoffe") at Location("Therapie-Empfehlung",id,"Medikation")
         ) andThen (
-          opt => (all(opt.get) must be (valid)).leftMap(_.map(_.copy(location = Location("Therapie-Empfehlung",id,"Medikation"))))
+//          opt => (all(opt.get) must be (valid)).leftMap(_.map(_.copy(location = Location("Therapie-Empfehlung",id,"Medikation"))))
+          opt => validateEach(opt.get).leftMap(_.map(_.copy(location = Location("Therapie-Empfehlung",id,"Medikation"))))
         ),      
 
         priority must be (defined) otherwise (
@@ -2323,7 +2372,7 @@ object DefaultDataValidator
         medication.filterNot(_.isEmpty) must be (defined) otherwise (
           Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
         ) andThen (
-          opt => (all(opt.get) must be (valid)).leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
+          opt => validateEach(opt.get).leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
         ),      
 
       )
@@ -2340,7 +2389,7 @@ object DefaultDataValidator
         medication.filterNot(_.isEmpty) must be (defined) otherwise (
           Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
         ) andThen (
-          opt => (all(opt.get) must be (valid)).leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
+          opt => validateEach(opt.get).leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
         ),      
 
       )
@@ -2417,73 +2466,73 @@ object DefaultDataValidator
 
       case Consent.Status.Rejected => {
         (
-          patient.validate,
+          validate(patient),
 
-          consent.validate,
+          validate(consent),
 
-          episode.validate,
+          validate(episode),
 
-          diagnoses.filter(_.isEmpty) must not be (defined) otherwise (
+          diagnoses.filter(_.isEmpty) must not (be (defined)) otherwise (
             Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"diagnoses")),
 
-          familyMemberDiagnoses.filter(_.isEmpty) must not be (defined) otherwise (
+          familyMemberDiagnoses.filter(_.isEmpty) must not (be (defined)) otherwise (
             Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"familyMemberDiagnoses")),
 
-          previousGuidelineTherapies.filter(_.isEmpty) must not be (defined) otherwise (
+          previousGuidelineTherapies.filter(_.isEmpty) must not (be (defined)) otherwise (
             Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"previousGuidelineTherapies")),
 
-          lastGuidelineTherapy must not be (defined) otherwise (
+          lastGuidelineTherapy must not (be (defined)) otherwise (
             Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"lastGuidelineTherapy")),
 
-          ecogStatus.filter(_.isEmpty) must not be (defined) otherwise (
+          ecogStatus.filter(_.isEmpty) must not (be (defined)) otherwise (
             Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"ecogStatus")),
 
-          specimens.filter(_.isEmpty) must not be (defined) otherwise (
+          specimens.filter(_.isEmpty) must not (be (defined)) otherwise (
             Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"specimens")),
 
-          histologyReports.filter(_.isEmpty) must not be (defined) otherwise (
+          histologyReports.filter(_.isEmpty) must not (be (defined)) otherwise (
             Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"histologyReports")),
 
-          ngsReports.filter(_.isEmpty) must not be (defined) otherwise (
+          ngsReports.filter(_.isEmpty) must not (be (defined)) otherwise (
             Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"ngsReports")),
 
-          carePlans.filter(_.isEmpty) must not be (defined) otherwise (
+          carePlans.filter(_.isEmpty) must not (be (defined)) otherwise (
             Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"carePlans")),
 
-          recommendations.filter(_.isEmpty) must not be (defined) otherwise (
+          recommendations.filter(_.isEmpty) must not (be (defined)) otherwise (
             Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"recommendations")),
 
-          counsellingRequests.filter(_.isEmpty) must not be (defined) otherwise (
+          counsellingRequests.filter(_.isEmpty) must not (be (defined)) otherwise (
             Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"counsellingRequests")),
 
-          rebiopsyRequests.filter(_.isEmpty) must not be (defined) otherwise (
+          rebiopsyRequests.filter(_.isEmpty) must not (be (defined)) otherwise (
             Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"rebiopsyRequests")),
 
-          claims.filter(_.isEmpty) must not be (defined) otherwise (
+          claims.filter(_.isEmpty) must not (be (defined)) otherwise (
             Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"claims")),
 
-          claimResponses.filter(_.isEmpty) must not be (defined) otherwise (
+          claimResponses.filter(_.isEmpty) must not (be (defined)) otherwise (
             Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"claimResponses")),
 
-          molecularTherapies.filter(_.isEmpty) must not be (defined) otherwise (
+          molecularTherapies.filter(_.isEmpty) must not (be (defined)) otherwise (
             Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"molecularTherapies")),
 
-          responses.filter(_.isEmpty) must not be (defined) otherwise (
+          responses.filter(_.isEmpty) must not (be (defined)) otherwise (
             Fatal(s"MDAT must not be present for Consent '${consent.status}'")
               at Location("MTBFile",patId.value,"responses")),
         )
@@ -2541,16 +2590,19 @@ object DefaultDataValidator
             .isDefined
  
         (
-          patient must be (valid),
-          consent must be (valid),
-          episode must be (valid),
+          validate(patient),
+//          patient must be (valid),
+          validate(consent),
+          validate(episode),
   
           diagnoses.filterNot(_.isEmpty) must be (defined) otherwise (
             Error("Fehlende Angabe: Diagnosen") at Location("MTBFile",patId.value,"Diagnosen")
-          ) andThen (validateEach(_.get)),
+          ) andThen (
+            ds => validateEach(ds.get)
+          ),
   
           familyMemberDiagnoses
-            .map(all(_) must be (valid))
+            .map(validateEach(_))
             .getOrElse(List.empty[FamilyMemberDiagnosis].validNel[Issue]),
 
           previousGuidelineTherapies.filterNot(_.isEmpty) match {
@@ -2573,31 +2625,31 @@ object DefaultDataValidator
 
           ecogStatus.filterNot(_.isEmpty) must be (defined) otherwise (
             Warning("Fehlende Angabe: ECOG Performance Status") at Location("MTBFile",patId.value,"ECOG Status")
-          ) andThen (validateEach(_.get)),
+          ) andThen (opt => validateEach(opt.get)),
   
           specimens.filterNot(_.isEmpty) must be (defined) otherwise (
             Warning("Fehlende Angabe: Tumor-Proben") at Location("MTBFile",patId.value,"Tumor-Proben")
-          ) andThen (validateEach(_.get)),
+          ) andThen (opt => validateEach(opt.get)),
   
           histologyReports.filterNot(_.isEmpty) must be (defined) otherwise (
             Warning("Fehlende Angabe: Histologie-Befunde") at Location("MTBFile",patId.value,"Histologie-Befunde")
-          ) andThen (validateEach(_.get)),
+          ) andThen (opt => validateEach(opt.get)),
   
           molPathoFindings.filterNot(_.isEmpty) must be (defined) otherwise (
             Warning("Fehlende Angabe: Molekular-Pathologie-Befunde") at Location("MTBFile",patId.value,"Molekular-Pathologie-Befunde")
-          ) andThen (validateEach(_.get)),
+          ) andThen (opt => validateEach(opt.get)),
   
           ngsReports.filterNot(_.isEmpty) must be (defined) otherwise (
             Warning("Fehlende Angabe: Somatische NGS-Befunde") at Location("MTBFile",patId.value,"NGS-Befunde")
-          ) andThen (validateEach(_.get)),
+          ) andThen (opt => validateEach(opt.get)),
   
           carePlans.filterNot(_.isEmpty) must be (defined) otherwise (
             Warning("Fehlende Angabe: MTB-Beschlüsse") at Location("MTBFile",patId.value,"MTB-Beschlüsse")
-          ) andThen (validateEach(_.get)),
+          ) andThen (opt => validateEach(opt.get)),
   
           recommendations.filterNot(_.isEmpty) must be (defined) otherwise (
             Warning("Fehlende Angabe: Therapie-Empfehlungen") at Location("MTBFile",patId.value,"Therapie-Empfehlungen")
-          ) andThen (validateEach(_.get)),
+          ) andThen (opt => validateEach(opt.get)),
   
           counsellingRequests.filterNot(_.isEmpty)
             .map(validateEach(_))
@@ -2617,11 +2669,11 @@ object DefaultDataValidator
   
           claims.filterNot(_.isEmpty) must be (defined) otherwise (
             Warning("Fehlende Angabe: Kostenübernahmeanträge") at Location("MTBFile",patId.value,"Kostenübernahmeanträge")
-          ) andThen (validateEach(_.get)),
+          ) andThen (opt => validateEach(opt.get)),
   
           claimResponses.filterNot(_.isEmpty) must be (defined) otherwise (
             Warning("Fehlende Angabe: Antworten auf Kostenübernahmeanträge") at Location("MTBFile",patId.value,"Antworten auf Kostenübernahmeanträge")
-          ) andThen (validateEach(_.get)),
+          ) andThen (opt => validateEach(opt.get)),
   
           molecularTherapies.filterNot(_.isEmpty) must be (defined) otherwise (
             Warning("Fehlende Angabe: Molekular-Therapien") at Location("MTBFile",patId.value,"Molekular-Therapien")
@@ -2629,7 +2681,7 @@ object DefaultDataValidator
   
           responses.filterNot(_.isEmpty) must be (defined) otherwise (
             Warning("Fehlende Angabe: Response Befunde") at Location("MTBFile",patId.value,"Response Befunde")
-          ) andThen (validateEach(_.get)),
+          ) andThen (opt => validateEach(opt.get)),
          
         )
         .mapN { case _: Product => mtbfile }
@@ -2639,7 +2691,6 @@ object DefaultDataValidator
     }
 
   }
-
 
 }
 */

@@ -550,7 +550,8 @@ trait mappings
 
   implicit val recommendationToDisplay:
     ((
-     (TherapyRecommendation,ICD10Display),
+//     (TherapyRecommendation,ICD10Display),
+     (TherapyRecommendation,NotAvailable Or ICD10Display),
      List[Variant]
     )) => TherapyRecommendationView = {
 
@@ -584,7 +585,7 @@ trait mappings
 
     case ((carePlan,diagnosis,recommendations,studyInclusionRequest,geneticCounsellingRequest),variants) =>
 
-      val icd10 = diagnosis.icd10.map(_.mapTo[ICD10Display]).get
+      val icd10 = diagnosis.icd10.map(_.mapTo[ICD10Display]).toRight(NotAvailable)
 
       CarePlanView(
         carePlan.id,
@@ -619,7 +620,7 @@ trait mappings
           cp =>
             ((
               cp,
-              diagnoses.find(_.id == cp.diagnosis).get,
+              diagnoses.find(_.id == cp.diagnosis).get,  // safe to call, because validation enforces referential integrity
               cp.recommendations.fold(List.empty[TherapyRecommendation])(recs => recommendations.filter(rec => recs contains rec.id)),
               cp.studyInclusionRequest
                 .flatMap(reqId => studyInclusionReqs.find(_.id == reqId)),

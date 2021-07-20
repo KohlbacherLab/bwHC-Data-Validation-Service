@@ -40,7 +40,7 @@ final case class TherapyRecommendationView
 (
   id: TherapyRecommendation.Id,
   patient: Patient.Id,
-  icd10: ICD10Display,
+  icd10: NotAvailable Or ICD10Display,
   medication: NotAvailable Or MedicationDisplay,
   priority: NotAvailable Or TherapyRecommendation.Priority.Value,
   levelOfEvidence: NotAvailable Or LevelOfEvidenceDisplay,
@@ -58,7 +58,7 @@ final case class CarePlanView
 (
   id: CarePlan.Id,
   patient: Patient.Id,
-  icd10: ICD10Display,
+  icd10: NotAvailable Or ICD10Display,
   issuedOn: NotAvailable Or LocalDate,
   protocol: NotAvailable Or String,
   geneticCounsellingRecommendation: No Or String,
