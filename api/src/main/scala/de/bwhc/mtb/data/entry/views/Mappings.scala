@@ -18,6 +18,8 @@ import DateTimeFormatter.{
 import cats.data.NonEmptyList
 import cats.syntax.either._
 
+import de.bwhc.util.num._
+
 import de.bwhc.mtb.data.entry.dtos._
 
 import de.bwhc.catalogs.icd
@@ -325,7 +327,8 @@ trait mappings
 
   implicit val tumorCellContentToDisplay: TumorCellContent => TumorCellContentDisplay = {
     tc =>
-      val valuePercent = tc.value * 100
+//      val valuePercent = tc.value * 100
+      val valuePercent = (tc.value * 100).toInt
       val method       = ValueSet[TumorCellContent.Method.Value].displayOf(tc.method).get
 
       TumorCellContentDisplay(s"$valuePercent % ($method)")
@@ -351,6 +354,7 @@ trait mappings
 
   implicit val tmbToDisplay: TMB => TMBDisplay = {
     tmb => TMBDisplay(s"${tmb.value} mut/MBase")   
+//    tmb => TMBDisplay(s"${tmb.value.withDecimals(1)} mut/MBase")   
   }
 
 
@@ -779,7 +783,6 @@ trait mappings
           (
            th,
            diagsByRec.get(th.basedOn).flatten,
-//           recommendations.find(_.id == th.basedOn).flatMap(rec => diagnoses.find(_.id == rec.diagnosis)),
            responses.find(_.therapy == th.id)
           )
           .mapTo[MolecularTherapyView]

@@ -13,6 +13,8 @@ import de.ekut.tbi.generators.{
 
 import de.bwhc.mtb.data.entry.dtos._
 
+import de.bwhc.util.num._
+
 
 package object gens
 {
@@ -161,7 +163,7 @@ package object gens
   ): Gen[TumorCellContent] = 
     for {
       id <- Gen.uuidStrings.map(TumorCellContent.Id)
-      tc <- Gen.doubles
+      tc <- Gen.doubles.map(_.withDecimals(5))
     } yield TumorCellContent(id,specimen.id,method,tc)
  
 
@@ -212,16 +214,24 @@ package object gens
   import SomaticNGSReport._
 
   implicit val genMSI: Gen[MSI] =
-    Gen.doublesBetween(0,2).map(MSI)
+    Gen.doublesBetween(0,2)
+      .map(_.withDecimals(2))
+      .map(MSI)
 
   implicit val genTMB: Gen[TMB] =
-    Gen.doublesBetween(0,1000000).map(TMB)
+    Gen.doublesBetween(0,1000000)
+      .map(_.withDecimals(2))
+      .map(TMB)
 
   implicit val genBRCAness: Gen[BRCAness] =
-    Gen.doubles.map(BRCAness)
+    Gen.doubles
+      .map(_.withDecimals(2))
+      .map(BRCAness)
 
   implicit val genAverageReadDepth: Gen[AverageReadDepth] =
-    Gen.doublesBetween(0,40).map(AverageReadDepth)
+    Gen.doublesBetween(0,40)
+      .map(_.withDecimals(2))
+      .map(AverageReadDepth)
 
   import Variant._
   import SimpleVariant._
@@ -239,7 +249,9 @@ package object gens
   private val alleles = List("A","C","G","T").map(Allele)
 
   implicit val genAllelicFreq: Gen[AllelicFrequency] =
-    Gen.doubles.map(AllelicFrequency)
+    Gen.doubles
+      .map(_.withDecimals(2))
+      .map(AllelicFrequency)
 
   implicit val genAllelicReadDepth: Gen[AllelicReadDepth] =
     Gen.intsBetween(3,40).map(AllelicReadDepth)
@@ -305,9 +317,9 @@ package object gens
       startRange <- Gen.of[StartEnd]
       endRange   <- Gen.of[StartEnd]
       totalCN    <- Gen.intsBetween(2,5)
-      relCN      <- Gen.doubles
-      cnA        <- Gen.doubles
-      cnB        <- Gen.doubles
+      relCN      <- Gen.doubles.map(_.withDecimals(2))
+      cnA        <- Gen.doubles.map(_.withDecimals(2))
+      cnB        <- Gen.doubles.map(_.withDecimals(2))
       genes      <- Gen.list(Gen.intsBetween(2,5),Gen.of[Coding[Gene]])
       focality   <- Gen.const("reported-focality...")
       typ        <- Gen.enum(CNV.Type)
@@ -370,7 +382,7 @@ package object gens
       ensemblId     <- Gen.uuidStrings.map(RNASeq.EnsemblId)
       gene          <- Gen.of[Coding[Gene]]
       transcript    <- Gen.uuidStrings.map(TranscriptId(_))
-      fpkm          <- Gen.doubles
+      fpkm          <- Gen.doubles.map(_.withDecimals(2))
       fromNGS       <- Gen.booleans
       tsCorrExp     <- Gen.booleans
       rawCounts     <- Gen.intsBetween(20,1000)

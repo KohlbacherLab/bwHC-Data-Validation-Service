@@ -61,7 +61,7 @@ lazy val impl = project
     settings,
     libraryDependencies ++= Seq(
       dependencies.scalatest,
-//      dependencies.validators,
+      dependencies.validators,
       dependencies.hgnc_catalog_impl,
       dependencies.icd_catalogs_impl,
       dependencies.med_catalog_impl
@@ -119,7 +119,7 @@ lazy val dependencies =
     val logback            = "ch.qos.logback"    %  "logback-classic"         % "1.0.13" % Test
     val play_json          = "com.typesafe.play" %% "play-json"               % "2.8.1"
     val generators         = "de.ekut.tbi"       %% "generators"              % "0.1-SNAPSHOT"
-//    val validators         = "de.ekut.tbi"       %% "validators"              % "1.0-SNAPSHOT"
+    val validators         = "de.ekut.tbi"       %% "validators"              % "1.0-SNAPSHOT"
     val repo_utils         = "de.ekut.tbi"       %% "repository-utils"        % "1.0-SNAPSHOT" 
     val bwhc_utils         = "de.bwhc"           %% "utils"                   % "1.0-SNAPSHOT"
     val hgnc_catalog_api   = "de.bwhc"           %% "hgnc-api"                % "1.0-SNAPSHOT"
