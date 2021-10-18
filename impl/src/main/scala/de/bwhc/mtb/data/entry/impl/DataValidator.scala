@@ -17,11 +17,11 @@ import cats.data.Ior
 
 import de.bwhc.util.spi._
 import de.bwhc.util.data.ClosedInterval
-//import de.bwhc.util.data.Validation._
-//import de.bwhc.util.data.Validation.dsl._
 import de.bwhc.util.syntax.piping._
-import de.ekut.tbi.validation._
-import de.ekut.tbi.validation.dsl._
+import de.bwhc.util.data.Validation._
+import de.bwhc.util.data.Validation.dsl._
+//import de.ekut.tbi.validation._
+//import de.ekut.tbi.validation.dsl._
 
 import de.bwhc.mtb.data.entry.dtos
 import de.bwhc.mtb.data.entry.dtos._
@@ -69,7 +69,7 @@ class DefaultDataValidator extends DataValidator
 
 }
 
-/*
+
 object DefaultDataValidator
 {
 
@@ -690,6 +690,25 @@ object DefaultDataValidator
       .mapN { case _: Product => snv }
   }
 
+  implicit def cnvValidator(
+    implicit reportId: SomaticNGSReport.Id
+  ): DataQualityValidator[CNV] = {
+
+    cnv => 
+
+      val location = Location("Somatischer NGS-Befund",reportId.value,s"CNV ${cnv.id.value}")
+
+      cnv.reportedAffectedGenes.fold(
+        List.empty[Coding[Variant.Gene]].validNel[Issue]
+      )(
+        genes =>
+          (genes validateEach (
+             gene => gene.code must be (validGeneSymbol(location)) map (_ => gene)))
+            .map(_ => genes)
+      ) map (_ => cnv)
+
+  }
+
 
   implicit def ngsReportValidator(
     implicit
@@ -755,6 +774,9 @@ object DefaultDataValidator
         cnvs.fold(
           List.empty[CNV].validNel[Issue]
         )(
+          _ validateEach
+        )
+/*
           cnvList =>
             cnvList validateEach (
              cnv => 
@@ -768,6 +790,7 @@ object DefaultDataValidator
                ) map (_ => cnv)
             ) map (_ => cnvList)
         )
+*/
 
       )
       .mapN { case _: Product => ngs }
@@ -1368,9 +1391,9 @@ object DefaultDataValidator
   }
 
 }
-*/
 
 
+/*
 object DefaultDataValidator
 {
 
@@ -1978,14 +2001,6 @@ object DefaultDataValidator
     e => e
   ) 
 
-/*
-  private val meaningful = NegatableValidator.fromValidation[String,String](
-    s => s.toLowerCase must not (be (in (nonsense)))
-  )(
-    e => e
-  ) 
-*/
-
   implicit def simpleVariantValidator(
     implicit reportId: SomaticNGSReport.Id
   ): DataQualityValidator[SimpleVariant] = {
@@ -2591,7 +2606,6 @@ object DefaultDataValidator
  
         (
           validate(patient),
-//          patient must be (valid),
           validate(consent),
           validate(episode),
   
@@ -2693,6 +2707,4 @@ object DefaultDataValidator
   }
 
 }
-
-
-
+*/
