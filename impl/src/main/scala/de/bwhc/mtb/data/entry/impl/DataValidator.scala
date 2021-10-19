@@ -622,6 +622,7 @@ object DefaultDataValidator
 
   private val hgncCatalog = HGNCCatalog.getInstance.get
 
+/*
   import scala.language.implicitConversions
 
   implicit def toHGNCGeneSymbol(gene: Variant.Gene): HGNCGene.Symbol =
@@ -634,7 +635,16 @@ object DefaultDataValidator
       hgncCatalog.geneWithSymbol(symbol) mustBe defined otherwise (
         Error(s"Ungültiges Gen-Symbol ${symbol.value}") at location
       ) map (_ => symbol)
-  
+*/  
+
+  private def validGeneSymbol(
+    location: => Location
+  ): DataQualityValidator[Variant.Gene] = 
+    symbol => 
+      hgncCatalog.geneWithSymbol(symbol.value) mustBe defined otherwise (
+        Error(s"Ungültiges Gen-Symbol ${symbol.value}") at location
+      ) map (_ => symbol)
+
 
   def validStartEnd(location: Location): DataQualityValidator[Variant.StartEnd] = {
     case startEnd @ Variant.StartEnd(start,end) =>

@@ -376,8 +376,10 @@ trait mappings
   ): Coding[Gene] => GeneDisplay = {
     c =>
       hgncCatalog
-        .geneWithSymbol(HGNCGene.Symbol(c.code.value))
-        .map(g => s"${g.symbol.value}: ${g.name.get}")
+//        .geneWithSymbol(HGNCGene.Symbol(c.code.value))
+//        .map(g => s"${g.symbol.value}: ${g.name.get}")
+        .geneWithSymbol(c.code.value)
+        .map(g => s"${g.approvedSymbol}: ${g.name}")
         .map(GeneDisplay(_))
         .getOrElse(GeneDisplay(s"${c.code.value}: ${c.display.getOrElse("-")}"))
   }
