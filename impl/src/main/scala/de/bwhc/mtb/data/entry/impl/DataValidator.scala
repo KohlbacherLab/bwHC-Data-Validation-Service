@@ -508,7 +508,7 @@ object DefaultDataValidator
   import scala.math.Ordering.Double.TotalOrdering
 
   private val tcRange = ClosedInterval(0.0 -> 1.0)
-//  private val tcRange = LeftOpenInterval(0.0 -> 1.0)
+
 
   implicit def tumorContentValidator(
     implicit specimens: Seq[Specimen.Id]
@@ -637,13 +637,15 @@ object DefaultDataValidator
       ) map (_ => symbol)
 */  
 
+//TODO: Check whether ambiguous previous or alias symbol
   private def validGeneSymbol(
     location: => Location
-  ): DataQualityValidator[Variant.Gene] = 
+  ): DataQualityValidator[Variant.Gene] =
     symbol => 
       hgncCatalog.geneWithSymbol(symbol.value) mustBe defined otherwise (
         Error(s"Ungültiges Gen-Symbol ${symbol.value}") at location
       ) map (_ => symbol)
+
 
 
   def validStartEnd(location: Location): DataQualityValidator[Variant.StartEnd] = {
@@ -680,10 +682,12 @@ object DefaultDataValidator
       val location = Location("Somatischer NGS-Befund",reportId.value,s"Einfache Variante ${snv.id.value}")
 
       (
-        snv.gene.code must be (validGeneSymbol(location)),
+//        snv.gene.code must be (validGeneSymbol(location)),
+        ifDefined (snv.gene.map(_.code)) ensureThat (_ is (validGeneSymbol(location))),
 
         snv.startEnd must be (validStartEnd(location)),
 
+/*
         snv.dnaChange.code.value must be (meaningful) otherwise (
           Warning(s"Unbrauchbarer Wert '${snv.dnaChange.code.value}' bei Pflicht-Feld DNA-Change") at location
         ), 
@@ -691,11 +695,23 @@ object DefaultDataValidator
         snv.aminoAcidChange.code.value must be (meaningful) otherwise (
           Warning(s"Unbrauchbarer Wert '${snv.aminoAcidChange.code.value}' bei Pflicht-Feld Amino-Acid-Change") at location
         ), 
+*/
+
+        ifDefined (snv.dnaChange.map(_.code.value)) ensureThat (
+          v => v is (meaningful) otherwise (
+            Warning(s"Unbrauchbarer Wert '$v' bei Pflicht-Feld DNA-Change") at location
+          )
+        ), 
+
+        ifDefined (snv.aminoAcidChange.map(_.code.value)) ensureThat (
+          v => v is (meaningful) otherwise (
+            Warning(s"Unbrauchbarer Wert '$v' bei Pflicht-Feld Amino-Acid-Change") at location
+          )
+        ), 
 
         snv.interpretation.code.value must be (meaningful) otherwise (
           Warning(s"Unbrauchbarer Wert '${snv.interpretation.code.value}' bei Pflicht-Feld Interpretation") at location
         ), 
-
       )
       .mapN { case _: Product => snv }
   }

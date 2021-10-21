@@ -307,7 +307,7 @@ package object gens
       interpr   <- Gen.of[Coding[Interpretation]]
       id        <- Gen.uuidStrings.map(u => s"SNV_$u").map(Variant.Id)
     } yield SimpleVariant(
-      id,chr,gene,se,refAllele,altAllele,Some(fnAnnot),dnaChg,aaChg,
+      id,chr,Some(gene),se,refAllele,altAllele,Some(fnAnnot),Some(dnaChg),Some(aaChg),
       readDpth,allelicFreq,Some(cosmicId),Some(dbSNPId),interpr
     )
 

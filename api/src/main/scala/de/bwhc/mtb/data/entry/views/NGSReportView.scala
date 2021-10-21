@@ -48,13 +48,13 @@ object StartEndDisplay
 final case class SimpleVariantView
 (
   chromosome: Chromosome,
-  gene: GeneDisplay,
+  gene: NotAvailable Or GeneDisplay,
   startEnd: StartEndDisplay,
   refAllele: Allele,
   altAllele: Allele,
   functionalAnnotation: NotAvailable Or FunctionalAnnotation,
-  dnaChange: SimpleVariant.DNAChange,
-  aminoAcidChange: SimpleVariant.AminoAcidChange,
+  dnaChange: NotAvailable Or SimpleVariant.DNAChange,
+  aminoAcidChange: NotAvailable Or SimpleVariant.AminoAcidChange,
   readDepth: AllelicReadDepth,
   allelicFrequency: AllelicFrequency,
   cosmicId: NotAvailable Or CosmicId,

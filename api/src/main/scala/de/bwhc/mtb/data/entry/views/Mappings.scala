@@ -397,13 +397,13 @@ trait mappings
     sv =>
       SimpleVariantView(
         sv.chromosome,
-        sv.gene.mapTo[GeneDisplay],
+        sv.gene.map(_.mapTo[GeneDisplay]).toRight(NotAvailable),
         sv.startEnd.mapTo[StartEndDisplay],
         sv.refAllele,
         sv.altAllele,
         sv.functionalAnnotation.map(_.code).toRight(NotAvailable),
-        sv.dnaChange.code,
-        sv.aminoAcidChange.code,
+        sv.dnaChange.map(_.code).toRight(NotAvailable),
+        sv.aminoAcidChange.map(_.code).toRight(NotAvailable),
         sv.readDepth,
         sv.allelicFrequency,
         sv.cosmicId.toRight(NotAvailable),
@@ -527,7 +527,8 @@ trait mappings
     v => 
       val repr = v match {
         case snv: SimpleVariant =>
-          s"SNV ${snv.gene.code.value} ${snv.dnaChange.code.value}"
+          s"SNV ${snv.gene.map(_.code.value).getOrElse("Gene undefined")} ${snv.dnaChange.map(_.code.value).getOrElse("cDNA change undefined")}"
+//          s"SNV ${snv.gene.code.value} ${snv.dnaChange.code.value}"
       
         case cnv: CNV => {
           val genes =
