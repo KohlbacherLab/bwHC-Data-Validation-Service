@@ -238,7 +238,11 @@ package object gens
 
 
   implicit val genGeneCoding: Gen[Coding[Gene]] =
+    Gen.oneOf(Genes.entries.unzip._2)
+
+  val geneIdsCodings =
     Gen.oneOf(Genes.entries)
+   
 
   implicit val genCosmicId: Gen[CosmicId] =
     Gen.uuidStrings.map(CosmicId(_))
@@ -293,7 +297,8 @@ package object gens
   implicit val genSimpleVariant: Gen[SimpleVariant] =
     for {
       chr       <- Gen.of[Chromosome]
-      gene      <- Gen.of[Coding[Gene]]
+//      gene      <- Gen.of[Coding[Gene]]
+      geneIdCoding <- geneIdsCodings
       se        <- Gen.positiveLongs.map(StartEnd(_,None))
       refAllele <- Gen.oneOf(alleles)
       altAllele <- Gen.oneOf(alleles.filterNot(_ == refAllele))
@@ -307,7 +312,8 @@ package object gens
       interpr   <- Gen.of[Coding[Interpretation]]
       id        <- Gen.uuidStrings.map(u => s"SNV_$u").map(Variant.Id)
     } yield SimpleVariant(
-      id,chr,Some(gene),se,refAllele,altAllele,Some(fnAnnot),Some(dnaChg),Some(aaChg),
+//      id,chr,Some(gene),se,refAllele,altAllele,Some(fnAnnot),Some(dnaChg),Some(aaChg),
+      id,chr,Some(geneIdCoding._1),Some(geneIdCoding._2),se,refAllele,altAllele,Some(fnAnnot),Some(dnaChg),Some(aaChg),
       readDpth,allelicFreq,Some(cosmicId),Some(dbSNPId),interpr
     )
 

@@ -637,16 +637,31 @@ object DefaultDataValidator
       ) map (_ => symbol)
 */  
 
-//TODO: Check whether ambiguous previous or alias symbol
+  private def validGeneId(
+    location: => Location
+  ): DataQualityValidator[Variant.GeneId] = {
+    id =>
+      hgncCatalog.gene(HGNCGene.Id(id.value)) mustBe defined otherwise (
+        Error(s"Ungültige Gen-Id ${id.value}") at location
+      ) map (_ => id)
+
+  }
+
   private def validGeneSymbol(
     location: => Location
-  ): DataQualityValidator[Variant.Gene] =
+  ): DataQualityValidator[Variant.Gene] = {
     symbol => 
-      hgncCatalog.geneWithSymbol(symbol.value) mustBe defined otherwise (
+      val genes = hgncCatalog.geneWithSymbol(symbol.value)
+
+      genes.headOption mustBe defined otherwise (
         Error(s"Ungültiges Gen-Symbol ${symbol.value}") at location
+      ) andThen (
+        x => genes.size must equal (1) otherwise (
+          Warning(s"Gen-Symbol ${symbol.value} mehrdeutig (${genes.map(_.symbol).reduceLeft(_ + ", " + _)}) und daher vermutlich veraltet") at location
+        )
       ) map (_ => symbol)
 
-
+  }
 
   def validStartEnd(location: Location): DataQualityValidator[Variant.StartEnd] = {
     case startEnd @ Variant.StartEnd(start,end) =>
@@ -682,6 +697,8 @@ object DefaultDataValidator
       val location = Location("Somatischer NGS-Befund",reportId.value,s"Einfache Variante ${snv.id.value}")
 
       (
+        ifDefined (snv.geneId) ensureThat (_ is (validGeneId(location))),
+
 //        snv.gene.code must be (validGeneSymbol(location)),
         ifDefined (snv.gene.map(_.code)) ensureThat (_ is (validGeneSymbol(location))),
 

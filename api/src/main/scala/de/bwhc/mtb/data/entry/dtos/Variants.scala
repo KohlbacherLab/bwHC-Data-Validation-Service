@@ -40,6 +40,11 @@ object Variant
   implicit val formatId = Json.valueFormat[Id]
 
 
+  case class GeneId(value: String) extends AnyVal
+
+  implicit val formatGeneId = Json.valueFormat[GeneId]
+
+
   case class Gene(value: String) extends AnyVal
   object Gene
   {
@@ -105,6 +110,7 @@ case class SimpleVariant
 (
   id: Variant.Id,
   chromosome: Chromosome,
+  geneId: Option[GeneId],
   gene: Option[Coding[Gene]],
   startEnd: StartEnd,
   refAllele: Allele,
