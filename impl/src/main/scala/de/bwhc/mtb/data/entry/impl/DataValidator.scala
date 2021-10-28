@@ -639,6 +639,7 @@ object DefaultDataValidator
 
   private def validGeneId(
     location: => Location
+//  ): DataQualityValidator[Variant.Gene] = {
   ): DataQualityValidator[Variant.GeneId] = {
     id =>
       hgncCatalog.gene(HGNCGene.Id(id.value)) mustBe defined otherwise (
@@ -662,6 +663,7 @@ object DefaultDataValidator
       ) map (_ => symbol)
 
   }
+
 
   def validStartEnd(location: Location): DataQualityValidator[Variant.StartEnd] = {
     case startEnd @ Variant.StartEnd(start,end) =>
@@ -700,6 +702,7 @@ object DefaultDataValidator
         ifDefined (snv.geneId) ensureThat (_ is (validGeneId(location))),
 
 //        snv.gene.code must be (validGeneSymbol(location)),
+//        ifDefined (snv.gene.map(_.code)) ensureThat (_ is (validGeneId(location) or validGeneSymbol(location))),
         ifDefined (snv.gene.map(_.code)) ensureThat (_ is (validGeneSymbol(location))),
 
         snv.startEnd must be (validStartEnd(location)),

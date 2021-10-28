@@ -12,7 +12,8 @@ import cats.instances.future._
 import cats.syntax.apply._
 
 import de.ekut.tbi.repo.AsyncRepository
-import de.ekut.tbi.repo.fs.AsyncFSBackedInMemRepository
+import de.ekut.tbi.repo.fs.AsyncFSBackedRepository
+//import de.ekut.tbi.repo.fs.AsyncFSBackedInMemRepository
 
 import de.bwhc.mtb.data.entry.dtos._
 import de.bwhc.mtb.data.entry.api.DataQualityReport
@@ -41,7 +42,24 @@ object MTBDataDBImpl
       .map(new File(_))
       .get
 
-  private lazy val mtbfileDB: AsyncRepository[MTBFile,Patient.Id] =
+  private val mtbfileDB: AsyncRepository[MTBFile,Patient.Id] =
+    AsyncFSBackedRepository(
+      new File(dataDir,"mtbfiles/"),
+      "MTBFile",
+      _.patient.id,
+      _.value
+    )
+
+  private val dataReportDB: AsyncRepository[DataQualityReport,Patient.Id] =
+    AsyncFSBackedRepository(
+      new File(dataDir,"dataQualityReports/"),
+      "DataQualityReport",
+      _.patient,
+      _.value
+    )
+
+/*
+  private val mtbfileDB: AsyncRepository[MTBFile,Patient.Id] =
     AsyncFSBackedInMemRepository(
       new File(dataDir,"mtbfiles/"),
       "MTBFile",
@@ -49,15 +67,15 @@ object MTBDataDBImpl
       _.value
     )
 
-  private lazy val dataReportDB: AsyncRepository[DataQualityReport,Patient.Id] =
+  private val dataReportDB: AsyncRepository[DataQualityReport,Patient.Id] =
     AsyncFSBackedInMemRepository(
       new File(dataDir,"dataQualityReports/"),
       "DataQualityReport",
       _.patient,
       _.value
     )
-
-  lazy val instance = new MTBDataDBImpl(mtbfileDB,dataReportDB)
+*/
+  val instance = new MTBDataDBImpl(mtbfileDB,dataReportDB)
 
 }
 
@@ -131,7 +149,6 @@ extends MTBDataDB
     )
     .mapN((deleted,_) => deleted)
   }
-
 
 
 }

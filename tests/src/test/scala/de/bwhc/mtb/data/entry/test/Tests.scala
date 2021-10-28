@@ -22,6 +22,8 @@ object Setup
 
   val tmpDir = createTempDirectory("bwHC_data_entry_test").toFile
 
+  tmpDir.deleteOnExit
+
   System.setProperty("bwhc.zpm.site","Tübingen")
   System.setProperty("bwhc.data.entry.dir", tmpDir.getAbsolutePath)
 

@@ -375,14 +375,24 @@ trait mappings
     implicit hgnc: HGNCCatalog
   ): Coding[Gene] => GeneDisplay = {
     c =>
-//        .geneWithSymbol(HGNCGene.Symbol(c.code.value))
-//        .map(g => s"${g.symbol.value}: ${g.name.get}")
+/*
       hgncCatalog
-        .geneWithSymbol(c.code.value)
-        .headOption
+        .gene(HGNCGene.Id(c.code.value))
+        .orElse(
+          hgncCatalog.geneWithSymbol(c.code.value)
+            .headOption   //TODO: re-consider this use of first hit; maybe point out ambiguity??
+        )
         .map(g => s"${g.symbol}: ${g.name}")
         .map(GeneDisplay(_))
         .getOrElse(GeneDisplay(s"${c.code.value}: ${c.display.getOrElse("-")}"))
+*/
+      hgncCatalog
+        .geneWithSymbol(c.code.value)
+        .headOption   //TODO: re-consider this use of first hit; maybe point out ambiguity??
+        .map(g => s"${g.symbol}: ${g.name}")
+        .map(GeneDisplay(_))
+        .getOrElse(GeneDisplay(s"${c.code.value}: ${c.display.getOrElse("-")}"))
+
   }
 
 
@@ -403,8 +413,8 @@ trait mappings
         sv.refAllele,
         sv.altAllele,
         sv.functionalAnnotation.map(_.code).toRight(NotAvailable),
-        sv.dnaChange.map(_.code).toRight(NotAvailable),
-        sv.aminoAcidChange.map(_.code).toRight(NotAvailable),
+        sv.dnaChange.map(_.code).toRight(Undefined),
+        sv.aminoAcidChange.map(_.code).toRight(Undefined),
         sv.readDepth,
         sv.allelicFrequency,
         sv.cosmicId.toRight(NotAvailable),

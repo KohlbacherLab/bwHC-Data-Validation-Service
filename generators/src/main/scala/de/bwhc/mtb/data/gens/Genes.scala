@@ -12,6 +12,7 @@ object Genes
 {
 
   val entries: Seq[(Variant.GeneId,Coding[Variant.Gene])] =
+//  val entries: Seq[Coding[Variant.Gene]] =
     Seq(
       ("HGNC:37133","A1BG-AS1","A1BG antisense RNA 1"),
       ("HGNC:23336","A2ML1","alpha-2-macroglobulin like 1"),
@@ -115,6 +116,7 @@ object Genes
       ("HGNC:31665","ACSM6","acyl-CoA synthetase medium chain family member 6")
     )
     .map {
+//      case (id,sym,name) => Coding[Variant.Gene](Variant.Gene(id),Some(name))
       case (id,sym,name) => (Variant.GeneId(id) -> Coding[Variant.Gene](Variant.Gene(sym),Some(name)))
     }
 

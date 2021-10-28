@@ -238,6 +238,7 @@ package object gens
 
 
   implicit val genGeneCoding: Gen[Coding[Gene]] =
+//    Gen.oneOf(Genes.entries)
     Gen.oneOf(Genes.entries.unzip._2)
 
   val geneIdsCodings =
