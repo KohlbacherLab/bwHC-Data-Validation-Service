@@ -15,6 +15,7 @@ import DateTimeFormatter.{
 }
 
 
+import cats.Id
 import cats.data.NonEmptyList
 import cats.syntax.either._
 
@@ -41,7 +42,8 @@ trait mappings
 
   implicit val medicationCatalog: MedicationCatalog
 
-  implicit val hgncCatalog: HGNCCatalog  
+  implicit val hgncCatalog: HGNCCatalog[Id]  
+//  implicit val hgncCatalog: HGNCCatalog  
 
 
 
@@ -372,7 +374,8 @@ trait mappings
 
 
   implicit def geneCodingToDisplay(
-    implicit hgnc: HGNCCatalog
+    implicit hgnc: HGNCCatalog[cats.Id]
+//    implicit hgnc: HGNCCatalog
   ): Coding[Gene] => GeneDisplay = {
     c =>
 /*

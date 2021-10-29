@@ -8,11 +8,10 @@ import scala.concurrent.{
   Future
 }
 
-import cats.instances.future._
-import cats.syntax.apply._
-
-import de.ekut.tbi.repo.AsyncRepository
-import de.ekut.tbi.repo.fs.AsyncFSBackedRepository
+import de.ekut.tbi.repo.Repository
+import de.ekut.tbi.repo.fs.FSBackedRepository
+//import de.ekut.tbi.repo.AsyncRepository
+//import de.ekut.tbi.repo.fs.AsyncFSBackedRepository
 //import de.ekut.tbi.repo.fs.AsyncFSBackedInMemRepository
 
 import de.bwhc.mtb.data.entry.dtos._
@@ -41,7 +40,7 @@ object MTBDataDBImpl
     Option(System.getProperty("bwhc.data.entry.dir"))
       .map(new File(_))
       .get
-
+/*
   private val mtbfileDB: AsyncRepository[MTBFile,Patient.Id] =
     AsyncFSBackedRepository(
       new File(dataDir,"mtbfiles/"),
@@ -52,6 +51,23 @@ object MTBDataDBImpl
 
   private val dataReportDB: AsyncRepository[DataQualityReport,Patient.Id] =
     AsyncFSBackedRepository(
+      new File(dataDir,"dataQualityReports/"),
+      "DataQualityReport",
+      _.patient,
+      _.value
+    )
+*/
+
+  private val mtbfileDB: Repository[Future,MTBFile,Patient.Id] =
+    FSBackedRepository(
+      new File(dataDir,"mtbfiles/"),
+      "MTBFile",
+      _.patient.id,
+      _.value
+    )
+
+  private val dataReportDB: Repository[Future,DataQualityReport,Patient.Id] =
+    FSBackedRepository(
       new File(dataDir,"dataQualityReports/"),
       "DataQualityReport",
       _.patient,
@@ -83,11 +99,17 @@ object MTBDataDBImpl
 
 class MTBDataDBImpl
 (
-  val mtbfileDB: AsyncRepository[MTBFile,Patient.Id],
-  val dataReportDB: AsyncRepository[DataQualityReport,Patient.Id],
+  val mtbfileDB: Repository[Future,MTBFile,Patient.Id],
+  val dataReportDB: Repository[Future,DataQualityReport,Patient.Id],
+//  val mtbfileDB: AsyncRepository[MTBFile,Patient.Id],
+//  val dataReportDB: AsyncRepository[DataQualityReport,Patient.Id],
 )
 extends MTBDataDB
 {
+
+  import cats.instances.future._
+  import cats.syntax.apply._
+
 
   def save(
     mtbfile: MTBFile
