@@ -84,6 +84,7 @@ object ICD
       "C26.9" -> "Gastrointestinaltrakt o.n.A."
     )
     .map { case (c,d) => Coding[ICDO3T](ICDO3T(c),Some(d),Some("Zweite Revision")) }
+//    .map { case (c,d) => Coding[ICDO3T](ICDO3T(c),Some(d),Some("2014")) }
 
 
   lazy val icdO3MCodings =

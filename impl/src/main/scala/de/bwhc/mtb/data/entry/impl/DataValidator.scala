@@ -256,7 +256,9 @@ object DefaultDataValidator
       ) map(_.get) andThen (
         v => 
           v must be (in (versions)) orElse (
-            attempt(Year.of(v.toInt)) andThen (_ must be (in (years))) map (_ => v)
+            attempt(Year.of(v.toInt)) andThen (
+              _ must be (in (years))
+            ) map (y => versions(years.indexOf(y)))
           ) otherwise (
             Error(s"ICD-O-3 Version '$v' ist nicht in {${versions.reduceLeft(_ + ", " + _)}} bzw. {${years.map(_.toString).reduceLeft(_ + ", " + _)}}")
               at Location("ICD-O-3-T Coding","","Version")
@@ -303,7 +305,9 @@ object DefaultDataValidator
       ) map (_.get) andThen (
         v => 
           v must be (in (versions)) orElse (
-            attempt(Year.of(v.toInt)) andThen (_ must be (in (years))) map (_ => v)
+            attempt(Year.of(v.toInt)) andThen (
+              _ must be (in (years))
+            ) map (y => versions(years.indexOf(y)))
           ) otherwise (
             Error(s"ICD-O-3 Version '$v' ist nicht in {${versions.reduceLeft(_ + ", " + _)}} bzw. {${years.map(_.toString).reduceLeft(_ + ", " + _)}}")
               at Location("ICD-O-3-T Coding","","Version")

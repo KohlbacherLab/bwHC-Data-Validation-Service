@@ -1,6 +1,6 @@
 package de.bwhc.mtb.data.entry.dtos
 
-
+/*
 import scala.util.Either
 
 import play.api.libs.json.{
@@ -10,6 +10,9 @@ import play.api.libs.json.{
   Format,
   Reads
 }
+*/
+
+import play.api.libs.json.Json
 
 /*
 case class Medication(value: String) extends AnyVal

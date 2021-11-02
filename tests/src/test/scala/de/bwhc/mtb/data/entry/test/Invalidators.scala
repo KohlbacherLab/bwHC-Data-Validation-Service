@@ -2,8 +2,6 @@ package de.bwhc.mtb.data.entry.test
 
 
 
-import java.util.UUID.randomUUID
-
 import de.bwhc.mtb.data.entry.dtos._
 
 
