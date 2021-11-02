@@ -117,7 +117,7 @@ trait mappings
      icdO3T =>
       icdO3.topographyCodings()
         .find(_.code == icd.ICDO3.TopographyCode(icdO3T.code.value))
-        .map(c => ICDO3TDisplay(s"${c.code.value}: ${c.display.get}"))
+        .map(c => ICDO3TDisplay(s"${c.code.value}: ${c.display}"))
         .getOrElse(ICDO3TDisplay(s"${icdO3T.code.value}: ${icdO3T.display.getOrElse("N/A")}"))
   }
 
@@ -128,7 +128,7 @@ trait mappings
     icdO3M =>
       icdO3.morphologyCodings()
         .find(_.code == icd.ICDO3.MorphologyCode(icdO3M.code.value))
-        .map(c => ICDO3MDisplay(s"${c.code.value}: ${c.display.get}"))
+        .map(c => ICDO3MDisplay(s"${c.code.value}: ${c.display}"))
         .getOrElse(ICDO3MDisplay(s"${icdO3M.code.value}: ${icdO3M.display.getOrElse("N/A")}"))
   }
 

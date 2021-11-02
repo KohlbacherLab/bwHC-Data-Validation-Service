@@ -207,9 +207,9 @@ object DefaultDataValidator
   }
 
 
-  implicit lazy val icd10gmCatalog = ICD10GMCatalogs.getInstance.get
+  implicit val icd10gmCatalog = ICD10GMCatalogs.getInstance.get
 
-  implicit lazy val icdO3Catalog   = ICDO3Catalogs.getInstance.get
+  implicit val icdO3Catalog   = ICDO3Catalogs.getInstance.get
 
 
   import java.time.Year
@@ -232,15 +232,12 @@ object DefaultDataValidator
               Error(s"Nicht unterstützte ICD-10-GM Version '$y'") at Location("ICD-10-GM Coding","","Version")
             )
           )
-//          attempt(icd.ICD10GM.Version(v.get)) otherwise (
-//            Error(s"Ungültige ICD-10-GM Version '${v.get}'") at Location("ICD-10-GM Coding","","Version")
-//          )
-      ) andThen (
-        v =>
-          code must be (in (catalog.codings(v).map(_.code.value))) otherwise (
-            Error(s"Ungültiger ICD-10-GM Code '$code'") at Location("ICD-10-GM Coding","","Code")
-          )
-      ) map (c => icd10)
+    ) andThen (
+      v =>
+        code must be (in (catalog.codings(v).map(_.code.value))) otherwise (
+          Error(s"Ungültiger ICD-10-GM Code '$code'") at Location("ICD-10-GM Coding","","Code")
+        )
+    ) map (c => icd10)
 
   }
 
@@ -250,30 +247,46 @@ object DefaultDataValidator
     catalog: ICDO3Catalogs
   ): DataQualityValidator[Coding[ICDO3T]] = {
 
-      case icdo3t @ Coding(ICDO3T(code),_,version) =>
+    case icdo3t @ Coding(ICDO3T(code),_,version) =>
 
-        version mustBe defined otherwise (
-          Error("Fehlende ICD-O-3 Version") at Location("ICD-O-3-T Coding","","Version")
-        ) andThen (
-          v => 
-            attempt(Year.of(v.get.toInt)) otherwise (
-              Error(s"Ungültige ICD-O-3 Version '${v.get}': Muss Jahres-Angabe sein") at Location("ICD-O-3-T Coding","","Version")
-            ) andThen (
-              y => y must be (in (catalog.availableVersions)) otherwise (
-                Error(s"Nicht unterstützte ICD-O-3-T Version '$y'") at Location("ICD-O-3-T Coding","","Version")
-              )
-            )
-//            attempt(icd.ICDO3.Version(v.get)) otherwise (
-//              Error(s"Fehlende ICD-O-3 Version '${v.get}'") at Location("ICD-O-3-T Coding","","Version")
-//            )
-        ) andThen (
-          v =>
-            code must be (in (catalog.topographyCodings(v).map(_.code.value))) otherwise (
-              Error(s"Ungültiger ICD-O-3-T Code '$code'") at Location("ICD-O-3-T Coding","","Code")
-            )
-        ) map (c => icdo3t)
+      val (versions,years) = catalog.availableVersions.unzip
 
-    }
+      version mustBe defined otherwise (
+        Error("Fehlende ICD-O-3 Version") at Location("ICD-O-3-T Coding","","Version")
+      ) map(_.get) andThen (
+        v => 
+          v must be (in (versions)) orElse (
+            attempt(Year.of(v.toInt)) andThen (_ must be (in (years))) map (_ => v)
+          ) otherwise (
+            Error(s"ICD-O-3 Version '$v' ist nicht in {${versions.reduceLeft(_ + ", " + _)}} bzw. {${years.map(_.toString).reduceLeft(_ + ", " + _)}}")
+              at Location("ICD-O-3-T Coding","","Version")
+          )
+      ) andThen (
+        v =>
+          code must be (in (catalog.topographyCodings(v).map(_.code.value))) otherwise (
+            Error(s"Ungültiger ICD-O-3-T Code '$code'") at Location("ICD-O-3-T Coding","","Code")
+          )
+      ) map (c => icdo3t)
+
+/*
+    case icdo3t @ Coding(ICDO3T(code),_,version) =>
+
+      version mustBe defined otherwise (
+        Error("Fehlende ICD-O-3 Version") at Location("ICD-O-3-T Coding","","Version")
+      ) map(_.get) andThen (
+        v => 
+          v must be (in (catalog.availableVersions)) otherwise (
+            Error(s"ICD-O-3 Version '$v' ist nicht in {${catalog.availableVersions.reduceLeft(_ + ", " + _)}}")
+              at Location("ICD-O-3-T Coding","","Version")
+          )
+      ) andThen (
+        v =>
+          code must be (in (catalog.topographyCodings(v).map(_.code.value))) otherwise (
+            Error(s"Ungültiger ICD-O-3-T Code '$code'") at Location("ICD-O-3-T Coding","","Code")
+          )
+      ) map (c => icdo3t)
+*/
+  }
 
 
   implicit def icdO3MValidator(
@@ -281,29 +294,42 @@ object DefaultDataValidator
     catalog: ICDO3Catalogs
   ): DataQualityValidator[Coding[ICDO3M]] = {
 
-      case icdo3m @ Coding(ICDO3M(code),_,version) =>
+    case icdo3m @ Coding(ICDO3M(code),_,version) =>
 
-        version mustBe defined otherwise (
-          Error("Fehlende ICD-O-3 Version") at Location("ICD-O-3-M Coding","","Version")
-        ) andThen (
-          v =>
-            attempt(Year.of(v.get.toInt)) otherwise (
-              Error(s"Ungültige ICD-O-3 Version '${v.get}': Muss Jahres-Angabe sein") at Location("ICD-O-3-T Coding","","Version")
-            ) andThen (
-              y => y must be (in (catalog.availableVersions)) otherwise (
-                Error(s"Nicht unterstützte ICD-O-3-T Version '$y'") at Location("ICD-O-3-T Coding","","Version")
-              )
-            )
-//            attempt(icd.ICDO3.Version(v.get)) otherwise (
-//              Error(s"Ungültige ICD-O-3 Version '${v.get}'") at Location("ICD-O-3-M Coding","","Version")
-//            )
-        ) andThen (
-          v =>
-            code must be (in (catalog.morphologyCodings(v).map(_.code.value)))
-              otherwise (Error(s"Ungültiger ICD-O-3-M Code '$code'") at Location("ICD-O-3-M Coding","","Code"))
-        ) map (c => icdo3m)
+      val (versions,years) = catalog.availableVersions.unzip
 
-    }
+      version mustBe defined otherwise (
+        Error("Fehlende ICD-O-3 Version") at Location("ICD-O-3-T Coding","","Version")
+      ) map (_.get) andThen (
+        v => 
+          v must be (in (versions)) orElse (
+            attempt(Year.of(v.toInt)) andThen (_ must be (in (years))) map (_ => v)
+          ) otherwise (
+            Error(s"ICD-O-3 Version '$v' ist nicht in {${versions.reduceLeft(_ + ", " + _)}} bzw. {${years.map(_.toString).reduceLeft(_ + ", " + _)}}")
+              at Location("ICD-O-3-T Coding","","Version")
+          )
+      ) andThen (
+        v =>
+          code must be (in (catalog.morphologyCodings(v).map(_.code.value)))
+            otherwise (Error(s"Ungültiger ICD-O-3-M Code '$code'") at Location("ICD-O-3-M Coding","","Code"))
+      ) map (c => icdo3m)
+
+/*
+      version mustBe defined otherwise (
+        Error("Fehlende ICD-O-3 Version") at Location("ICD-O-3-T Coding","","Version")
+      ) map (_.get) andThen (
+        v => 
+          v must be (in (catalog.availableVersions)) otherwise (
+            Error(s"ICD-O-3 Version '$v' ist nicht in {${catalog.availableVersions.reduceLeft(_ + ", " + _)}}")
+              at Location("ICD-O-3-T Coding","","Version")
+          )
+      ) andThen (
+        v =>
+          code must be (in (catalog.morphologyCodings(v).map(_.code.value)))
+            otherwise (Error(s"Ungültiger ICD-O-3-M Code '$code'") at Location("ICD-O-3-M Coding","","Code"))
+      ) map (c => icdo3m)
+*/
+  }
 
 
   implicit val medicationCatalog = MedicationCatalog.getInstance.get

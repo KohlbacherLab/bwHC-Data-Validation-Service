@@ -91,6 +91,7 @@ object MTBDataDBImpl
       _.value
     )
 */
+
   val instance = new MTBDataDBImpl(mtbfileDB,dataReportDB)
 
 }

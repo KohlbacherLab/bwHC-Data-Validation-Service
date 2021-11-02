@@ -83,7 +83,7 @@ object ICD
       "C26.8" -> "Verdauungssystem, mehrere Bereiche überlappend",
       "C26.9" -> "Gastrointestinaltrakt o.n.A."
     )
-    .map { case (c,d) => Coding[ICDO3T](ICDO3T(c),Some(d),Some(Year.of(2014).toString)) }
+    .map { case (c,d) => Coding[ICDO3T](ICDO3T(c),Some(d),Some("Zweite Revision")) }
 
 
   lazy val icdO3MCodings =
@@ -131,6 +131,6 @@ object ICD
       "8920/3" -> "Alveoläres Rhabdomyosarkom",
       "8921/3" -> "Rhabdomyosarkom mit ganglionärer Differenzierung"
     )
-    .map { case (c,d) => Coding[ICDO3M](ICDO3M(c),Some(d),Some(Year.of(2014).toString)) }
+    .map { case (c,d) => Coding[ICDO3M](ICDO3M(c),Some(d),Some("Zweite Revision")) }
 
 }
