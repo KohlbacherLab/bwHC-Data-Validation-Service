@@ -1,16 +1,6 @@
 package de.bwhc.mtb.data.entry.dtos
 
-/*
-import scala.util.Either
 
-import play.api.libs.json.{
-  Json,
-  JsonValidationError,
-  JsObject,
-  Format,
-  Reads
-}
-*/
 
 import play.api.libs.json.Json
 

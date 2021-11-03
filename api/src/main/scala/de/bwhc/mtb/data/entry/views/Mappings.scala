@@ -160,8 +160,8 @@ trait mappings
         meds.map(
           m =>
             medications
-              .findByCode(med.Medication.Code(m.code.value))
-              .map(c => s"${c.name.get} (${c.code.value})")
+              .findWithCode(m.code.value)
+              .map(c => s"${c.name} (${c.code.value})")
               .getOrElse(s"${m.display.getOrElse("N/A")} (${m.code.value})")
         )
         .reduceLeftOption(_ + ", " + _)

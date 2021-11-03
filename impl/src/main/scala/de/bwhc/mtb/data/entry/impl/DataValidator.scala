@@ -270,24 +270,6 @@ object DefaultDataValidator
           )
       ) map (c => icdo3t)
 
-/*
-    case icdo3t @ Coding(ICDO3T(code),_,version) =>
-
-      version mustBe defined otherwise (
-        Error("Fehlende ICD-O-3 Version") at Location("ICD-O-3-T Coding","","Version")
-      ) map(_.get) andThen (
-        v => 
-          v must be (in (catalog.availableVersions)) otherwise (
-            Error(s"ICD-O-3 Version '$v' ist nicht in {${catalog.availableVersions.reduceLeft(_ + ", " + _)}}")
-              at Location("ICD-O-3-T Coding","","Version")
-          )
-      ) andThen (
-        v =>
-          code must be (in (catalog.topographyCodings(v).map(_.code.value))) otherwise (
-            Error(s"Ungültiger ICD-O-3-T Code '$code'") at Location("ICD-O-3-T Coding","","Code")
-          )
-      ) map (c => icdo3t)
-*/
   }
 
 
@@ -318,27 +300,41 @@ object DefaultDataValidator
             otherwise (Error(s"Ungültiger ICD-O-3-M Code '$code'") at Location("ICD-O-3-M Coding","","Code"))
       ) map (c => icdo3m)
 
-/*
-      version mustBe defined otherwise (
-        Error("Fehlende ICD-O-3 Version") at Location("ICD-O-3-T Coding","","Version")
-      ) map (_.get) andThen (
-        v => 
-          v must be (in (catalog.availableVersions)) otherwise (
-            Error(s"ICD-O-3 Version '$v' ist nicht in {${catalog.availableVersions.reduceLeft(_ + ", " + _)}}")
-              at Location("ICD-O-3-T Coding","","Version")
-          )
-      ) andThen (
-        v =>
-          code must be (in (catalog.morphologyCodings(v).map(_.code.value)))
-            otherwise (Error(s"Ungültiger ICD-O-3-M Code '$code'") at Location("ICD-O-3-M Coding","","Code"))
-      ) map (c => icdo3m)
-*/
   }
 
 
   implicit val medicationCatalog = MedicationCatalog.getInstance.get
 
 
+  implicit def medicationValidator(
+    implicit
+    catalog: MedicationCatalog
+  ): DataQualityValidator[Medication.Coding] = {
+
+    case medication @ Medication.Coding(Medication.Code(code),system,_,version) =>
+
+      val versions = catalog.availableVersions.map(_.toString)
+
+      if (system == Medication.System.ATC)
+        version mustBe defined otherwise (
+          Error("Fehlende ATC Version") at Location("Medication Coding","","Version")
+        ) map (_.get) andThen (
+          v => v must be (in (versions)) otherwise (
+            Error(s"ATC Version '$v' ist nicht in {${versions.reduceLeft(_ + ", " + _)}}")
+             at Location("Medication Coding","","Version")
+          ) 
+        ) andThen (
+          v => 
+            catalog.findWithCode(code,Year.of(v.toInt)) mustBe defined otherwise (
+              Error(s"Ungültiger ATC Medications-Code '$code'") at Location("Medication Coding","","Code")
+            )
+        ) map (c => medication)
+      else
+        medication.validNel[Issue]
+
+  }
+
+/*
   implicit def medicationValidator(
     implicit
     catalog: MedicationCatalog
@@ -353,7 +349,7 @@ object DefaultDataValidator
       else
         medication.validNel[Issue]
   }
-
+*/
 
 
   implicit def diagnosisValidator(
