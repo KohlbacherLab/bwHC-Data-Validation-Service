@@ -23,10 +23,15 @@ trait MTBDataDB
   ): Future[MTBFile]
 
 
+  def patients(
+    implicit ec: ExecutionContext
+  ): Future[Iterable[Patient]]
+
+/*
   def mtbfiles(
     implicit ec: ExecutionContext
   ): Future[Iterable[MTBFile]]
-
+*/
 
   def mtbfile(
     id: Patient.Id,

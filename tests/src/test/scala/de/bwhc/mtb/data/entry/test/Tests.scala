@@ -27,7 +27,7 @@ object Setup
   System.setProperty("bwhc.zpm.site","Tübingen")
   System.setProperty("bwhc.data.entry.dir", tmpDir.getAbsolutePath)
 
-  lazy val serviceTry = MTBDataService.getInstance
+  val serviceTry = MTBDataService.getInstance
 
 }
 

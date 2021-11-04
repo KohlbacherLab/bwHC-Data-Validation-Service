@@ -8,11 +8,11 @@ import scala.concurrent.{
   Future
 }
 
-import de.ekut.tbi.repo.Repository
-import de.ekut.tbi.repo.fs.FSBackedRepository
-//import de.ekut.tbi.repo.AsyncRepository
-//import de.ekut.tbi.repo.fs.AsyncFSBackedRepository
-//import de.ekut.tbi.repo.fs.AsyncFSBackedInMemRepository
+//import de.ekut.tbi.repo.Repository
+//import de.ekut.tbi.repo.fs.FSBackedRepository
+import de.ekut.tbi.repo.AsyncRepository
+import de.ekut.tbi.repo.fs.AsyncFSBackedRepository
+import de.ekut.tbi.repo.fs.AsyncFSBackedInMemRepository
 
 import de.bwhc.mtb.data.entry.dtos._
 import de.bwhc.mtb.data.entry.api.DataQualityReport
@@ -40,7 +40,7 @@ object MTBDataDBImpl
     Option(System.getProperty("bwhc.data.entry.dir"))
       .map(new File(_))
       .get
-/*
+
   private val mtbfileDB: AsyncRepository[MTBFile,Patient.Id] =
     AsyncFSBackedRepository(
       new File(dataDir,"mtbfiles/"),
@@ -49,15 +49,23 @@ object MTBDataDBImpl
       _.value
     )
 
+  private val patientDB: AsyncRepository[Patient,Patient.Id] =
+    AsyncFSBackedInMemRepository(
+      new File(dataDir,"patients/"),
+      "Patient",
+      _.id,
+      _.value
+    )
+
   private val dataReportDB: AsyncRepository[DataQualityReport,Patient.Id] =
-    AsyncFSBackedRepository(
+    AsyncFSBackedInMemRepository(
       new File(dataDir,"dataQualityReports/"),
       "DataQualityReport",
       _.patient,
       _.value
     )
-*/
 
+/*
   private val mtbfileDB: Repository[Future,MTBFile,Patient.Id] =
     FSBackedRepository(
       new File(dataDir,"mtbfiles/"),
@@ -73,26 +81,14 @@ object MTBDataDBImpl
       _.patient,
       _.value
     )
-
-/*
-  private val mtbfileDB: AsyncRepository[MTBFile,Patient.Id] =
-    AsyncFSBackedInMemRepository(
-      new File(dataDir,"mtbfiles/"),
-      "MTBFile",
-      _.patient.id,
-      _.value
-    )
-
-  private val dataReportDB: AsyncRepository[DataQualityReport,Patient.Id] =
-    AsyncFSBackedInMemRepository(
-      new File(dataDir,"dataQualityReports/"),
-      "DataQualityReport",
-      _.patient,
-      _.value
-    )
 */
 
-  val instance = new MTBDataDBImpl(mtbfileDB,dataReportDB)
+  val instance =
+    new MTBDataDBImpl(
+      mtbfileDB,
+      patientDB,
+      dataReportDB
+    )
 
 }
 
@@ -100,10 +96,11 @@ object MTBDataDBImpl
 
 class MTBDataDBImpl
 (
-  val mtbfileDB: Repository[Future,MTBFile,Patient.Id],
-  val dataReportDB: Repository[Future,DataQualityReport,Patient.Id],
-//  val mtbfileDB: AsyncRepository[MTBFile,Patient.Id],
-//  val dataReportDB: AsyncRepository[DataQualityReport,Patient.Id],
+//  val mtbfileDB: Repository[Future,MTBFile,Patient.Id],
+//  val dataReportDB: Repository[Future,DataQualityReport,Patient.Id],
+  val mtbfileDB: AsyncRepository[MTBFile,Patient.Id],
+  val patientDB: AsyncRepository[Patient,Patient.Id],
+  val dataReportDB: AsyncRepository[DataQualityReport,Patient.Id],
 )
 extends MTBDataDB
 {
@@ -117,15 +114,36 @@ extends MTBDataDB
   )(
     implicit ec: ExecutionContext
   ): Future[MTBFile] = {
-    mtbfileDB.save(mtbfile)
+    (
+      mtbfileDB.save(mtbfile),
+      patientDB.save(mtbfile.patient)
+    )
+    .mapN((_,_) => mtbfile)
   }
 
+/*
+  def save(
+    mtbfile: MTBFile
+  )(
+    implicit ec: ExecutionContext
+  ): Future[MTBFile] = {
+    mtbfileDB.save(mtbfile)
+  }
+*/
 
+  def patients(
+    implicit ec: ExecutionContext
+  ): Future[Iterable[Patient]] = {
+    patientDB.query(_ => true)
+  }
+
+/*
   def mtbfiles(
     implicit ec: ExecutionContext
   ): Future[Iterable[MTBFile]] = {
     mtbfileDB.query(_ => true)
   }
+*/
 
   def mtbfile(
     id: Patient.Id,
@@ -168,9 +186,10 @@ extends MTBDataDB
 
     (
       mtbfileDB.delete(id),
+      patientDB.delete(id),
       dataReportDB.delete(id)
     )
-    .mapN((deleted,_) => deleted)
+    .mapN((deleted,_,_) => deleted)
   }
 
 

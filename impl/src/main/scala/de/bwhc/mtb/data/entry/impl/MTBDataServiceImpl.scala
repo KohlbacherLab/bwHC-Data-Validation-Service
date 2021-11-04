@@ -42,11 +42,20 @@ class MTBDataServiceProviderImpl extends MTBDataServiceProvider
 object MTBDataServiceImpl
 {
 
-  private val localSite    = Option(System.getProperty("bwhc.zpm.site")).map(ZPM(_)).get  //TODO: improve configurability
-  private val db           = MTBDataDB.getInstance.get
-  private val queryService = QueryServiceProxy.getInstance.get
+  private val localSite =
+    Option(System.getProperty("bwhc.zpm.site"))
+      .map(ZPM(_))
+      .get  //TODO: improve configurability
+
+  private val db =
+    MTBDataDB.getInstance.get
+
+  private val queryService =
+   QueryServiceProxy.getInstance.get
+
 
   private val validator: DataValidator = new DefaultDataValidator
+
 
   val instance =
     new MTBDataServiceImpl(
@@ -127,7 +136,6 @@ with Logging
         patient.id,
         ValueSet[Gender.Value].displayOf(patient.gender).get,
         patient.birthDate.toRight(NotAvailable),
-//        dataQC.issues.size,
         issueMap.getOrElse(Severity.Error,  List.empty).size,
         issueMap.getOrElse(Severity.Warning,List.empty).size,
         issueMap.getOrElse(Severity.Info,   List.empty).size
@@ -253,72 +261,58 @@ with Logging
     implicit ec: ExecutionContext
   ): Future[Iterable[PatientDataInfo]] = {
   
-//    import scala.language.implicitConversions
-
-//    implicit def filterToPredicate(filter: MTBDataService.Filter): ((MTBFile,DataQualityReport)) => Boolean = {
-    def toPredicate(filter: MTBDataService.Filter): ((MTBFile,DataQualityReport)) => Boolean = {
+    def toPredicate(filter: MTBDataService.Filter): ((Patient,DataQualityReport)) => Boolean = {
  
-      case (mtbFile,dataQC) => 
+      case (patient,dataQC) => 
  
         val MTBDataService.Filter(genders,errorMsg,entityType,attribute) = filter
  
-        genders.fold(true)(gs => gs.contains(mtbFile.patient.gender)) &&
+        genders.fold(true)(gs => gs.contains(patient.gender)) &&
         errorMsg.fold(true)(msg => dataQC.issues.find(_.message contains (msg)).isDefined) &&
         entityType.fold(true)(entity => dataQC.issues.map(_.location.entryType).find(_ contains (entity)).isDefined) &&
         attribute.fold(true)(attr => dataQC.issues.map(_.location.attribute).find(_ contains (attr)).isDefined)
  
     }
 
-
     log.info(s"Handling request for Patients with data quality issues")
 
     for {
-      mtbfiles <- db.mtbfiles
-
-      dataQC   <- db.dataQcReports
-
-      pairs = mtbfiles.map(mtbfile => (mtbfile,dataQC.find(_.patient == mtbfile.patient.id).get) )
-/*
-      pairs    <-
-        Future.sequence(
-          mtbfiles.map(
-            mtbfile =>
-            db.dataQcReportOf(mtbfile.patient.id)
-              .map(qc => (mtbfile,qc.get))
-          )
-        )
-*/
+      pairs  <- patientDataQCReportPairs
       result =
         pairs
           .filter(toPredicate(filterCriteria))
-          .map {
-            case (mtbfile,qc) => (mtbfile.patient,qc).mapTo[PatientDataInfo]
-          }
-          
-    } yield result
-    
+          .map(_.mapTo[PatientDataInfo])
+    } yield result  
+
   }
 
-
+/*
   override def patientsWithIncompleteData(
     implicit ec: ExecutionContext
   ): Future[Iterable[PatientDataInfo]] = {
   
     log.info(s"Handling request for Patients with data quality issues")
+    for {
+      pairs <- patientDataQCReportPairs
+      result = pairs.map(_.mapTo[PatientDataInfo])
+    } yield result  
+  }
+*/
+
+  private def patientDataQCReportPairs(
+    implicit ec: ExecutionContext
+  ): Future[Iterable[(Patient,DataQualityReport)]] = {
+  
+    log.info(s"Handling request for Patients with data quality issues")
 
     for {
-      mtbfiles <- db.mtbfiles
-      infos    <-
-        Future.sequence(
-          mtbfiles.map { mtbfile =>
-            val patient = mtbfile.patient
-            db.dataQcReportOf(patient.id)
-              .map(qc => (patient,qc.get).mapTo[PatientDataInfo])
-          }
-        )
-    } yield infos 
-   
+      patients <- db.patients
+      dataQC   <- db.dataQcReports
+      pairs    =  patients.map(pat => (pat,dataQC.find(_.patient == pat.id).get) )
+    } yield pairs
+    
   }
+
 
 
   override def mtbfile(

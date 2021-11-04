@@ -103,10 +103,10 @@ trait mappings
     implicit icd10gm: ICD10GMCatalogs
   ): Coding[ICD10GM] => ICD10Display = {
      icd10 =>
-       icd10gm.code(
+       icd10gm.coding(
          icd.ICD10GM.Code(icd10.code.value),
        )
-       .map(c => ICD10Display(s"${c.code.value}: ${c.display.get}"))
+       .map(c => ICD10Display(s"${c.code.value}: ${c.display}"))
        .getOrElse(ICD10Display(s"${icd10.code.value}: ${icd10.display.getOrElse("N/A")}"))
   }
 
@@ -132,25 +132,6 @@ trait mappings
         .getOrElse(ICDO3MDisplay(s"${icdO3M.code.value}: ${icdO3M.display.getOrElse("N/A")}"))
   }
 
-
-/*
-  implicit def medicationToDisplay(
-    implicit medications: MedicationCatalog
-  ): List[Coding[Medication]] => MedicationDisplay = {
-    meds =>
-      MedicationDisplay(
-        meds.map(
-          m =>
-            medications
-              .findByCode(med.Medication.Code(m.code.value))
-              .map(c => s"${c.name.get} (${c.code.value})")
-              .getOrElse(s"${m.display.getOrElse("N/A")} (${m.code.value})")
-        )
-        .reduceLeftOption(_ + ", " + _)
-        .getOrElse("N/A")
-      )
-  }
-*/
 
   implicit def medicationCodingsToDisplay(
     implicit medications: MedicationCatalog

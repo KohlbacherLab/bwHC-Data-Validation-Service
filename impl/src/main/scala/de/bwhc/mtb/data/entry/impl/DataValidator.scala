@@ -234,7 +234,8 @@ object DefaultDataValidator
           )
     ) andThen (
       v =>
-        code must be (in (catalog.codings(v).map(_.code.value))) otherwise (
+//        code must be (in (catalog.codings(v).map(_.code.value))) otherwise (
+        catalog.coding(icd.ICD10GM.Code(code),v) mustBe defined otherwise (
           Error(s"Ungültiger ICD-10-GM Code '$code'") at Location("ICD-10-GM Coding","","Code")
         )
     ) map (c => icd10)
