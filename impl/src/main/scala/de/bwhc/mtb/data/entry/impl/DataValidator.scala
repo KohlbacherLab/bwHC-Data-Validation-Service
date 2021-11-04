@@ -649,25 +649,11 @@ object DefaultDataValidator
 
   private val hgncCatalog = HGNCCatalog.getInstance.get
 
-/*
-  import scala.language.implicitConversions
-
-  implicit def toHGNCGeneSymbol(gene: Variant.Gene): HGNCGene.Symbol =
-    HGNCGene.Symbol(gene.value)
-
-  private def validGeneSymbol(
-    location: => Location
-  ): DataQualityValidator[Variant.Gene] = 
-    symbol => 
-      hgncCatalog.geneWithSymbol(symbol) mustBe defined otherwise (
-        Error(s"Ungültiges Gen-Symbol ${symbol.value}") at location
-      ) map (_ => symbol)
-*/  
 
   private def validGeneId(
     location: => Location
 //  ): DataQualityValidator[Variant.Gene] = {
-  ): DataQualityValidator[Variant.GeneId] = {
+  ): DataQualityValidator[Variant.HgncId] = {
     id =>
       hgncCatalog.gene(HGNCGene.Id(id.value)) mustBe defined otherwise (
         Error(s"Ungültige Gen-Id ${id.value}") at location
@@ -728,21 +714,9 @@ object DefaultDataValidator
       (
         ifDefined (snv.geneId) ensureThat (_ is (validGeneId(location))),
 
-//        snv.gene.code must be (validGeneSymbol(location)),
-//        ifDefined (snv.gene.map(_.code)) ensureThat (_ is (validGeneId(location) or validGeneSymbol(location))),
         ifDefined (snv.gene.map(_.code)) ensureThat (_ is (validGeneSymbol(location))),
 
         snv.startEnd must be (validStartEnd(location)),
-
-/*
-        snv.dnaChange.code.value must be (meaningful) otherwise (
-          Warning(s"Unbrauchbarer Wert '${snv.dnaChange.code.value}' bei Pflicht-Feld DNA-Change") at location
-        ), 
-
-        snv.aminoAcidChange.code.value must be (meaningful) otherwise (
-          Warning(s"Unbrauchbarer Wert '${snv.aminoAcidChange.code.value}' bei Pflicht-Feld Amino-Acid-Change") at location
-        ), 
-*/
 
         ifDefined (snv.dnaChange.map(_.code.value)) ensureThat (
           v => v is (meaningful) otherwise (
@@ -884,7 +858,7 @@ object DefaultDataValidator
     studyInclusionRequestRefs: Seq[StudyInclusionRequest.Id]
   ): DataQualityValidator[CarePlan] = {
 
-    case cp @ CarePlan(CarePlan.Id(id),patient,diag,date,_,noTarget,recommendations,counsellingReq,rebiopsyRequests,studyInclusionReq) =>
+    case cp @ CarePlan(CarePlan.Id(id),patient,diag,date,_,noTarget,recommendations,counsellingReq,rebiopsyRequests,studyInclusionReqs) =>
 
       (
         patient must be (validReference[Patient.Id](Location("MTB-Beschluss",id,"Patient"))),
@@ -897,21 +871,21 @@ object DefaultDataValidator
 
         // Check that Recommendations are defined unless "noTarget" is declared
 
-       Ior.fromOptions(noTarget,recommendations.filterNot(_.isEmpty)) mustBe defined otherwise (
-         Error("Fehlende Angabe: Entweder 'kein Target' oder Therapie-Empfehlungen müssen aufgeführt sein") at Location("MTB-Beschluss",id,"Therapie-Empfehlungen")
-       ) andThen (
-         _.get match {
-           case Ior.Left(_) =>
-             noTarget.validNel
-
-           case Ior.Right(recs) =>
-             recs must be (validReferences[TherapyRecommendation.Id](Location("MTB-Beschluss",id,"Therapie-Empfehlungen")))
-
-           case Ior.Both(_,recs) =>
-             (Error("Widersprüchliche Angabe: 'Kein Target' und trotzdem Therapie-Empfehlungen vorhanden")
-               at Location("MTB-Beschluss",id,"Therapie-Empfehlungen")).invalidNel
-         }
-       ),
+        Ior.fromOptions(noTarget,recommendations.filterNot(_.isEmpty)) mustBe defined otherwise (
+          Error("Fehlende Angabe: Entweder 'kein Target' oder Therapie-Empfehlungen müssen aufgeführt sein") at Location("MTB-Beschluss",id,"Therapie-Empfehlungen")
+        ) andThen (
+          _.get match {
+            case Ior.Left(_) =>
+              noTarget.validNel
+ 
+            case Ior.Right(recs) =>
+              recs must be (validReferences[TherapyRecommendation.Id](Location("MTB-Beschluss",id,"Therapie-Empfehlungen")))
+ 
+            case Ior.Both(_,recs) =>
+              (Error("Widersprüchliche Angabe: 'Kein Target' und trotzdem Therapie-Empfehlungen vorhanden")
+                at Location("MTB-Beschluss",id,"Therapie-Empfehlungen")).invalidNel
+          }
+        ),
 
         counsellingReq
           .map(_ must be (validReference(counsellingRequestRefs)(Location("MTB-Beschluss",id,"Human-genetische Beratungsempfehlung"))))
@@ -921,9 +895,13 @@ object DefaultDataValidator
           .map(_ must be (validReferences[RebiopsyRequest.Id](Location("MTB-Beschluss",id,"Re-Biopsie-Empfehlungen"))))
           .getOrElse(List.empty[RebiopsyRequest.Id].validNel[Issue]),
 
-        studyInclusionReq
-          .map(_ must be (validReference(studyInclusionRequestRefs)(Location("MTB-Beschluss",id,"Studien-Einschluss-Empfehlung"))))
-          .getOrElse(None.validNel[Issue]),
+//        studyInclusionReqs
+//          .map(_ must be (validReference(studyInclusionRequestRefs)(Location("MTB-Beschluss",id,"Studien-Einschluss-Empfehlung"))))
+//          .getOrElse(None.validNel[Issue]),
+ 
+        studyInclusionReqs
+          .getOrElse(List.empty)
+          .validateEach(_ must be (validReference(studyInclusionRequestRefs)(Location("MTB-Beschluss",id,"Studien-Einschluss-Empfehlung"))))
  
       )
       .mapN { case _: Product => cp }

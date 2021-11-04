@@ -43,7 +43,6 @@ trait mappings
   implicit val medicationCatalog: MedicationCatalog
 
   implicit val hgncCatalog: HGNCCatalog[Id]  
-//  implicit val hgncCatalog: HGNCCatalog  
 
 
 
@@ -310,7 +309,6 @@ trait mappings
 
   implicit val tumorCellContentToDisplay: TumorCellContent => TumorCellContentDisplay = {
     tc =>
-//      val valuePercent = tc.value * 100
       val valuePercent = (tc.value * 100).toInt
       val method       = ValueSet[TumorCellContent.Method.Value].displayOf(tc.method).get
 
@@ -337,7 +335,6 @@ trait mappings
 
   implicit val tmbToDisplay: TMB => TMBDisplay = {
     tmb => TMBDisplay(s"${tmb.value} mut/MBase")   
-//    tmb => TMBDisplay(s"${tmb.value.withDecimals(1)} mut/MBase")   
   }
 
 
@@ -356,7 +353,6 @@ trait mappings
 
   implicit def geneCodingToDisplay(
     implicit hgnc: HGNCCatalog[cats.Id]
-//    implicit hgnc: HGNCCatalog
   ): Coding[Gene] => GeneDisplay = {
     c =>
 /*
@@ -523,7 +519,6 @@ trait mappings
       val repr = v match {
         case snv: SimpleVariant =>
           s"SNV ${snv.gene.map(_.code.value).getOrElse("Gene undefined")} ${snv.dnaChange.map(_.code.value).getOrElse("cDNA change undefined")}"
-//          s"SNV ${snv.gene.code.value} ${snv.dnaChange.code.value}"
       
         case cnv: CNV => {
           val genes =
@@ -552,7 +547,6 @@ trait mappings
 
   implicit val recommendationToDisplay:
     ((
-//     (TherapyRecommendation,ICD10Display),
      (TherapyRecommendation,NotAvailable Or ICD10Display),
      List[Variant]
     )) => TherapyRecommendationView = {
@@ -579,13 +573,13 @@ trait mappings
      (CarePlan,
       Diagnosis,
       List[TherapyRecommendation],
-      Option[StudyInclusionRequest],
+      List[StudyInclusionRequest],
       Option[GeneticCounsellingRequest]
      ),
      List[Variant]
     )) => CarePlanView = {
 
-    case ((carePlan,diagnosis,recommendations,studyInclusionRequest,geneticCounsellingRequest),variants) =>
+    case ((carePlan,diagnosis,recommendations,studyInclusionRequests,geneticCounsellingRequest),variants) =>
 
       val icd10 = diagnosis.icd10.map(_.mapTo[ICD10Display]).toRight(NotAvailable)
 
@@ -596,7 +590,8 @@ trait mappings
         carePlan.issuedOn.toRight(NotAvailable),
         carePlan.description.toRight(NotAvailable),
         geneticCounsellingRequest.map(_.reason).toRight(No),
-        studyInclusionRequest.map(_.nctNumber).toRight(NotAvailable),
+//        studyInclusionRequest.map(_.nctNumber).toRight(NotAvailable),
+        studyInclusionRequests.map(_.nctNumber.value).reduceLeftOption(_ + ", " + _).map(NCTNumbersDisplay(_)).toRight(NotAvailable),
         carePlan.noTargetFinding.isDefined,
         recommendations.map(rec => ((rec,icd10),variants).mapTo[TherapyRecommendationView]),
         carePlan.rebiopsyRequests.toRight(NotAvailable),
@@ -624,8 +619,10 @@ trait mappings
               cp,
               diagnoses.find(_.id == cp.diagnosis).get,  // safe to call, because validation enforces referential integrity
               cp.recommendations.fold(List.empty[TherapyRecommendation])(recs => recommendations.filter(rec => recs contains rec.id)),
-              cp.studyInclusionRequest
-                .flatMap(reqId => studyInclusionReqs.find(_.id == reqId)),
+//              cp.studyInclusionRequest
+//                .flatMap(reqId => studyInclusionReqs.find(_.id == reqId)),
+              cp.studyInclusionRequests
+                .map(refs => studyInclusionReqs.filter(req => refs contains (req.id))).getOrElse(List.empty),
               cp.geneticCounsellingRequest
                 .flatMap(reqId => geneticCounsellingReqs.find(_.id == reqId))
              ),

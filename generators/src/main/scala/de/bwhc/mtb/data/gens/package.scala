@@ -650,7 +650,7 @@ package object gens
       rebiopsyReqRefs = rebiopsyReqs.map(_.id)
       studyInclusion <- genStudyInclusionRequestFor(diag)
     } yield (
-      CarePlan(id,patId,diag.id,Some(date),Some(descr),None,Some(recRefs),Some(counsellingReq.id),Some(rebiopsyReqRefs),Some(studyInclusion.id)),
+      CarePlan(id,patId,diag.id,Some(date),Some(descr),None,Some(recRefs),Some(counsellingReq.id),Some(rebiopsyReqRefs),Some(List(studyInclusion.id))),
       recs,
       Some(counsellingReq), 
       rebiopsyReqs,

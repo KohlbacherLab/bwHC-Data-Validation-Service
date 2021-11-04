@@ -35,6 +35,12 @@ object SupportingVariantDisplay
 }
 
 
+final case class NCTNumbersDisplay(value: String) extends AnyVal
+object NCTNumbersDisplay
+{
+  implicit val format = Json.valueWrites[NCTNumbersDisplay]
+}
+
 
 final case class TherapyRecommendationView
 (
@@ -62,7 +68,8 @@ final case class CarePlanView
   issuedOn: NotAvailable Or LocalDate,
   protocol: NotAvailable Or String,
   geneticCounsellingRecommendation: No Or String,
-  inclusionInStudyRecommendation: NotAvailable Or NCTNumber,
+  inclusionInStudyRecommendation: NotAvailable Or NCTNumbersDisplay,
+//  inclusionInStudyRecommendation: NotAvailable Or NCTNumber,
   targetAvailable: Yes Or No,
   therapyRecommendations: List[TherapyRecommendationView],
   rebiopsyRequests: NotAvailable Or List[RebiopsyRequest.Id],
