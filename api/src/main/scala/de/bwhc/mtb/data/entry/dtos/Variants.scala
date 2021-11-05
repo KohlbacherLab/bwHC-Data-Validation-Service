@@ -166,7 +166,7 @@ final case class CNV
   relativeCopyNumber: Double,
   cnA: Option[Double],
   cnB: Option[Double],
-//  reportedAffectedGenesId: Option[List[Coding[GeneId]]],
+//  reportedAffectedGeneIds: Option[List[HgncId]],
   reportedAffectedGenes: Option[List[Coding[Gene]]],
   reportedFocality: Option[String],
   `type`: CNV.Type.Value,

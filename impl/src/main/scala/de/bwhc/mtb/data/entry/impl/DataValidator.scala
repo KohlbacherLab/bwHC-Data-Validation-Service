@@ -656,7 +656,7 @@ object DefaultDataValidator
   ): DataQualityValidator[Variant.HgncId] = {
     id =>
       hgncCatalog.gene(HGNCGene.Id(id.value)) mustBe defined otherwise (
-        Error(s"Ungültige Gen-Id ${id.value}") at location
+        Error(s"Ungültige HGNC Gen-Id ${id.value}") at location
       ) map (_ => id)
 
   }
@@ -668,7 +668,7 @@ object DefaultDataValidator
       val genes = hgncCatalog.geneWithSymbol(symbol.value)
 
       genes.headOption mustBe defined otherwise (
-        Error(s"Ungültiges Gen-Symbol ${symbol.value}") at location
+        Error(s"Ungültiges HGNC Gen-Symbol ${symbol.value}") at location
       ) andThen (
         x => genes.size must equal (1) otherwise (
           Warning(s"Gen-Symbol ${symbol.value} mehrdeutig (${genes.map(_.symbol).reduceLeft(_ + ", " + _)}) und daher vermutlich veraltet") at location
@@ -823,21 +823,6 @@ object DefaultDataValidator
         )(
           _ validateEach
         )
-/*
-          cnvList =>
-            cnvList validateEach (
-             cnv => 
-               cnv.reportedAffectedGenes.fold(
-                 List.empty[Coding[Variant.Gene]].validNel[Issue]
-               )(
-                 genes =>
-                   (genes validateEach (
-                      gene => gene.code must be (validGeneSymbol(Location("Somatischer NGS-Befund",id,s"CNV ${cnv.id.value}"))) map (_ => gene)))
-                     .map(_ => genes)
-               ) map (_ => cnv)
-            ) map (_ => cnvList)
-        )
-*/
 
       )
       .mapN { case _: Product => ngs }

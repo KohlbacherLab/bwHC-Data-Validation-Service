@@ -13,7 +13,6 @@ import scala.concurrent.{
 import cats.data.NonEmptyList
 import cats.data.Validated._
 
-import cats.Apply
 import cats.instances.future._
 import cats.syntax.apply._
 import cats.syntax.either._
@@ -177,14 +176,20 @@ with Logging
 
                     case Errors() => {
                       log.warn(s"'ERROR'-level issues detected, storing DataQualityReport")
-                      Apply[Future].*>(db save mtbfile)(db save qcReport)
-                        .map(IssuesDetected(_).asRight[MTBDataService.Error])
+                      (
+                        db save mtbfile,
+                        db save qcReport
+                      )
+                      .mapN(
+                        (_,qc) => IssuesDetected(qc).asRight[MTBDataService.Error]
+                      )
                     }
 
                     case AtMostWarnings() => {
                       log.info(s"At most 'WARNING'-level issues detected. Forwarding data to QueryService, but storing DataQualityReport")
 
-                      (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
+//                      (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
+                      (queryService ! QueryServiceProxy.Command.Upload(postprocess(mtbfile)))
                         .andThen {
                           case Success(_) => {
                             db save mtbfile
@@ -246,13 +251,59 @@ with Logging
     implicit ec: ExecutionContext
   ): Future[Either[MTBDataService.Error,MTBDataService.Response]] = {
 
-    (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
+//    (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
+    (queryService ! QueryServiceProxy.Command.Upload(postprocess(mtbfile)))
       .andThen {
         case Success(_) => db deleteAll mtbfile.patient.id
       }
       .map(_ => Imported(mtbfile).asRight[MTBDataService.Error])
 
   }
+
+
+  private def postprocess(mtbfile: MTBFile): MTBFile = {
+
+    mtbfile.ngsReports match {
+      case Some(reports) if (! reports.isEmpty) =>
+        mtbfile.copy(ngsReports = Some(reports.map(harmonizeGenes)))
+
+      case None => mtbfile
+    }
+
+  }
+
+  private def harmonizeGenes(ngsReport: SomaticNGSReport): SomaticNGSReport = {
+
+    log.info(s"Harmonizing gene IDs/symbols in NGSReport ${ngsReport.id.value}")
+
+    val harmonizedSnvs =
+      ngsReport.simpleVariants.map(snvs =>
+        snvs.map(snv =>
+          (snv.geneId,snv.gene) match {
+
+            case (Some(hgncId),_) =>
+              HGNCConversionOps.codingOf(hgncId) match {
+                case Some(coding) => snv.copy(gene = Some(coding))
+                case None         => snv
+              }
+
+            case (None,Some(coding)) =>
+              HGNCConversionOps.resolve(coding) match {
+                case Some((hgncId,hgncCoding)) => snv.copy(geneId = Some(hgncId), gene = Some(hgncCoding))
+                case None                      => snv
+              } 
+
+            case (None,None) => snv
+
+          }
+        )
+      )
+
+    ngsReport.copy(simpleVariants = harmonizedSnvs)
+
+  }
+
+
 
 
   override def patientsWithIncompleteData(
@@ -274,6 +325,7 @@ with Logging
  
     }
 
+
     log.info(s"Handling request for Patients with data quality issues")
 
     for {
@@ -286,18 +338,6 @@ with Logging
 
   }
 
-/*
-  override def patientsWithIncompleteData(
-    implicit ec: ExecutionContext
-  ): Future[Iterable[PatientDataInfo]] = {
-  
-    log.info(s"Handling request for Patients with data quality issues")
-    for {
-      pairs <- patientDataQCReportPairs
-      result = pairs.map(_.mapTo[PatientDataInfo])
-    } yield result  
-  }
-*/
 
   private def patientDataQCReportPairs(
     implicit ec: ExecutionContext
@@ -353,6 +393,7 @@ with Logging
     db.dataQcReportOf(patient)
 
   }
+
 
 
 }
