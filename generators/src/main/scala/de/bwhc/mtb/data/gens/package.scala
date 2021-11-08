@@ -238,10 +238,13 @@ package object gens
 
 
   implicit val genGeneCoding: Gen[Coding[Gene]] =
-//    Gen.oneOf(Genes.entries)
     Gen.oneOf(Genes.entries.unzip._2)
 
-  val geneIdsCodings =
+  implicit val genGeneId: Gen[HgncId] =
+    Gen.oneOf(Genes.entries.unzip._1)
+
+//  val geneIdsCodings =
+  implicit val geneIdsCoding: Gen[(HgncId,Coding[Gene])] =
     Gen.oneOf(Genes.entries)
    
 
@@ -299,7 +302,8 @@ package object gens
     for {
       chr       <- Gen.of[Chromosome]
 //      gene      <- Gen.of[Coding[Gene]]
-      geneIdCoding <- geneIdsCodings
+      geneIdCoding <- Gen.of[(HgncId,Coding[Gene])]
+      (hgncId,geneCoding) = geneIdCoding
       se        <- Gen.positiveLongs.map(StartEnd(_,None))
       refAllele <- Gen.oneOf(alleles)
       altAllele <- Gen.oneOf(alleles.filterNot(_ == refAllele))
@@ -313,8 +317,7 @@ package object gens
       interpr   <- Gen.of[Coding[Interpretation]]
       id        <- Gen.uuidStrings.map(u => s"SNV_$u").map(Variant.Id)
     } yield SimpleVariant(
-//      id,chr,Some(gene),se,refAllele,altAllele,Some(fnAnnot),Some(dnaChg),Some(aaChg),
-      id,chr,Some(geneIdCoding._1),Some(geneIdCoding._2),se,refAllele,altAllele,Some(fnAnnot),Some(dnaChg),Some(aaChg),
+      id,chr,Some(hgncId),Some(geneCoding),se,refAllele,altAllele,Some(fnAnnot),Some(dnaChg),Some(aaChg),
       readDpth,allelicFreq,Some(cosmicId),Some(dbSNPId),interpr
     )
 
@@ -327,16 +330,19 @@ package object gens
       relCN      <- Gen.doubles.map(_.withDecimals(2))
       cnA        <- Gen.doubles.map(_.withDecimals(2))
       cnB        <- Gen.doubles.map(_.withDecimals(2))
-      genes      <- Gen.list(Gen.intsBetween(2,5),Gen.of[Coding[Gene]])
+//      genes      <- Gen.list(Gen.intsBetween(2,5),Gen.of[Coding[Gene]])
+      genes      <- Gen.list(Gen.intsBetween(2,5),Gen.of[(HgncId,Coding[Gene])])
+      (hgncIds,codings) = genes.unzip
       focality   <- Gen.const("reported-focality...")
       typ        <- Gen.enum(CNV.Type)
-      loh        <- Gen.list(Gen.intsBetween(2,5),Gen.of[Coding[Gene]])
+//      loh        <- Gen.list(Gen.intsBetween(2,5),Gen.of[Coding[Gene]])
       id         =  Variant.Id(
-                      s"CNV_${genes.map(_.code.value).reduceLeft(_ + "_" + _)}_${typ.toString}"
+                      s"CNV_${codings.map(_.code.value).reduceLeft(_ + "_" + _)}_${typ.toString}"
                     ) 
     } yield CNV(
       id,chr,startRange,endRange,totalCN,relCN,Some(cnA),Some(cnB),
-      Some(genes),Some(focality),typ,Some(loh)
+      Some(hgncIds),Some(codings),Some(focality),typ,Some(hgncIds),Some(codings)
+//      Some(genes),Some(focality),typ,Some(loh)
     )
 
 

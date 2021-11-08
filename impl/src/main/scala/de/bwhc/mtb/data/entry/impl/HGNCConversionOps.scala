@@ -25,6 +25,40 @@ trait HGNCConversionOps
       )
 
 
+  final def resolve(coding: Coding[Variant.Gene]): Option[(Variant.HgncId,Coding[Variant.Gene])] = {
+
+    val symbol = coding.code.value   
+ 
+    val genes = hgnc.geneWithSymbol(symbol)
+
+    genes.find(_.symbol equalsIgnoreCase symbol)
+      .orElse(
+        Option(
+          genes.filter(_.aliasSymbols.exists(_ equalsIgnoreCase symbol))
+        )
+        .filter(_.size == 1)
+        .map(_.head)
+      )
+      .orElse(
+        Option(
+          genes.filter(_.previousSymbols.exists(_ equalsIgnoreCase symbol))
+        )
+        .filter(_.size == 1)
+        .map(_.head)
+      )
+      .map(   
+        gene => 
+          (
+            Variant.HgncId(gene.id.value),
+            Coding(
+              Variant.Gene(gene.symbol),
+              Some(gene.name)
+            )
+          )
+      )
+  }
+
+/*
   final def resolve(coding: Coding[Variant.Gene]): Option[(Variant.HgncId,Coding[Variant.Gene])] =
     hgnc.geneWithSymbol(coding.code.value) match {
 
@@ -44,7 +78,7 @@ trait HGNCConversionOps
       case _ => None
 
     }
-
+*/
 
 }
 object HGNCConversionOps extends HGNCConversionOps

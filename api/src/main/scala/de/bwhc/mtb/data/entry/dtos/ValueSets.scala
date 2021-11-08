@@ -280,7 +280,7 @@ object ValueSets
 
 
 
-  val all =
+  val allValueSets =
     (
       ValueSet[Gender.Value],
       ValueSet[Diagnosis.Status.Value],

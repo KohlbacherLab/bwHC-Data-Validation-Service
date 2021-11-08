@@ -188,8 +188,8 @@ with Logging
                     case AtMostWarnings() => {
                       log.info(s"At most 'WARNING'-level issues detected. Forwarding data to QueryService, but storing DataQualityReport")
 
-//                      (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
-                      (queryService ! QueryServiceProxy.Command.Upload(postprocess(mtbfile)))
+                      (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
+//                      (queryService ! QueryServiceProxy.Command.Upload(postprocess(mtbfile)))
                         .andThen {
                           case Success(_) => {
                             db save mtbfile
@@ -251,8 +251,8 @@ with Logging
     implicit ec: ExecutionContext
   ): Future[Either[MTBDataService.Error,MTBDataService.Response]] = {
 
-//    (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
-    (queryService ! QueryServiceProxy.Command.Upload(postprocess(mtbfile)))
+    (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
+//    (queryService ! QueryServiceProxy.Command.Upload(postprocess(mtbfile)))
       .andThen {
         case Success(_) => db deleteAll mtbfile.patient.id
       }
@@ -272,12 +272,22 @@ with Logging
 
   }
 
+
   private def harmonizeGenes(ngsReport: SomaticNGSReport): SomaticNGSReport = {
+
+    import cats.data.Ior
+    import cats.syntax.traverse._
+    import cats.instances.option._
+    import cats.instances.list._
+
+    import scala.util.chaining._
 
     log.info(s"Harmonizing gene IDs/symbols in NGSReport ${ngsReport.id.value}")
 
     val harmonizedSnvs =
-      ngsReport.simpleVariants.map(snvs =>
+      for {
+        snvs <- ngsReport.simpleVariants
+      } yield {
         snvs.map(snv =>
           (snv.geneId,snv.gene) match {
 
@@ -297,9 +307,114 @@ with Logging
 
           }
         )
-      )
+      }
 
-    ngsReport.copy(simpleVariants = harmonizedSnvs)
+    val harmonizedCnvs =
+      for {
+        cnvs <- ngsReport.copyNumberVariants
+      } yield {
+        cnvs.map(
+          cnv =>
+           (cnv.reportedAffectedGeneIds,cnv.reportedAffectedGenes) match {
+             case (Some(hgncIds),_) => 
+               hgncIds.traverse(HGNCConversionOps.codingOf)
+                 .fold(cnv)(
+                    codings => cnv.copy(
+                      reportedAffectedGenes = Some(codings)
+                    )      
+                 )
+             case (None,Some(hgncCodings)) =>
+               hgncCodings.traverse(HGNCConversionOps.resolve)
+                 .map(_.unzip)
+                 .fold(cnv){
+                   case (ids,codings) => cnv.copy(
+                     reportedAffectedGeneIds = Some(ids),
+                     reportedAffectedGenes   = Some(codings)
+                   )      
+                 }
+             
+             case (None,None) => cnv
+          }
+        )
+        .map(
+          cnv =>
+            (cnv.copyNumberNeutralLoHIds,cnv.copyNumberNeutralLoH) match {
+              case (Some(hgncIds),_) => 
+                hgncIds.traverse(HGNCConversionOps.codingOf)
+                  .fold(cnv)(
+                     codings => cnv.copy(
+                       copyNumberNeutralLoH = Some(codings)
+                     )      
+                  )
+              case (None,Some(hgncCodings)) =>
+                hgncCodings.traverse(HGNCConversionOps.resolve)
+                  .map(_.unzip)
+                  .fold(cnv){
+                    case (ids,codings) => cnv.copy(
+                      copyNumberNeutralLoHIds = Some(ids),
+                      copyNumberNeutralLoH    = Some(codings)
+                    )      
+                  }
+              
+              case (None,None) => cnv
+            }
+        )
+      }
+
+/*
+    val harmonizedCnvs =
+      ngsReport.copyNumberVariants.map(cnvs =>
+        cnvs.map {
+          cnv =>
+            (
+            Ior.fromOptions(
+              cnv.reportedAffectedGeneIds,
+              cnv.reportedAffectedGenes
+            ) match {
+              case Some(ior) => {
+                val (hgncIds,genes) =
+                  ior.toEither.fold(
+                    ids =>
+                      ids.zip(ids.map(HGNCConversionOps.codingOf).filter(_.isDefined).map(_.get)).unzip,
+                    codings => 
+                      codings.map(HGNCConversionOps.resolve).filter(_.isDefined).map(_.get).unzip
+                  )
+                  cnv.copy(
+                    reportedAffectedGeneIds = Some(hgncIds),
+                    reportedAffectedGenes   = Some(genes)
+                  )
+              }
+              case None => cnv
+            }
+            ) pipe ( cnvpr =>
+              Ior.fromOptions(
+                cnv.copyNumberNeutralLoHIds,
+                cnv.copyNumberNeutralLoH
+              ) match {
+                case Some(ior) => {
+                  val (hgncIds,genes) =
+                    ior.toEither.fold(
+                      ids =>
+                        ids.zip(ids.map(HGNCConversionOps.codingOf).filter(_.isDefined).map(_.get)).unzip,
+                    
+                      codings => 
+                        codings.map(HGNCConversionOps.resolve).filter(_.isDefined).map(_.get).unzip
+                    )
+                    cnvpr.copy(
+                      reportedAffectedGeneIds = Some(hgncIds),
+                      reportedAffectedGenes   = Some(genes)
+                    )
+                }
+                case None => cnvpr
+              }
+            ) 
+        }
+      )
+*/
+    ngsReport.copy(
+      simpleVariants = harmonizedSnvs,
+      copyNumberVariants = harmonizedCnvs
+    )
 
   }
 

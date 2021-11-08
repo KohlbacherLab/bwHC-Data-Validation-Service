@@ -592,7 +592,8 @@ trait mappings
         geneticCounsellingRequest.map(_.reason).toRight(No),
 //        studyInclusionRequest.map(_.nctNumber).toRight(NotAvailable),
         studyInclusionRequests.map(_.nctNumber.value).reduceLeftOption(_ + ", " + _).map(NCTNumbersDisplay(_)).toRight(NotAvailable),
-        carePlan.noTargetFinding.isDefined,
+//        carePlan.noTargetFinding.map(_ => No).toRight(Yes), // NOTE: Target is available iff 'noTargetFinding' is NOT defined
+        !carePlan.noTargetFinding.isDefined,  // NOTE: Target is available iff 'noTargetFinding' is NOT defined
         recommendations.map(rec => ((rec,icd10),variants).mapTo[TherapyRecommendationView]),
         carePlan.rebiopsyRequests.toRight(NotAvailable),
       )

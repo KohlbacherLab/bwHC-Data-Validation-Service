@@ -663,6 +663,26 @@ object DefaultDataValidator
 
   private def validGeneSymbol(
     location: => Location
+  ): DataQualityValidator[Coding[Variant.Gene]] = {
+    coding =>
+
+      val symbol = coding.code.value
+
+      val genes = hgncCatalog.geneWithSymbol(symbol)
+
+      genes.headOption mustBe defined otherwise (
+        Error(s"Ungültiges HGNC Gen-Symbol $symbol") at location
+      ) andThen (
+        x => genes.size must equal (1) otherwise (
+          Warning(s"Gen-Symbol $symbol mehrdeutig (${genes.map(_.symbol).reduceLeft(_ + ", " + _)}) und daher vermutlich veraltet") at location
+        )
+      ) map (_ => coding)
+
+  }
+
+/*
+  private def validGeneSymbol(
+    location: => Location
   ): DataQualityValidator[Variant.Gene] = {
     symbol => 
       val genes = hgncCatalog.geneWithSymbol(symbol.value)
@@ -676,7 +696,7 @@ object DefaultDataValidator
       ) map (_ => symbol)
 
   }
-
+*/
 
   def validStartEnd(location: Location): DataQualityValidator[Variant.StartEnd] = {
     case startEnd @ Variant.StartEnd(start,end) =>
@@ -714,7 +734,7 @@ object DefaultDataValidator
       (
         ifDefined (snv.geneId) ensureThat (_ is (validGeneId(location))),
 
-        ifDefined (snv.gene.map(_.code)) ensureThat (_ is (validGeneSymbol(location))),
+        ifDefined (snv.gene) ensureThat (_ is (validGeneSymbol(location))),
 
         snv.startEnd must be (validStartEnd(location)),
 
@@ -737,6 +757,47 @@ object DefaultDataValidator
       .mapN { case _: Product => snv }
   }
 
+
+  implicit def cnvValidator(
+    implicit reportId: SomaticNGSReport.Id
+  ): DataQualityValidator[CNV] = {
+
+    cnv => 
+
+      val location = Location("Somatischer NGS-Befund",reportId.value,s"CNV ${cnv.id.value}")
+
+      (
+/*
+        ifDefined (cnv.reportedAffectedGeneIds)(
+          _ validateEach(_ must be (validGeneId(location)))
+        ),
+        ifDefined (cnv.reportedAffectedGenes)(
+          _ validateEach (_ must be (validGeneSymbol(location)))
+        ),
+
+        ifDefined (cnv.copyNumberNeutralLoHIds)(
+          _ validateEach(_ must be (validGeneId(location)))
+        ),
+
+        ifDefined (cnv.copyNumberNeutralLoH)(
+          _ validateEach (_ must be (validGeneSymbol(location)))
+        ),
+*/
+
+        ifDefined (cnv.reportedAffectedGeneIds) ensureThat (all(_) are (validGeneId(location))),
+
+        ifDefined (cnv.reportedAffectedGenes) ensureThat (all(_) are (validGeneSymbol(location))),
+
+        ifDefined (cnv.copyNumberNeutralLoHIds) ensureThat (all(_) are (validGeneId(location))),
+
+        ifDefined (cnv.copyNumberNeutralLoH) ensureThat (all(_) are (validGeneSymbol(location))),
+
+      )
+      .mapN { case _: Product => cnv }
+
+  }
+
+/*
   implicit def cnvValidator(
     implicit reportId: SomaticNGSReport.Id
   ): DataQualityValidator[CNV] = {
@@ -755,7 +816,7 @@ object DefaultDataValidator
       ) map (_ => cnv)
 
   }
-
+*/
 
   implicit def ngsReportValidator(
     implicit
@@ -872,6 +933,13 @@ object DefaultDataValidator
           }
         ),
 
+        ifDefined (counsellingReq) ensureThat (_ is (validReference(counsellingRequestRefs)(Location("MTB-Beschluss",id,"Human-genetische Beratungsempfehlung")))),
+ 
+        ifDefined (rebiopsyRequests) ensureThat (_ is (validReferences[RebiopsyRequest.Id](Location("MTB-Beschluss",id,"Re-Biopsie-Empfehlungen")))),
+
+        ifDefined (studyInclusionReqs) ensureThat (all(_) are (validReference(studyInclusionRequestRefs)(Location("MTB-Beschluss",id,"Studien-Einschluss-Empfehlung")))),
+
+/*
         counsellingReq
           .map(_ must be (validReference(counsellingRequestRefs)(Location("MTB-Beschluss",id,"Human-genetische Beratungsempfehlung"))))
           .getOrElse(None.validNel[Issue]),
@@ -880,14 +948,10 @@ object DefaultDataValidator
           .map(_ must be (validReferences[RebiopsyRequest.Id](Location("MTB-Beschluss",id,"Re-Biopsie-Empfehlungen"))))
           .getOrElse(List.empty[RebiopsyRequest.Id].validNel[Issue]),
 
-//        studyInclusionReqs
-//          .map(_ must be (validReference(studyInclusionRequestRefs)(Location("MTB-Beschluss",id,"Studien-Einschluss-Empfehlung"))))
-//          .getOrElse(None.validNel[Issue]),
- 
         studyInclusionReqs
           .getOrElse(List.empty)
           .validateEach(_ must be (validReference(studyInclusionRequestRefs)(Location("MTB-Beschluss",id,"Studien-Einschluss-Empfehlung"))))
- 
+*/ 
       )
       .mapN { case _: Product => cp }
 
