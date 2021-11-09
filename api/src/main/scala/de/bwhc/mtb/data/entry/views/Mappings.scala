@@ -338,7 +338,7 @@ trait mappings
   }
 
 
-  import Variant.{StartEnd, Gene}
+  import Variant.{StartEnd, Gene, HgncId}
 
   implicit val startEndToDisplay: StartEnd => StartEndDisplay = {
     case StartEnd(start,optEnd) =>
@@ -351,21 +351,10 @@ trait mappings
   }
 
 
-  implicit def geneCodingToDisplay(
+  implicit def geneSymbolCodingToDisplay(
     implicit hgnc: HGNCCatalog[cats.Id]
   ): Coding[Gene] => GeneDisplay = {
     c =>
-/*
-      hgncCatalog
-        .gene(HGNCGene.Id(c.code.value))
-        .orElse(
-          hgncCatalog.geneWithSymbol(c.code.value)
-            .headOption   //TODO: re-consider this use of first hit; maybe point out ambiguity??
-        )
-        .map(g => s"${g.symbol}: ${g.name}")
-        .map(GeneDisplay(_))
-        .getOrElse(GeneDisplay(s"${c.code.value}: ${c.display.getOrElse("-")}"))
-*/
       hgncCatalog
         .geneWithSymbol(c.code.value)
         .headOption   //TODO: re-consider this use of first hit; maybe point out ambiguity??
@@ -375,6 +364,17 @@ trait mappings
 
   }
 
+
+  implicit def geneIdCodingToDisplay(
+    implicit hgnc: HGNCCatalog[cats.Id]
+  ): Coding[HgncId] => GeneDisplay = {
+    c =>
+      hgncCatalog
+        .gene(HGNCGene.Id(c.code.value))
+        .map(g => s"${g.symbol}: ${g.name}")
+        .map(GeneDisplay(_))
+        .getOrElse(GeneDisplay(s"${c.code.value}: ${c.display.getOrElse("-")}"))
+  }
 
   implicit def genesToDisplay: List[Gene] => Option[GeneDisplay] = {
     genes =>
@@ -388,7 +388,10 @@ trait mappings
     sv =>
       SimpleVariantView(
         sv.chromosome,
-        sv.gene.map(_.mapTo[GeneDisplay]).toRight(NotAvailable),
+        sv.geneId.map(_.mapTo[GeneDisplay])
+          .orElse(sv.gene.map(_.mapTo[GeneDisplay]))
+          .toRight(NotAvailable),
+//        sv.gene.map(_.mapTo[GeneDisplay]).toRight(NotAvailable),
         sv.startEnd.mapTo[StartEndDisplay],
         sv.refAllele,
         sv.altAllele,
@@ -590,9 +593,7 @@ trait mappings
         carePlan.issuedOn.toRight(NotAvailable),
         carePlan.description.toRight(NotAvailable),
         geneticCounsellingRequest.map(_.reason).toRight(No),
-//        studyInclusionRequest.map(_.nctNumber).toRight(NotAvailable),
         studyInclusionRequests.map(_.nctNumber.value).reduceLeftOption(_ + ", " + _).map(NCTNumbersDisplay(_)).toRight(NotAvailable),
-//        carePlan.noTargetFinding.map(_ => No).toRight(Yes), // NOTE: Target is available iff 'noTargetFinding' is NOT defined
         !carePlan.noTargetFinding.isDefined,  // NOTE: Target is available iff 'noTargetFinding' is NOT defined
         recommendations.map(rec => ((rec,icd10),variants).mapTo[TherapyRecommendationView]),
         carePlan.rebiopsyRequests.toRight(NotAvailable),
@@ -815,7 +816,7 @@ trait mappings
               diagnoses.find(_.id == th.diagnosis),
               responses.find(_.therapy == th.id)).mapTo[GuidelineTherapyView]
           ) ++
-            mtbfile.lastGuidelineTherapy
+            mtbfile.lastGuidelineTherapies.getOrElse(List.empty)
               .map(
                 th =>
                   (th,

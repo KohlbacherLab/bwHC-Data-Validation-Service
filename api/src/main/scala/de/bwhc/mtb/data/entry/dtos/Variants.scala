@@ -41,8 +41,12 @@ object Variant
 
 
   case class HgncId(value: String) extends AnyVal
+  object HgncId
+  {
+    implicit val format = Json.valueFormat[HgncId]
+    implicit val system = Coding.System[HgncId]("HGNC")
+  }
 
-  implicit val formatHgncId = Json.valueFormat[HgncId]
 
 
   case class Gene(value: String) extends AnyVal
@@ -110,7 +114,7 @@ case class SimpleVariant
 (
   id: Variant.Id,
   chromosome: Chromosome,
-  geneId: Option[HgncId],
+  geneId: Option[Coding[HgncId]],
   gene: Option[Coding[Gene]],
   startEnd: StartEnd,
   refAllele: Allele,
@@ -166,11 +170,11 @@ final case class CNV
   relativeCopyNumber: Double,
   cnA: Option[Double],
   cnB: Option[Double],
-  reportedAffectedGeneIds: Option[List[HgncId]],
+  reportedAffectedGeneIds: Option[List[Coding[HgncId]]],
   reportedAffectedGenes: Option[List[Coding[Gene]]],
   reportedFocality: Option[String],
   `type`: CNV.Type.Value,
-  copyNumberNeutralLoHIds: Option[List[HgncId]],
+  copyNumberNeutralLoHIds: Option[List[Coding[HgncId]]],
   copyNumberNeutralLoH: Option[List[Coding[Gene]]],
 )
 extends Variant

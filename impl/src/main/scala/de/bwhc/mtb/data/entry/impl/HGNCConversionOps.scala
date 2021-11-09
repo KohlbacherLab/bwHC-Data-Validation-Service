@@ -11,21 +11,27 @@ trait HGNCConversionOps
 
   import cats.Id
 
+  import Variant._
+
+
   val hgnc: HGNCCatalog[Id]
 
 
-  final def codingOf(hgncId: Variant.HgncId): Option[Coding[Variant.Gene]] =
+  final def codingOf(hgncId: HgncId): Option[Coding[Gene]] =
     hgnc.gene(HGNCGene.Id(hgncId.value))
       .map(
         gene =>
           Coding(
-            Variant.Gene(gene.symbol),
+            Gene(gene.symbol),
             Some(gene.name)
           )
       )
 
+  final def codingOf(hgncId: Coding[HgncId]): Option[Coding[Gene]] =
+    codingOf(hgncId.code)
 
-  final def resolve(coding: Coding[Variant.Gene]): Option[(Variant.HgncId,Coding[Variant.Gene])] = {
+
+  final def resolve(coding: Coding[Gene]): Option[(Coding[HgncId],Coding[Gene])] = {
 
     val symbol = coding.code.value   
  
@@ -49,9 +55,12 @@ trait HGNCConversionOps
       .map(   
         gene => 
           (
-            Variant.HgncId(gene.id.value),
             Coding(
-              Variant.Gene(gene.symbol),
+              HgncId(gene.id.value),
+              None
+            ),
+            Coding(
+              Gene(gene.symbol),
               Some(gene.name)
             )
           )
@@ -59,7 +68,7 @@ trait HGNCConversionOps
   }
 
 /*
-  final def resolve(coding: Coding[Variant.Gene]): Option[(Variant.HgncId,Coding[Variant.Gene])] =
+  final def resolve(coding: Coding[Gene]): Option[(HgncId,Coding[Gene])] =
     hgnc.geneWithSymbol(coding.code.value) match {
 
       // Resolution only possible if the gene symbol is non-ambiguous,
@@ -67,9 +76,9 @@ trait HGNCConversionOps
       case gene :: Nil =>
         Some(
           (
-            Variant.HgncId(gene.id.value),
+            HgncId(gene.id.value),
             Coding(
-              Variant.Gene(gene.symbol),
+              Gene(gene.symbol),
               Some(gene.name)
             )
           )
@@ -96,17 +105,17 @@ trait HGNCConversionOps[F[_]]
 
 
   def codingOf(
-    hgncId: Variant.HgncId
+    hgncId: HgncId
   )(
     implicit
     hgnc: HGNCCatalog[F],
     F: Applicative[F]
-  ): F[Option[Coding[Variant.Gene]]] =
+  ): F[Option[Coding[Gene]]] =
     hgnc.gene(HGNCGene.Id(hgncId.value))
       .map(
         opt => opt.map( gene =>
           Coding(
-            Variant.Gene(gene.symbol),
+            Gene(gene.symbol),
             Some(gene.name)
           )
         )
@@ -114,12 +123,12 @@ trait HGNCConversionOps[F[_]]
 
 
   def resolve(
-    coding: Coding[Variant.Gene]
+    coding: Coding[Gene]
   )(
     implicit
     hgnc: HGNCCatalog[F],
     F: Applicative[F]
-  ): F[Option[(Variant.HgncId,Coding[Variant.Gene])]] = {
+  ): F[Option[(HgncId,Coding[Gene])]] = {
 
     hgnc.geneWithSymbol(coding.code.value).map {
 
@@ -128,9 +137,9 @@ trait HGNCConversionOps[F[_]]
       case gene :: Nil =>
         Some(
           (
-            Variant.HgncId(gene.id.value),
+            HgncId(gene.id.value),
             Coding(
-              Variant.Gene(gene.symbol),
+              Gene(gene.symbol),
               Some(gene.name)
             )
           )

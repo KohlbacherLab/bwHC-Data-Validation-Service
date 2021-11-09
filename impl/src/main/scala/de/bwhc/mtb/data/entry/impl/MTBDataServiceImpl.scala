@@ -151,12 +151,13 @@ with Logging
     cmd match {
 
       //-----------------------------------------------------------------------
-      case Upload(data) => {
+//      case Upload(data) => {
+      case Upload(mtbfile) => {
 
-        log.info(s"Handling MTBFile upload for Patient ${data.patient.id.value}")
+        log.info(s"Handling MTBFile upload for Patient ${mtbfile.patient.id.value}")
 
         //: Assign managingZPM to Patient
-        val mtbfile = data.copy(patient = data.patient.copy(managingZPM = Some(localSite)))       
+//        val mtbfile = data.copy(patient = data.patient.copy(managingZPM = Some(localSite)))       
 
         val result =
           for {
@@ -177,7 +178,8 @@ with Logging
                     case Errors() => {
                       log.warn(s"'ERROR'-level issues detected, storing DataQualityReport")
                       (
-                        db save mtbfile,
+//                        db save mtbfile,
+                        db save postprocess(mtbfile),
                         db save qcReport
                       )
                       .mapN(
@@ -188,11 +190,13 @@ with Logging
                     case AtMostWarnings() => {
                       log.info(s"At most 'WARNING'-level issues detected. Forwarding data to QueryService, but storing DataQualityReport")
 
-                      (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
-//                      (queryService ! QueryServiceProxy.Command.Upload(postprocess(mtbfile)))
+                      val mtbfilePr = postprocess(mtbfile)
+
+//                      (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
+                      (queryService ! QueryServiceProxy.Command.Upload(mtbfilePr))
                         .andThen {
                           case Success(_) => {
-                            db save mtbfile
+                            db save mtbfilePr
                             db save qcReport
                           }
                         }
@@ -251,8 +255,8 @@ with Logging
     implicit ec: ExecutionContext
   ): Future[Either[MTBDataService.Error,MTBDataService.Response]] = {
 
-    (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
-//    (queryService ! QueryServiceProxy.Command.Upload(postprocess(mtbfile)))
+//    (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
+    (queryService ! QueryServiceProxy.Command.Upload(postprocess(mtbfile)))
       .andThen {
         case Success(_) => db deleteAll mtbfile.patient.id
       }
@@ -261,156 +265,51 @@ with Logging
   }
 
 
+  import scala.util.chaining._
+
   private def postprocess(mtbfile: MTBFile): MTBFile = {
-
-    mtbfile.ngsReports match {
-      case Some(reports) if (! reports.isEmpty) =>
-        mtbfile.copy(ngsReports = Some(reports.map(harmonizeGenes)))
-
-      case None => mtbfile
-    }
-
+    mtbfile
+      .pipe(assignSite)
+      .pipe(harmonizeNGSReports)
   }
 
 
-  private def harmonizeGenes(ngsReport: SomaticNGSReport): SomaticNGSReport = {
+  private def assignSite(mtbfile: MTBFile): MTBFile =
+   mtbfile.copy(
+     patient = mtbfile.patient.copy(managingZPM = Some(localSite))
+   )
 
-    import cats.data.Ior
-    import cats.syntax.traverse._
-    import cats.instances.option._
-    import cats.instances.list._
 
-    import scala.util.chaining._
+  private def harmonizeNGSReports(mtbfile: MTBFile): MTBFile = {
 
-    log.info(s"Harmonizing gene IDs/symbols in NGSReport ${ngsReport.id.value}")
+    mtbfile.ngsReports match {
+      case Some(reports) if (!reports.isEmpty) =>
+        mtbfile.copy(ngsReports = Some(reports.map(harmonize)))
 
-    val harmonizedSnvs =
-      for {
-        snvs <- ngsReport.simpleVariants
-      } yield {
-        snvs.map(snv =>
-          (snv.geneId,snv.gene) match {
-
-            case (Some(hgncId),_) =>
-              HGNCConversionOps.codingOf(hgncId) match {
-                case Some(coding) => snv.copy(gene = Some(coding))
-                case None         => snv
-              }
-
-            case (None,Some(coding)) =>
-              HGNCConversionOps.resolve(coding) match {
-                case Some((hgncId,hgncCoding)) => snv.copy(geneId = Some(hgncId), gene = Some(hgncCoding))
-                case None                      => snv
-              } 
-
-            case (None,None) => snv
-
-          }
-        )
-      }
-
-    val harmonizedCnvs =
-      for {
-        cnvs <- ngsReport.copyNumberVariants
-      } yield {
-        cnvs.map(
-          cnv =>
-           (cnv.reportedAffectedGeneIds,cnv.reportedAffectedGenes) match {
-             case (Some(hgncIds),_) => 
-               hgncIds.traverse(HGNCConversionOps.codingOf)
-                 .fold(cnv)(
-                    codings => cnv.copy(
-                      reportedAffectedGenes = Some(codings)
-                    )      
-                 )
-             case (None,Some(hgncCodings)) =>
-               hgncCodings.traverse(HGNCConversionOps.resolve)
-                 .map(_.unzip)
-                 .fold(cnv){
-                   case (ids,codings) => cnv.copy(
-                     reportedAffectedGeneIds = Some(ids),
-                     reportedAffectedGenes   = Some(codings)
-                   )      
-                 }
-             
-             case (None,None) => cnv
-          }
-        )
-        .map(
-          cnv =>
-            (cnv.copyNumberNeutralLoHIds,cnv.copyNumberNeutralLoH) match {
-              case (Some(hgncIds),_) => 
-                hgncIds.traverse(HGNCConversionOps.codingOf)
-                  .fold(cnv)(
-                     codings => cnv.copy(
-                       copyNumberNeutralLoH = Some(codings)
-                     )      
-                  )
-              case (None,Some(hgncCodings)) =>
-                hgncCodings.traverse(HGNCConversionOps.resolve)
-                  .map(_.unzip)
-                  .fold(cnv){
-                    case (ids,codings) => cnv.copy(
-                      copyNumberNeutralLoHIds = Some(ids),
-                      copyNumberNeutralLoH    = Some(codings)
-                    )      
-                  }
-              
-              case (None,None) => cnv
-            }
-        )
-      }
+      case _ => mtbfile
+    }
 
 /*
-    val harmonizedCnvs =
-      ngsReport.copyNumberVariants.map(cnvs =>
-        cnvs.map {
-          cnv =>
-            (
-            Ior.fromOptions(
-              cnv.reportedAffectedGeneIds,
-              cnv.reportedAffectedGenes
-            ) match {
-              case Some(ior) => {
-                val (hgncIds,genes) =
-                  ior.toEither.fold(
-                    ids =>
-                      ids.zip(ids.map(HGNCConversionOps.codingOf).filter(_.isDefined).map(_.get)).unzip,
-                    codings => 
-                      codings.map(HGNCConversionOps.resolve).filter(_.isDefined).map(_.get).unzip
-                  )
-                  cnv.copy(
-                    reportedAffectedGeneIds = Some(hgncIds),
-                    reportedAffectedGenes   = Some(genes)
-                  )
-              }
-              case None => cnv
-            }
-            ) pipe ( cnvpr =>
-              Ior.fromOptions(
-                cnv.copyNumberNeutralLoHIds,
-                cnv.copyNumberNeutralLoH
-              ) match {
-                case Some(ior) => {
-                  val (hgncIds,genes) =
-                    ior.toEither.fold(
-                      ids =>
-                        ids.zip(ids.map(HGNCConversionOps.codingOf).filter(_.isDefined).map(_.get)).unzip,
-                    
-                      codings => 
-                        codings.map(HGNCConversionOps.resolve).filter(_.isDefined).map(_.get).unzip
-                    )
-                    cnvpr.copy(
-                      reportedAffectedGeneIds = Some(hgncIds),
-                      reportedAffectedGenes   = Some(genes)
-                    )
-                }
-                case None => cnvpr
-              }
-            ) 
-        }
+    mtbfile.ngsReports.map(_.map(harmonize))
+      .fold(
+        mtbfile
+      )(
+        reports => mtbfile.copy(ngsReports = reports)
       )
 */
+  }
+
+
+  private def harmonize(ngsReport: SomaticNGSReport): SomaticNGSReport = {
+
+    log.debug(s"Harmonizing gene IDs/symbols in NGSReport ${ngsReport.id.value}")
+
+    val harmonizedSnvs =
+      ngsReport.simpleVariants.map(harmonizeSNVs)
+
+    val harmonizedCnvs =
+      ngsReport.copyNumberVariants.map(harmonizeCNVs)
+
     ngsReport.copy(
       simpleVariants = harmonizedSnvs,
       copyNumberVariants = harmonizedCnvs
@@ -418,6 +317,94 @@ with Logging
 
   }
 
+
+  private def harmonizeSNVs(snvs: List[SimpleVariant]): List[SimpleVariant] = {
+
+    snvs.map(snv =>
+      (snv.geneId,snv.gene) match {
+
+        case (Some(hgncId),_) =>
+          HGNCConversionOps.codingOf(hgncId) match {
+            case Some(coding) => snv.copy(gene = Some(coding))
+            case None         => snv tap (_ => log warn s"Failure resolving HGNC Coding of ${hgncId.code.value}")
+          }
+
+        case (_,Some(coding)) =>
+          HGNCConversionOps.resolve(coding) match {
+            case Some((hgncId,hgncCoding)) => snv.copy(geneId = Some(hgncId), gene = Some(hgncCoding))
+            case None                      => snv tap (_ => log.warn(s"Failure resolving HGNC ID of ${coding.code.value}"))
+          } 
+
+        case (None,None) => snv
+
+      }
+    )
+  }
+
+
+  private def harmonizeCNVs(cnvs: List[CNV]): List[CNV] = {
+
+    import cats.syntax.traverse._
+    import cats.instances.option._
+    import cats.instances.list._
+
+    // Harmonize "reportedAffectedGenes"...
+    cnvs.map(
+      cnv =>
+       (cnv.reportedAffectedGeneIds,cnv.reportedAffectedGenes) match {
+         case (Some(hgncIds),_) => 
+           hgncIds.traverse(HGNCConversionOps.codingOf)
+             .fold(
+               cnv tap (_ => log.warn(s"Failure resolving HGNC Codings on CNV ${cnv.id.value}"))
+             )(
+               codings => cnv.copy(
+                 reportedAffectedGenes = Some(codings)
+               )      
+             )
+         case (_,Some(hgncCodings)) =>
+           hgncCodings.traverse(HGNCConversionOps.resolve)
+             .map(_.unzip)
+             .fold(
+               cnv tap (_ => log.warn(s"Failure resolving HGNC IDs on CNV ${cnv.id.value}"))
+             ){
+               case (ids,codings) => cnv.copy(
+                 reportedAffectedGeneIds = Some(ids),
+                 reportedAffectedGenes   = Some(codings)
+               )      
+             }
+         
+         case (None,None) => cnv
+      }
+    )
+    // ... then "copyNumberNeutralLoH"
+    .map(
+      cnv =>
+        (cnv.copyNumberNeutralLoHIds,cnv.copyNumberNeutralLoH) match {
+          case (Some(hgncIds),_) => 
+            hgncIds.traverse(HGNCConversionOps.codingOf)
+              .fold(
+                cnv tap (_ => log.warn(s"Failure resolving HGNC Codings on CNV ${cnv.id.value}"))
+              )(
+                codings => cnv.copy(
+                  copyNumberNeutralLoH = Some(codings)
+                )      
+              )
+          case (None,Some(hgncCodings)) =>
+            hgncCodings.traverse(HGNCConversionOps.resolve)
+              .map(_.unzip)
+              .fold(
+                cnv tap (_ => log.warn(s"Failure resolving HGNC IDs on CNV ${cnv.id.value}"))
+              ){
+                case (ids,codings) => cnv.copy(
+                  copyNumberNeutralLoHIds = Some(ids),
+                  copyNumberNeutralLoH    = Some(codings)
+                )      
+              }
+          
+          case (None,None) => cnv
+        }
+    )
+  }
 
 
 

@@ -14,7 +14,7 @@ final case class MTBFile
   diagnoses: Option[List[Diagnosis]],
   familyMemberDiagnoses: Option[List[FamilyMemberDiagnosis]],
   previousGuidelineTherapies: Option[List[PreviousGuidelineTherapy]],
-  lastGuidelineTherapy: Option[LastGuidelineTherapy],
+  lastGuidelineTherapies: Option[List[LastGuidelineTherapy]],
   ecogStatus: Option[List[ECOGStatus]],
   specimens: Option[List[Specimen]],
   molecularPathologyFindings: Option[List[MolecularPathologyFinding]],

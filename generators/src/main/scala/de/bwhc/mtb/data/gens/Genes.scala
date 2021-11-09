@@ -11,7 +11,8 @@ import de.bwhc.mtb.data.entry.dtos.{
 object Genes
 {
 
-  val entries: Seq[(Variant.HgncId,Coding[Variant.Gene])] =
+//  val entries: Seq[(Variant.HgncId,Coding[Variant.Gene])] =
+  val entries: Seq[(Coding[Variant.HgncId],Coding[Variant.Gene])] =
 //  val entries: Seq[Coding[Variant.Gene]] =
     Seq(
       ("HGNC:37133","A1BG-AS1","A1BG antisense RNA 1"),
@@ -117,7 +118,7 @@ object Genes
     )
     .map {
 //      case (id,sym,name) => Coding[Variant.Gene](Variant.Gene(id),Some(name))
-      case (id,sym,name) => (Variant.HgncId(id) -> Coding[Variant.Gene](Variant.Gene(sym),Some(name)))
+      case (id,sym,name) => (Coding(Variant.HgncId(id),None) -> Coding(Variant.Gene(sym),Some(name)))
     }
 
 
