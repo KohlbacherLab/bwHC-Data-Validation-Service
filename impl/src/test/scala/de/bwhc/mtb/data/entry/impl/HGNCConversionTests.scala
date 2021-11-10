@@ -45,9 +45,7 @@ class HGNCConversionTests extends AnyFlatSpec
 
           val alias = gene.aliasSymbols.head
 
-          HGNCConversionOps.resolve(
-            Coding(GeneSymbol(alias),None)
-          ) match {
+          HGNCConversionOps.resolve(GeneSymbol(alias)) match {
 
             case Some(idCoding -> symbolCoding) => 
               idCoding.code.value == gene.id.value &&
@@ -74,9 +72,7 @@ class HGNCConversionTests extends AnyFlatSpec
 
           val previous = gene.previousSymbols.head
 
-          HGNCConversionOps.resolve(
-            Coding(GeneSymbol(previous),None)
-          ) match {
+          HGNCConversionOps.resolve(GeneSymbol(previous)) match {
 
             case Some(idCoding -> symbolCoding) =>
               idCoding.code.value == gene.id.value &&

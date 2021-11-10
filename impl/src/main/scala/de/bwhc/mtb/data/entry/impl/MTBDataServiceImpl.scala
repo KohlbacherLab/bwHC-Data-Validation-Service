@@ -330,7 +330,8 @@ with Logging
           }
 
         case (_,Some(coding)) =>
-          HGNCConversionOps.resolve(coding) match {
+//          HGNCConversionOps.resolve(coding) match {
+          HGNCConversionOps.resolve(coding.code) match {
             case Some((hgncId,hgncCoding)) => snv.copy(geneId = Some(hgncId), gene = Some(hgncCoding))
             case None                      => snv tap (_ => log.warn(s"Failure resolving HGNC ID of ${coding.code.value}"))
           } 
@@ -362,7 +363,8 @@ with Logging
                )      
              )
          case (_,Some(hgncCodings)) =>
-           hgncCodings.traverse(HGNCConversionOps.resolve)
+//           hgncCodings.traverse(HGNCConversionOps.resolve)
+           hgncCodings.traverse(c => HGNCConversionOps.resolve(c.code))
              .map(_.unzip)
              .fold(
                cnv tap (_ => log.warn(s"Failure resolving HGNC IDs on CNV ${cnv.id.value}"))
@@ -390,7 +392,8 @@ with Logging
                 )      
               )
           case (None,Some(hgncCodings)) =>
-            hgncCodings.traverse(HGNCConversionOps.resolve)
+//            hgncCodings.traverse(HGNCConversionOps.resolve)
+            hgncCodings.traverse(c => HGNCConversionOps.resolve(c.code))
               .map(_.unzip)
               .fold(
                 cnv tap (_ => log.warn(s"Failure resolving HGNC IDs on CNV ${cnv.id.value}"))

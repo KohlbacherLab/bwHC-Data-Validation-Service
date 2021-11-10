@@ -32,9 +32,13 @@ trait HGNCConversionOps
 
 
 
-  final def resolve(coding: Coding[GeneSymbol]): Option[(Coding[HgncId],Coding[GeneSymbol])] = {
 
-    val symbol = coding.code.value   
+  final def resolve(sym: GeneSymbol): Option[(Coding[HgncId],Coding[GeneSymbol])] = {
+//    resolve(Coding(symbol,None))
+
+//  final def resolve(coding: Coding[GeneSymbol]): Option[(Coding[HgncId],Coding[GeneSymbol])] = {
+
+    val symbol = sym.value   
  
     val genes = hgnc.geneWithSymbol(symbol)
 
@@ -77,9 +81,6 @@ trait HGNCConversionOps
           )
       )
   }
-
-  final def resolve(symbol: GeneSymbol): Option[(Coding[HgncId],Coding[GeneSymbol])] =
-    resolve(Coding(symbol,None))
 
 /*
 
