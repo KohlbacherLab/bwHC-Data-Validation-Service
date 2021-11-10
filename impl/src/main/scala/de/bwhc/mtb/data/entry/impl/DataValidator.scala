@@ -665,7 +665,7 @@ object DefaultDataValidator
 
   private def validGeneSymbol(
     location: => Location
-  ): DataQualityValidator[Coding[Variant.Gene]] = {
+  ): DataQualityValidator[Coding[Variant.GeneSymbol]] = {
     coding =>
 
       val symbol = coding.code.value

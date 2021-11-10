@@ -237,14 +237,14 @@ package object gens
   import SimpleVariant._
 
 
-  implicit val genGeneCoding: Gen[Coding[Gene]] =
+  implicit val genGeneSymbolCoding: Gen[Coding[GeneSymbol]] =
     Gen.oneOf(Genes.entries.unzip._2)
 
   implicit val genGeneId: Gen[Coding[HgncId]] =
     Gen.oneOf(Genes.entries.unzip._1)
 
 //  val geneIdsCodings =
-  implicit val geneIdsCoding: Gen[(Coding[HgncId],Coding[Gene])] =
+  implicit val geneIdsCoding: Gen[(Coding[HgncId],Coding[GeneSymbol])] =
     Gen.oneOf(Genes.entries)
    
 
@@ -302,7 +302,7 @@ package object gens
     for {
       chr       <- Gen.of[Chromosome]
 //      gene      <- Gen.of[Coding[Gene]]
-      geneIdCoding <- Gen.of[(Coding[HgncId],Coding[Gene])]
+      geneIdCoding <- Gen.of[(Coding[HgncId],Coding[GeneSymbol])]
       (hgncId,geneCoding) = geneIdCoding
       se        <- Gen.positiveLongs.map(StartEnd(_,None))
       refAllele <- Gen.oneOf(alleles)
@@ -331,7 +331,7 @@ package object gens
       cnA        <- Gen.doubles.map(_.withDecimals(2))
       cnB        <- Gen.doubles.map(_.withDecimals(2))
 //      genes      <- Gen.list(Gen.intsBetween(2,5),Gen.of[Coding[Gene]])
-      genes      <- Gen.list(Gen.intsBetween(2,5),Gen.of[(Coding[HgncId],Coding[Gene])])
+      genes      <- Gen.list(Gen.intsBetween(2,5),Gen.of[(Coding[HgncId],Coding[GeneSymbol])])
       (hgncIds,codings) = genes.unzip
       focality   <- Gen.const("reported-focality...")
       typ        <- Gen.enum(CNV.Type)
@@ -351,7 +351,7 @@ package object gens
     for {
       chr  <- Gen.of[Chromosome]
       pos  <- Gen.positiveLongs
-      gene <- Gen.of[Coding[Gene]]
+      gene <- Gen.of[Coding[GeneSymbol]]
     } yield DNAFusion.FunctionalDomain(chr,pos,gene)
 
 
@@ -368,7 +368,7 @@ package object gens
     import RNAFusion._
 
     for {
-      gene       <- Gen.of[Coding[Gene]]
+      gene       <- Gen.of[Coding[GeneSymbol]]
       transcript <- Gen.uuidStrings.map(TranscriptId(_))
       exon       <- Gen.uuidStrings.map(ExonId)
       pos        <- Gen.positiveLongs.map(TranscriptPosition)
@@ -393,7 +393,7 @@ package object gens
     for {
       entrezId      <- Gen.uuidStrings.map(RNASeq.EntrezId)
       ensemblId     <- Gen.uuidStrings.map(RNASeq.EnsemblId)
-      gene          <- Gen.of[Coding[Gene]]
+      gene          <- Gen.of[Coding[GeneSymbol]]
       transcript    <- Gen.uuidStrings.map(TranscriptId(_))
       fpkm          <- Gen.doubles.map(_.withDecimals(2))
       fromNGS       <- Gen.booleans

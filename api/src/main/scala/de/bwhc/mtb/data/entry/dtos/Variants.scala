@@ -49,11 +49,11 @@ object Variant
 
 
 
-  case class Gene(value: String) extends AnyVal
-  object Gene
+  case class GeneSymbol(value: String) extends AnyVal
+  object GeneSymbol
   {
-    implicit val format = Json.valueFormat[Gene]
-    implicit val system = Coding.System[Gene]("HGNC")
+    implicit val format = Json.valueFormat[GeneSymbol]
+    implicit val system = Coding.System[GeneSymbol]("HGNC")
   }
 
   case class CosmicId(value: String) extends AnyVal
@@ -115,7 +115,7 @@ case class SimpleVariant
   id: Variant.Id,
   chromosome: Chromosome,
   geneId: Option[Coding[HgncId]],
-  gene: Option[Coding[Gene]],
+  gene: Option[Coding[GeneSymbol]],
   startEnd: StartEnd,
   refAllele: Allele,
   altAllele: Allele,
@@ -171,11 +171,11 @@ final case class CNV
   cnA: Option[Double],
   cnB: Option[Double],
   reportedAffectedGeneIds: Option[List[Coding[HgncId]]],
-  reportedAffectedGenes: Option[List[Coding[Gene]]],
+  reportedAffectedGenes: Option[List[Coding[GeneSymbol]]],
   reportedFocality: Option[String],
   `type`: CNV.Type.Value,
   copyNumberNeutralLoHIds: Option[List[Coding[HgncId]]],
-  copyNumberNeutralLoH: Option[List[Coding[Gene]]],
+  copyNumberNeutralLoH: Option[List[Coding[GeneSymbol]]],
 )
 extends Variant
 
@@ -212,7 +212,7 @@ object DNAFusion
   (
     chromosome: Chromosome,
     position: Long,
-    gene: Coding[Gene]
+    gene: Coding[GeneSymbol]
   )
 
   implicit val formatDomain = Json.format[FunctionalDomain]
@@ -253,7 +253,7 @@ object RNAFusion
 
   final case class FunctionalDomain
   (
-    gene: Coding[Gene],
+    gene: Coding[GeneSymbol],
     transcriptId: TranscriptId,
     exon: ExonId,
     position: TranscriptPosition,
@@ -281,7 +281,7 @@ final case class RNASeq
   id: Variant.Id,
   entrezId: RNASeq.EntrezId,
   ensemblId: RNASeq.EnsemblId,
-  gene: Coding[Gene],
+  gene: Coding[GeneSymbol],
   transcriptId: TranscriptId,
   fragmentsPerKilobaseMillion: Double,
   fromNGS: Boolean,

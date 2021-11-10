@@ -119,7 +119,7 @@ final case class RNASeqView
 (
   entrezId: RNASeq.EntrezId,
   ensemblId: RNASeq.EnsemblId,
-  gene: Gene,
+  gene: GeneSymbol,
   transcriptId: TranscriptId,
   fragmentsPerKilobaseMillion: Double,
   fromNGS: Boolean,

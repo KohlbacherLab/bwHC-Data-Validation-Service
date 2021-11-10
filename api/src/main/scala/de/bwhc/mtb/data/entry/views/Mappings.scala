@@ -338,7 +338,7 @@ trait mappings
   }
 
 
-  import Variant.{StartEnd, Gene, HgncId}
+  import Variant.{StartEnd, GeneSymbol, HgncId}
 
   implicit val startEndToDisplay: StartEnd => StartEndDisplay = {
     case StartEnd(start,optEnd) =>
@@ -353,7 +353,7 @@ trait mappings
 
   implicit def geneSymbolCodingToDisplay(
     implicit hgnc: HGNCCatalog[cats.Id]
-  ): Coding[Gene] => GeneDisplay = {
+  ): Coding[GeneSymbol] => GeneDisplay = {
     c =>
       hgncCatalog
         .geneWithSymbol(c.code.value)
@@ -376,7 +376,7 @@ trait mappings
         .getOrElse(GeneDisplay(s"${c.code.value}: ${c.display.getOrElse("-")}"))
   }
 
-  implicit def genesToDisplay: List[Gene] => Option[GeneDisplay] = {
+  implicit def genesToDisplay: List[GeneSymbol] => Option[GeneDisplay] = {
     genes =>
       genes.map(_.value)
         .reduceLeftOption(_ + ", " + _)
