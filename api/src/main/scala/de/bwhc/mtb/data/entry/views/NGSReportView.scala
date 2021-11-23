@@ -17,7 +17,9 @@ import de.bwhc.mtb.data.entry.dtos.{
   CNV,
   Chromosome,
   RNAFusion,
-  RNASeq
+  RNASeq,
+  Gene,
+  Intergenic
 }
 import SomaticNGSReport._
 import Variant._
@@ -52,7 +54,6 @@ final case class SimpleVariantView
   startEnd: StartEndDisplay,
   refAllele: Allele,
   altAllele: Allele,
-  functionalAnnotation: NotAvailable Or FunctionalAnnotation,
   dnaChange: NoValue Or SimpleVariant.DNAChange,
   aminoAcidChange: NoValue Or SimpleVariant.AminoAcidChange,
   readDepth: AllelicReadDepth,
@@ -90,7 +91,7 @@ object CNVView
 final case class DNAFusionView
 (
   representation: String,
-  reportedNumReads: Int
+  reportedNumReads: NotAvailable Or Int
 )
 object DNAFusionView
 {
@@ -101,13 +102,17 @@ object DNAFusionView
 final case class RNAFusionView
 (
   representation: String,
-  position5pr: RNAFusion.TranscriptPosition,
-  strand5pr: RNAFusion.Strand.Value,
-  position3pr: RNAFusion.TranscriptPosition,
-  strand3pr: RNAFusion.Strand.Value,
+//  position5pr: RNAFusion.TranscriptPosition,
+//  strand5pr: RNAFusion.Strand.Value,
+//  position3pr: RNAFusion.TranscriptPosition,
+//  strand3pr: RNAFusion.Strand.Value,
+  position5pr: Intergenic Or RNAFusion.TranscriptPosition,
+  strand5pr: Intergenic Or RNAFusion.Strand.Value,
+  position3pr: Intergenic Or RNAFusion.TranscriptPosition,
+  strand3pr: Intergenic Or RNAFusion.Strand.Value,
   effect: NotAvailable Or RNAFusion.Effect,
   cosmicId: NotAvailable Or CosmicId,
-  reportedNumReads: Int
+  reportedNumReads: NotAvailable Or Int
 )
 object RNAFusionView
 {
@@ -117,9 +122,9 @@ object RNAFusionView
 
 final case class RNASeqView
 (
-  entrezId: RNASeq.EntrezId,
-  ensemblId: RNASeq.EnsemblId,
-  gene: GeneSymbol,
+  entrezId: Gene.EntrezId,
+  ensemblId: Gene.EnsemblId,
+  gene: NotAvailable Or Gene.Symbol,
   transcriptId: TranscriptId,
   fragmentsPerKilobaseMillion: Double,
   fromNGS: Boolean,
@@ -144,7 +149,7 @@ final case class NGSReportView
   issueDate: LocalDate,
   sequencingType: SomaticNGSReport.SequencingType,
   metadata: List[SomaticNGSReport.MetaData],
-  tumorCellContent: TumorCellContentDisplay,
+  tumorCellContent: NotAvailable Or TumorCellContentDisplay,
   brcaness: NotAvailable Or BRCAness,
   microSatelliteInstabilities: NotAvailable Or MSI,
   tumorMutationalBurden: TMBDisplay,

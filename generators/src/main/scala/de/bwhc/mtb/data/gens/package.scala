@@ -112,9 +112,6 @@ package object gens
   implicit val genWHOGrade: Gen[Coding[WHOGrade.Value]] =
     Gen.enum(WHOGrade).map(Coding(_,None,None))
 
-//  implicit val genMedication: Gen[Coding[Medication]] = 
-//    Gen.oneOf(Medications.entries.filter(_.code.value.startsWith("L")))
-
   implicit val genMedication: Gen[Medication.Coding] = 
     Gen.oneOf(Medications.entries.filter(_.code.value.startsWith("L")))
 
@@ -236,7 +233,7 @@ package object gens
   import Variant._
   import SimpleVariant._
 
-
+/*
   implicit val genGeneSymbolCoding: Gen[Coding[GeneSymbol]] =
     Gen.oneOf(Genes.entries.unzip._2)
 
@@ -246,7 +243,10 @@ package object gens
 //  val geneIdsCodings =
   implicit val geneIdsCoding: Gen[(Coding[HgncId],Coding[GeneSymbol])] =
     Gen.oneOf(Genes.entries)
+*/
    
+  implicit val genGeneCoding: Gen[Gene.Coding] =
+    Gen.oneOf(Genes.entries)
 
   implicit val genCosmicId: Gen[CosmicId] =
     Gen.uuidStrings.map(CosmicId(_))
@@ -275,11 +275,6 @@ package object gens
   implicit val genChromosome: Gen[Chromosome] =
     Gen.oneOf(Chromosome.instances)
 
-  implicit val genFuncAnnotation: Gen[Coding[FunctionalAnnotation]] =
-    Gen.const("functional-annotation")
-    .map(FunctionalAnnotation(_))
-    .map(Coding(_,None))
-
   implicit val genInterpretation: Gen[Coding[Interpretation]] =
     Gen.oneOf(
       "Activating",
@@ -301,13 +296,10 @@ package object gens
   implicit val genSimpleVariant: Gen[SimpleVariant] =
     for {
       chr       <- Gen.of[Chromosome]
-//      gene      <- Gen.of[Coding[Gene]]
-      geneIdCoding <- Gen.of[(Coding[HgncId],Coding[GeneSymbol])]
-      (hgncId,geneCoding) = geneIdCoding
+      gene      <- Gen.of[Gene.Coding]
       se        <- Gen.positiveLongs.map(StartEnd(_,None))
       refAllele <- Gen.oneOf(alleles)
       altAllele <- Gen.oneOf(alleles.filterNot(_ == refAllele))
-      fnAnnot   <- Gen.of[Coding[FunctionalAnnotation]]
       dnaChg    =  Coding(DNAChange(s"${refAllele.value}>${altAllele.value}"), None)
       aaChg     =  Coding(AminoAcidChange(s"Amino acid change code..."), None)
       readDpth  <- Gen.of[AllelicReadDepth]
@@ -317,7 +309,7 @@ package object gens
       interpr   <- Gen.of[Coding[Interpretation]]
       id        <- Gen.uuidStrings.map(u => s"SNV_$u").map(Variant.Id)
     } yield SimpleVariant(
-      id,chr,Some(hgncId),Some(geneCoding),se,refAllele,altAllele,Some(fnAnnot),Some(dnaChg),Some(aaChg),
+      id,chr,Some(gene),se,refAllele,altAllele,Some(dnaChg),Some(aaChg),
       readDpth,allelicFreq,Some(cosmicId),Some(dbSNPId),interpr
     )
 
@@ -330,70 +322,67 @@ package object gens
       relCN      <- Gen.doubles.map(_.withDecimals(2))
       cnA        <- Gen.doubles.map(_.withDecimals(2))
       cnB        <- Gen.doubles.map(_.withDecimals(2))
-//      genes      <- Gen.list(Gen.intsBetween(2,5),Gen.of[Coding[Gene]])
-      genes      <- Gen.list(Gen.intsBetween(2,5),Gen.of[(Coding[HgncId],Coding[GeneSymbol])])
-      (hgncIds,codings) = genes.unzip
-      focality   <- Gen.const("reported-focality...")
+      genes      <- Gen.list(Gen.intsBetween(2,5),Gen.of[Gene.Coding])
+      focality   =  "reported-focality..."
       typ        <- Gen.enum(CNV.Type)
-//      loh        <- Gen.list(Gen.intsBetween(2,5),Gen.of[Coding[Gene]])
+      lohGenes      <- Gen.list(Gen.intsBetween(2,5),Gen.of[Gene.Coding])
       id         =  Variant.Id(
-                      s"CNV_${codings.map(_.code.value).reduceLeft(_ + "_" + _)}_${typ.toString}"
+                      s"CNV_${genes.map(_.symbol.get.value).reduceLeft(_ + "_" + _)}_${typ.toString}"
                     ) 
     } yield CNV(
       id,chr,startRange,endRange,totalCN,relCN,Some(cnA),Some(cnB),
-      Some(hgncIds),Some(codings),Some(focality),typ,Some(hgncIds),Some(codings)
-//      Some(genes),Some(focality),typ,Some(loh)
+      Some(genes),Some(focality),typ,Some(lohGenes)
     )
 
 
 
-  implicit val genDNAFusionFnDomain: Gen[DNAFusion.FunctionalDomain] =
+  implicit val genDNAFusionPartner: Gen[DNAFusion.Partner] =
     for {
       chr  <- Gen.of[Chromosome]
       pos  <- Gen.positiveLongs
-      gene <- Gen.of[Coding[GeneSymbol]]
-    } yield DNAFusion.FunctionalDomain(chr,pos,gene)
+      gene <- Gen.of[Gene.Coding]
+    } yield DNAFusion.Partner(chr,pos,gene)
 
 
   implicit val genDNAFusion: Gen[DNAFusion] =
     for {
-      d5pr  <- Gen.of[DNAFusion.FunctionalDomain]
-      d3pr  <- Gen.of[DNAFusion.FunctionalDomain]
+      p5pr  <- Gen.of[DNAFusion.Partner]
+      p3pr  <- Gen.of[DNAFusion.Partner]
       reads <- Gen.intsBetween(20,50)
-      id    =  Variant.Id(s"DNAFusion_${d5pr.gene.code.value}_${d3pr.gene.code.value}") 
-    } yield DNAFusion(id,d5pr,d3pr,reads)
+      id    =  Variant.Id(s"DNAFusion_${p5pr.gene.symbol.get.value}_${p3pr.gene.symbol.get.value}") 
+    } yield DNAFusion(id,Some(p5pr),Some(p3pr),Some(reads))
 
 
-  implicit val genRNAFusionFnDomain: Gen[RNAFusion.FunctionalDomain] = {
+  implicit val genRNAFusionPartner: Gen[RNAFusion.Partner] = {
     import RNAFusion._
 
     for {
-      gene       <- Gen.of[Coding[GeneSymbol]]
+      gene       <- Gen.of[Gene.Coding]
       transcript <- Gen.uuidStrings.map(TranscriptId(_))
       exon       <- Gen.uuidStrings.map(ExonId)
       pos        <- Gen.positiveLongs.map(TranscriptPosition)
       strand     <- Gen.enum(Strand)
-    } yield RNAFusion.FunctionalDomain(gene,transcript,exon,pos,strand)
+    } yield RNAFusion.Partner(gene,transcript,exon,pos,strand)
 
   }
 
   implicit val genRNAFusion: Gen[RNAFusion] =
     for {
-      d5pr     <- Gen.of[RNAFusion.FunctionalDomain]
-      d3pr     <- Gen.of[RNAFusion.FunctionalDomain]
+      p5pr     <- Gen.of[RNAFusion.Partner]
+      p3pr     <- Gen.of[RNAFusion.Partner]
       effect   <- Gen.const("RNA Fusion effect...").map(RNAFusion.Effect)
       cosmicId <- Gen.of[CosmicId]
       reads    <- Gen.intsBetween(20,50)
-      id       =  Variant.Id(s"RNAFusion_${d5pr.gene.code.value}_${d3pr.gene.code.value}") 
-    } yield RNAFusion(id,d5pr,d3pr,Some(effect),Some(cosmicId),reads)
+      id       =  Variant.Id(s"RNAFusion_${p5pr.gene.symbol.get.value}_${p3pr.gene.symbol.get.value}") 
+    } yield RNAFusion(id,Some(p5pr),Some(p3pr),Some(effect),Some(cosmicId),Some(reads))
 
 
 
   implicit val genRNASeq: Gen[RNASeq] = 
     for {
-      entrezId      <- Gen.uuidStrings.map(RNASeq.EntrezId)
-      ensemblId     <- Gen.uuidStrings.map(RNASeq.EnsemblId)
-      gene          <- Gen.of[Coding[GeneSymbol]]
+      entrezId      <- Gen.uuidStrings.map(Gene.EntrezId)
+      ensemblId     <- Gen.uuidStrings.map(Gene.EnsemblId)
+      gene          <- Gen.of[Gene.Coding]
       transcript    <- Gen.uuidStrings.map(TranscriptId(_))
       fpkm          <- Gen.doubles.map(_.withDecimals(2))
       fromNGS       <- Gen.booleans
@@ -440,7 +429,7 @@ package object gens
 
     } yield SomaticNGSReport(
       id,patId,spId,date,
-      seqType,metadata,tc,
+      seqType,metadata,Some(tc),
       Some(brcaness),Some(msi),tmb,
       Some(simpleVariants),Some(cnvs),Some(dnaFusions),Some(rnaFusions),Some(rnaSeqs)
     )
@@ -501,14 +490,8 @@ package object gens
   implicit val genTherapyId: Gen[TherapyId] =
     Gen.uuidStrings.map(TherapyId(_))
 
-//  implicit val genMedications: Gen[List[Coding[Medication]]] =
-//    Gen.list(Gen.intsBetween(1,4), Gen.of[Coding[Medication]])
-
   implicit val genMedications: Gen[List[Medication.Coding]] =
     Gen.list(Gen.intsBetween(1,4), Gen.of[Medication.Coding])
-
-//  implicit val genMedicationNel: Gen[NonEmptyList[Coding[Medication]]] =
-//    Gen.nonEmptyList(Gen.intsBetween(1,4), Gen.of[Coding[Medication]])
 
 
 
@@ -522,7 +505,6 @@ package object gens
     for {
       id    <- Gen.of[TherapyId]
       thl   <- Gen.oneOf(TherapyLine.values)
-//      meds  <- Gen.of[List[Coding[Medication]]]
       meds       <- Gen.of[List[Medication.Coding]]
     } yield PreviousGuidelineTherapy(id,diag.patient,diag.id,Some(thl),Some(meds))
 
@@ -535,7 +517,6 @@ package object gens
       thl        <- Gen.oneOf(TherapyLine.values)
       start      =  diag.recordedOn.getOrElse(LocalDate.now)
       period     =  OpenEndPeriod(start,Some(start.plusWeeks(3)))
-//      meds       <- Gen.of[List[Coding[Medication]]]
       meds       <- Gen.of[List[Medication.Coding]]
       stopReason <- Gen.of[GuidelineTherapy.StopReason.Value].map(Coding(_,None))
     } yield LastGuidelineTherapy(id,diag.patient,diag.id,Some(thl),Some(period),Some(meds),Some(stopReason))
@@ -578,7 +559,6 @@ package object gens
     for {
       id    <- Gen.uuidStrings.map(TherapyRecommendation.Id)
       date  =  LocalDate.now
-//      meds  <- Gen.of[List[Coding[Medication]]]
       meds  <- Gen.of[List[Medication.Coding]]
       prio  <- Gen.enum(TherapyRecommendation.Priority)
       loe   <- Gen.of[LevelOfEvidence]

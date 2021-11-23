@@ -18,9 +18,8 @@ case class SomaticNGSReport
   specimen: Specimen.Id,
   issueDate: LocalDate,
   sequencingType: SomaticNGSReport.SequencingType,
-//  sequencingType: SomaticNGSReport.SequencingType.Value,
   metadata: List[SomaticNGSReport.MetaData],
-  tumorCellContent: TumorCellContent,
+  tumorCellContent: Option[TumorCellContent],
   brcaness: Option[BRCAness],
   msi: Option[MSI],
   tmb: TMB,
@@ -39,15 +38,6 @@ case class SomaticNGSReport
     rnaSeqs.getOrElse(List.empty[Variant])
 }
 
-/*
-object ReferenceGenome extends Enumeration
-{
-  val HG19,
-      HG38 = Value
-  
-  implicit val format = Json.formatEnum(this)
-}
-*/
 
 case class ReferenceGenome(value: String) extends AnyVal
 object ReferenceGenome 
@@ -61,16 +51,6 @@ object SomaticNGSReport
 
   case class Id(value: String) extends AnyVal
 
-/*
-  object SequencingType extends Enumeration
-  {
-    val TargetedNGS = Value("tNGS")
-    val WGS         = Value("WGS")
-    val WES         = Value("WES")
-
-    implicit val format = Json.formatEnum(this)
-  }
-*/
 
   case class SequencingType(value: String) extends AnyVal
   object SequencingType 
@@ -86,7 +66,6 @@ object SomaticNGSReport
     kitManufacturer: String,
     sequencer: String,
     referenceGenome: ReferenceGenome,
-//    referenceGenome: ReferenceGenome.Value,
     pipeline: Option[URI]
   )
 

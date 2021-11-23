@@ -289,14 +289,6 @@ with Logging
       case _ => mtbfile
     }
 
-/*
-    mtbfile.ngsReports.map(_.map(harmonize))
-      .fold(
-        mtbfile
-      )(
-        reports => mtbfile.copy(ngsReports = reports)
-      )
-*/
   }
 
 
@@ -320,28 +312,22 @@ with Logging
 
   private def harmonizeSNVs(snvs: List[SimpleVariant]): List[SimpleVariant] = {
 
-    snvs.map(snv =>
-      (snv.geneId,snv.gene) match {
+    snvs.map(
+      snv =>
+        snv.gene match {
 
-        case (Some(hgncId),_) =>
-          HGNCConversionOps.codingOf(hgncId) match {
-            case Some(coding) => snv.copy(gene = Some(coding))
-            case None         => snv tap (_ => log warn s"Failure resolving HGNC Coding of ${hgncId.code.value}")
-          }
+          case Some(coding) =>
+            HGNCOps.complete(coding)
+              .fold(
+                snv tap (_ => log warn s"Failure resolving HGNC Coding on SNV ${snv.id.value}")
+              )(
+                c => snv.copy(gene = Some(c))
+              )
 
-        case (_,Some(coding)) =>
-//          HGNCConversionOps.resolve(coding) match {
-          HGNCConversionOps.resolve(coding.code) match {
-            case Some((hgncId,hgncCoding)) => snv.copy(geneId = Some(hgncId), gene = Some(hgncCoding))
-            case None                      => snv tap (_ => log.warn(s"Failure resolving HGNC ID of ${coding.code.value}"))
-          } 
-
-        case (None,None) => snv
-
-      }
+          case None => snv
+        }
     )
   }
-
 
   private def harmonizeCNVs(cnvs: List[CNV]): List[CNV] = {
 
@@ -352,60 +338,34 @@ with Logging
     // Harmonize "reportedAffectedGenes"...
     cnvs.map(
       cnv =>
-       (cnv.reportedAffectedGeneIds,cnv.reportedAffectedGenes) match {
-         case (Some(hgncIds),_) => 
-           hgncIds.traverse(HGNCConversionOps.codingOf)
+        cnv.reportedAffectedGenes match {
+         case Some(codings) => 
+           codings.traverse(HGNCOps.complete)
              .fold(
                cnv tap (_ => log.warn(s"Failure resolving HGNC Codings on CNV ${cnv.id.value}"))
              )(
-               codings => cnv.copy(
-                 reportedAffectedGenes = Some(codings)
+               cs => cnv.copy(
+                 reportedAffectedGenes = Some(cs)
                )      
              )
-         case (_,Some(hgncCodings)) =>
-//           hgncCodings.traverse(HGNCConversionOps.resolve)
-           hgncCodings.traverse(c => HGNCConversionOps.resolve(c.code))
-             .map(_.unzip)
-             .fold(
-               cnv tap (_ => log.warn(s"Failure resolving HGNC IDs on CNV ${cnv.id.value}"))
-             ){
-               case (ids,codings) => cnv.copy(
-                 reportedAffectedGeneIds = Some(ids),
-                 reportedAffectedGenes   = Some(codings)
-               )      
-             }
-         
-         case (None,None) => cnv
+         case None => cnv
       }
     )
     // ... then "copyNumberNeutralLoH"
     .map(
       cnv =>
-        (cnv.copyNumberNeutralLoHIds,cnv.copyNumberNeutralLoH) match {
-          case (Some(hgncIds),_) => 
-            hgncIds.traverse(HGNCConversionOps.codingOf)
-              .fold(
-                cnv tap (_ => log.warn(s"Failure resolving HGNC Codings on CNV ${cnv.id.value}"))
-              )(
-                codings => cnv.copy(
-                  copyNumberNeutralLoH = Some(codings)
-                )      
-              )
-          case (None,Some(hgncCodings)) =>
-//            hgncCodings.traverse(HGNCConversionOps.resolve)
-            hgncCodings.traverse(c => HGNCConversionOps.resolve(c.code))
-              .map(_.unzip)
-              .fold(
-                cnv tap (_ => log.warn(s"Failure resolving HGNC IDs on CNV ${cnv.id.value}"))
-              ){
-                case (ids,codings) => cnv.copy(
-                  copyNumberNeutralLoHIds = Some(ids),
-                  copyNumberNeutralLoH    = Some(codings)
-                )      
-              }
-          
-          case (None,None) => cnv
-        }
+        cnv.copyNumberNeutralLoH match {
+         case Some(codings) => 
+           codings.traverse(HGNCOps.complete)
+             .fold(
+               cnv tap (_ => log.warn(s"Failure resolving HGNC Codings on CNV ${cnv.id.value}"))
+             )(
+               cs => cnv.copy(
+                 copyNumberNeutralLoH = Some(cs)
+               )      
+             )
+         case None => cnv
+      }
     )
   }
 

@@ -2,7 +2,11 @@ package de.bwhc.mtb.data.entry.dtos
 
 
 
-import play.api.libs.json.Json
+import play.api.libs.json.{
+  Json,JsError,JsString,JsSuccess,
+  Format,Reads,Writes
+}
+
 
 import cats.data.NonEmptyList
 
@@ -26,11 +30,42 @@ object Chromosome
 }
 
 
+object Gene
+{
+
+  case class HgncId(value: String) extends AnyVal
+
+  case class EntrezId(value: String) extends AnyVal
+  
+  case class EnsemblId(value: String) extends AnyVal
+
+  case class Symbol(value: String) extends AnyVal
+
+  implicit val formatHgncId       = Json.valueFormat[HgncId]
+  implicit val formatEntrezId     = Json.valueFormat[EntrezId]
+  implicit val formatEnsemblId    = Json.valueFormat[EnsemblId]
+  implicit val formatSymbol       = Json.valueFormat[Symbol]
+
+
+  final case class Coding
+  (
+    ensemblId: Option[EnsemblId],
+    hgncId: Option[HgncId],
+    symbol: Option[Symbol],
+    name: Option[String]
+  )
+  object Coding
+  {
+    implicit val format = Json.format[Coding]
+  }
+}
+
+
+
 sealed abstract class Variant
 {
   val id: Variant.Id
 }
-
 
 object Variant
 {
@@ -38,23 +73,6 @@ object Variant
   case class Id(value: String) extends AnyVal
 
   implicit val formatId = Json.valueFormat[Id]
-
-
-  case class HgncId(value: String) extends AnyVal
-  object HgncId
-  {
-    implicit val format = Json.valueFormat[HgncId]
-    implicit val system = Coding.System[HgncId]("HGNC")
-  }
-
-
-
-  case class GeneSymbol(value: String) extends AnyVal
-  object GeneSymbol
-  {
-    implicit val format = Json.valueFormat[GeneSymbol]
-    implicit val system = Coding.System[GeneSymbol]("HGNC")
-  }
 
   case class CosmicId(value: String) extends AnyVal
   object CosmicId
@@ -76,15 +94,6 @@ object Variant
     implicit val format = Json.valueFormat[Interpretation]
     implicit val system = Coding.System[Interpretation]("ClinVAR")
   }
-  
-
-  case class FunctionalAnnotation(value: String) extends AnyVal
-  object FunctionalAnnotation
-  {
-    implicit val format = Json.valueFormat[FunctionalAnnotation]
-    implicit val system = Coding.System[FunctionalAnnotation]("SequenceOntology")
-  }
-
 
   case class Allele(value: String) extends AnyVal
   implicit val formatAllele = Json.valueFormat[Allele]
@@ -114,12 +123,10 @@ case class SimpleVariant
 (
   id: Variant.Id,
   chromosome: Chromosome,
-  geneId: Option[Coding[HgncId]],
-  gene: Option[Coding[GeneSymbol]],
+  gene: Option[Gene.Coding],
   startEnd: StartEnd,
   refAllele: Allele,
   altAllele: Allele,
-  functionalAnnotation: Option[Coding[FunctionalAnnotation]],
   dnaChange: Option[Coding[SimpleVariant.DNAChange]],
   aminoAcidChange: Option[Coding[SimpleVariant.AminoAcidChange]],
   readDepth: AllelicReadDepth,
@@ -170,12 +177,10 @@ final case class CNV
   relativeCopyNumber: Double,
   cnA: Option[Double],
   cnB: Option[Double],
-  reportedAffectedGeneIds: Option[List[Coding[HgncId]]],
-  reportedAffectedGenes: Option[List[Coding[GeneSymbol]]],
+  reportedAffectedGenes: Option[List[Gene.Coding]],
   reportedFocality: Option[String],
   `type`: CNV.Type.Value,
-  copyNumberNeutralLoHIds: Option[List[Coding[HgncId]]],
-  copyNumberNeutralLoH: Option[List[Coding[GeneSymbol]]],
+  copyNumberNeutralLoH: Option[List[Gene.Coding]],
 )
 extends Variant
 
@@ -196,26 +201,44 @@ object CNV
 
 
 
+sealed trait Intergenic
+final case object Intergenic extends Intergenic
+{
+  override def toString = "intergenic"
+
+  implicit val format = 
+    Format[Intergenic](
+      Reads(
+        js => js.validate[String].flatMap {
+          case "intergenic" => JsSuccess(Intergenic)
+          case x            => JsError("Expected value 'intergenic'")
+        }
+      ),
+      Writes(ig => JsString("intergenic"))
+    )
+}
+
+
 final case class DNAFusion
 (
   id: Variant.Id,
-  domain5prime: DNAFusion.FunctionalDomain,
-  domain3prime: DNAFusion.FunctionalDomain,
-  reportedNumReads: Int
+  fusionPartner5prime: Option[DNAFusion.Partner],
+  fusionPartner3prime: Option[DNAFusion.Partner],
+  reportedNumReads: Option[Int]
 )
 extends Variant
 
 object DNAFusion
 {
 
-  final case class FunctionalDomain
+  final case class Partner
   (
     chromosome: Chromosome,
     position: Long,
-    gene: Coding[GeneSymbol]
+    gene: Gene.Coding
   )
 
-  implicit val formatDomain = Json.format[FunctionalDomain]
+  implicit val formatPartner = Json.format[Partner]
 
   implicit val format = Json.format[DNAFusion]
 }
@@ -225,11 +248,11 @@ object DNAFusion
 final case class RNAFusion
 (
   id: Variant.Id,
-  domain5prime: RNAFusion.FunctionalDomain,
-  domain3prime: RNAFusion.FunctionalDomain,
+  fusionPartner5prime: Option[RNAFusion.Partner],
+  fusionPartner3prime: Option[RNAFusion.Partner],
   effect: Option[RNAFusion.Effect],
   cosmicId: Option[CosmicId],
-  reportedNumReads: Int
+  reportedNumReads: Option[Int]
 )
 extends Variant
 
@@ -251,9 +274,9 @@ object RNAFusion
   }
 
 
-  final case class FunctionalDomain
+  final case class Partner
   (
-    gene: Coding[GeneSymbol],
+    gene: Gene.Coding,
     transcriptId: TranscriptId,
     exon: ExonId,
     position: TranscriptPosition,
@@ -268,7 +291,7 @@ object RNAFusion
   implicit val formatTranscriptPos = Json.valueFormat[TranscriptPosition]
   implicit val formatExonId        = Json.valueFormat[ExonId]
 
-  implicit val formatDomain = Json.format[FunctionalDomain]
+  implicit val formatPartner = Json.format[Partner]
 
   implicit val format = Json.format[RNAFusion]
 }
@@ -279,9 +302,9 @@ object RNAFusion
 final case class RNASeq
 (
   id: Variant.Id,
-  entrezId: RNASeq.EntrezId,
-  ensemblId: RNASeq.EnsemblId,
-  gene: Coding[GeneSymbol],
+  entrezId: Gene.EntrezId,
+  ensemblId: Gene.EnsemblId,
+  gene: Gene.Coding,
   transcriptId: TranscriptId,
   fragmentsPerKilobaseMillion: Double,
   fromNGS: Boolean,
@@ -295,14 +318,14 @@ extends Variant
 
 object RNASeq
 {
-
+/*
   case class EntrezId(value: String) extends AnyVal
   
   case class EnsemblId(value: String) extends AnyVal
 
   implicit val formatEntrezId       = Json.valueFormat[EntrezId]
   implicit val formatEnsemblId      = Json.valueFormat[EnsemblId]
-
+*/
   implicit val format = Json.format[RNASeq]
 }
 

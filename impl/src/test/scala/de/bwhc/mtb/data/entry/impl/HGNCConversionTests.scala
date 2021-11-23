@@ -16,7 +16,7 @@ class HGNCConversionTests extends AnyFlatSpec
 
   import Variant._
   
-
+/*
   "Resolving Codings by HGNC-IDs" must "have returned the expected approved gene symbols" in {
 
     assert(
@@ -88,6 +88,6 @@ class HGNCConversionTests extends AnyFlatSpec
 
     )
   }
-
+*/
 
 }

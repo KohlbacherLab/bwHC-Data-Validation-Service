@@ -25,7 +25,7 @@ import de.bwhc.mtb.data.entry.dtos._
 
 import de.bwhc.catalogs.icd
 import de.bwhc.catalogs.icd._
-import de.bwhc.catalogs.hgnc.{HGNCGene,HGNCCatalog}
+import de.bwhc.catalogs.hgnc.{HGNCGene,HGNCCatalog,EnsemblId,HGNCId}
 import de.bwhc.catalogs.med
 import de.bwhc.catalogs.med.MedicationCatalog
 
@@ -338,7 +338,8 @@ trait mappings
   }
 
 
-  import Variant.{StartEnd, GeneSymbol, HgncId}
+  import Variant.{StartEnd}
+  import Gene.{HgncId}
 
   implicit val startEndToDisplay: StartEnd => StartEndDisplay = {
     case StartEnd(start,optEnd) =>
@@ -351,51 +352,38 @@ trait mappings
   }
 
 
-  implicit def geneSymbolCodingToDisplay(
+  implicit def geneCodingToDisplay(
     implicit hgnc: HGNCCatalog[cats.Id]
-  ): Coding[GeneSymbol] => GeneDisplay = {
-    c =>
-      hgncCatalog
-        .geneWithSymbol(c.code.value)
-        .headOption   //TODO: re-consider this use of first hit; maybe point out ambiguity??
+  ): Gene.Coding => GeneDisplay = {
+    coding =>
+      coding.ensemblId
+        .map(_.value)
+        .flatMap(hgncCatalog.geneWithEnsemblId)
+        .orElse(
+          coding.hgncId
+            .flatMap(id => hgncCatalog.gene(HGNCId(id.value)))
+        )
         .map(g => s"${g.symbol}: ${g.name}")
         .map(GeneDisplay(_))
-        .getOrElse(GeneDisplay(s"${c.code.value}: ${c.display.getOrElse("-")}"))
+        .getOrElse(GeneDisplay("N/A"))
 
   }
 
-
-  implicit def geneIdCodingToDisplay(
-    implicit hgnc: HGNCCatalog[cats.Id]
-  ): Coding[HgncId] => GeneDisplay = {
-    c =>
-      hgncCatalog
-        .gene(HGNCGene.Id(c.code.value))
-        .map(g => s"${g.symbol}: ${g.name}")
-        .map(GeneDisplay(_))
-        .getOrElse(GeneDisplay(s"${c.code.value}: ${c.display.getOrElse("-")}"))
-  }
-
-  implicit def genesToDisplay: List[GeneSymbol] => Option[GeneDisplay] = {
+  implicit def geneCodingsToDisplay: List[Gene.Coding] => Option[GeneDisplay] = {
     genes =>
-      genes.map(_.value)
+      genes.map(_.symbol.map(_.value).getOrElse("N/A"))
         .reduceLeftOption(_ + ", " + _)
         .map(GeneDisplay(_))
   }
-
 
   implicit val simpleVariantToView: SimpleVariant => SimpleVariantView = {
     sv =>
       SimpleVariantView(
         sv.chromosome,
-        sv.geneId.map(_.mapTo[GeneDisplay])
-          .orElse(sv.gene.map(_.mapTo[GeneDisplay]))
-          .toRight(NotAvailable),
-//        sv.gene.map(_.mapTo[GeneDisplay]).toRight(NotAvailable),
+        sv.gene.map(_.mapTo[GeneDisplay]).toRight(NotAvailable),
         sv.startEnd.mapTo[StartEndDisplay],
         sv.refAllele,
         sv.altAllele,
-        sv.functionalAnnotation.map(_.code).toRight(NotAvailable),
         sv.dnaChange.map(_.code).toRight(Undefined),
         sv.aminoAcidChange.map(_.code).toRight(Undefined),
         sv.readDepth,
@@ -418,30 +406,28 @@ trait mappings
         cnv.cnA.toRight(NotAvailable),
         cnv.cnB.toRight(NotAvailable),
         cnv.reportedAffectedGenes
-          .map(_.map(_.code))
           .flatMap(_.mapTo[Option[GeneDisplay]])
           .toRight(NotAvailable),
         cnv.reportedFocality.toRight(NotAvailable),
         cnv.`type`,
         cnv.copyNumberNeutralLoH
-          .map(_.map(_.code))
           .flatMap(_.mapTo[Option[GeneDisplay]])
           .toRight(NotAvailable)
       )
   }
 
-
+/*
   implicit val dnaFusionToView: DNAFusion => DNAFusionView = {
     case DNAFusion(
       _,
-      DNAFusion.FunctionalDomain(chr5pr,pos5pr,gene5pr),
-      DNAFusion.FunctionalDomain(chr3pr,pos3pr,gene3pr),
+      DNAFusion.Partner(chr5pr,pos5pr,gene5pr),
+      DNAFusion.Partner(chr3pr,pos3pr,gene3pr),
       numReads
     ) =>
 
       DNAFusionView(
-        s"${gene5pr.code.value} :: ${gene3pr.code.value} (${chr5pr.value}:${pos5pr} :: ${chr3pr.value}:${pos3pr})",
-        numReads
+        s"${gene5pr.symbol.map(_.value).getOrElse("N/A")} :: ${gene3pr.symbol.map(_.value).getOrElse("N/A")} (${chr5pr.value}:${pos5pr} :: ${chr3pr.value}:${pos3pr})",
+        numReads.toRight(NotAvailable)
       )
 
   }
@@ -449,22 +435,72 @@ trait mappings
   implicit val rnaFusionToView: RNAFusion => RNAFusionView = {
     case RNAFusion(
       _,
-      RNAFusion.FunctionalDomain(gene5pr,transcript5pr,exon5pr,pos5pr,strand5pr),
-      RNAFusion.FunctionalDomain(gene3pr,transcript3pr,exon3pr,pos3pr,strand3pr),
+      RNAFusion.Partner(gene5pr,transcript5pr,exon5pr,pos5pr,strand5pr),
+      RNAFusion.Partner(gene3pr,transcript3pr,exon3pr,pos3pr,strand3pr),
       effect,
       cosmicId,
       numReads
     ) =>
 
     RNAFusionView(
-      s"${gene5pr.code.value} (${transcript5pr.value}: ${exon5pr.value}) :: ${gene3pr.code.value} (${transcript3pr.value}: ${exon3pr.value})",
+      s"${gene5pr.symbol.map(_.value).getOrElse("N/A")} (${transcript5pr.value}: ${exon5pr.value}) :: ${gene3pr.symbol.map(_.value).getOrElse("N/A")} (${transcript3pr.value}: ${exon3pr.value})",
       pos5pr,
       strand5pr,
       pos3pr,
       strand3pr,
       effect.toRight(NotAvailable),
       cosmicId.toRight(NotAvailable),
+      numReads.toRight(NotAvailable)
+    )
+  }
+*/
+
+  implicit val dnaFusionToView: DNAFusion => DNAFusionView = {
+    case DNAFusion(
+      _,
+      partner5pr,
+      partner3pr,
       numReads
+    ) =>
+
+      val symbol5pr = partner5pr.flatMap(_.gene.symbol.map(_.value)).getOrElse("intergenic")
+      val symbol3pr = partner3pr.flatMap(_.gene.symbol.map(_.value)).getOrElse("intergenic")
+      val chrPos5pr = partner5pr.map(p => s"${p.chromosome.value}:${p.position}")
+      val chrPos3pr = partner3pr.map(p => s"${p.chromosome.value}:${p.position}")
+
+      DNAFusionView(
+        s"$symbol5pr :: $symbol3pr ($chrPos5pr :: $chrPos3pr)",
+        numReads.toRight(NotAvailable)
+      )
+
+  }
+
+
+  implicit val rnaFusionToView: RNAFusion => RNAFusionView = {
+    case RNAFusion(
+      _,
+      partner5pr,
+      partner3pr,
+      effect,
+      cosmicId,
+      numReads
+    ) =>
+
+    val symbol5pr = partner5pr.flatMap(_.gene.symbol.map(_.value)).getOrElse("intergenic")
+    val symbol3pr = partner3pr.flatMap(_.gene.symbol.map(_.value)).getOrElse("intergenic")
+
+    val transcriptExon5pr = partner5pr.map(p => s"${p.transcriptId.value}: ${p.exon.value}")
+    val transcriptExon3pr = partner3pr.map(p => s"${p.transcriptId.value}: ${p.exon.value}")
+
+    RNAFusionView(
+      s"$symbol5pr ($transcriptExon5pr) :: $symbol3pr ($transcriptExon3pr)",
+      partner5pr.map(_.position).toRight(Intergenic),
+      partner5pr.map(_.strand).toRight(Intergenic),
+      partner3pr.map(_.position).toRight(Intergenic),
+      partner3pr.map(_.strand).toRight(Intergenic),
+      effect.toRight(NotAvailable),
+      cosmicId.toRight(NotAvailable),
+      numReads.toRight(NotAvailable)
     )
   }
 
@@ -475,7 +511,7 @@ trait mappings
       RNASeqView(
         rnaSeq.entrezId,
         rnaSeq.ensemblId,
-        rnaSeq.gene.code,
+        rnaSeq.gene.symbol.toRight(NotAvailable),
         rnaSeq.transcriptId,
         rnaSeq.fragmentsPerKilobaseMillion,
         rnaSeq.fromNGS,
@@ -495,7 +531,7 @@ trait mappings
         report.issueDate,
         report.sequencingType,
         report.metadata,
-        report.tumorCellContent.mapTo[TumorCellContentDisplay],
+        report.tumorCellContent.map(_.mapTo[TumorCellContentDisplay]).toRight(NotAvailable),
         report.brcaness.toRight(NotAvailable),
         report.msi.toRight(NotAvailable),
         report.tmb.mapTo[TMBDisplay],
@@ -521,25 +557,25 @@ trait mappings
     v => 
       val repr = v match {
         case snv: SimpleVariant =>
-          s"SNV ${snv.gene.map(_.code.value).getOrElse("Gene undefined")} ${snv.dnaChange.map(_.code.value).getOrElse("cDNA change undefined")}"
+          s"SNV ${snv.gene.flatMap(_.symbol.map(_.value)).getOrElse("Gene undefined")} ${snv.dnaChange.map(_.code.value).getOrElse("cDNA change undefined")}"
       
         case cnv: CNV => {
           val genes =
             cnv.reportedAffectedGenes
-               .flatMap(_.map(_.code.value).reduceOption(_ + ", " + _))
+               .flatMap(_.map(_.symbol.map(_.value).getOrElse("N/A")).reduceOption(_ + ", " + _))
                .getOrElse("N/A")
       
           s"CNV [${genes}], ${cnv.`type`}"
         }
       
         case DNAFusion(_,dom5pr,dom3pr,_) =>
-          s"DNA-Fusion ${dom5pr.gene.code.value} :: ${dom3pr.gene.code.value}"
+          s"DNA-Fusion ${dom5pr.flatMap(_.gene.symbol.map(_.value)).getOrElse("intergenic")} :: ${dom3pr.flatMap(_.gene.symbol.map(_.value)).getOrElse("intergenic")}"
       
         case RNAFusion(_,dom5pr,dom3pr,_,_,_) =>
-          s"RNA-Fusion ${dom5pr.gene.code.value} :: ${dom3pr.gene.code.value}"
+          s"RNA-Fusion ${dom5pr.flatMap(_.gene.symbol.map(_.value)).getOrElse("intergenic")} :: ${dom3pr.flatMap(_.gene.symbol.map(_.value)).getOrElse("intergenic")}"
       
         case rnaSeq: RNASeq =>
-          s"RNA-Seq ${rnaSeq.gene.code.value}"
+          s"RNA-Seq ${rnaSeq.gene.symbol.map(_.value).getOrElse("N/A")}"
       
       }
 

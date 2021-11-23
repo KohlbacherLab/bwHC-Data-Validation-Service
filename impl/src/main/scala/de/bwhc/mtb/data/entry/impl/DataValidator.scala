@@ -4,7 +4,7 @@ package de.bwhc.mtb.data.entry.impl
 import java.time.{LocalDate,YearMonth,Year}
 import java.time.temporal.Temporal
 
-import scala.util.Either
+import scala.util.{Either,Left,Right}
 import scala.util.Try
 import scala.concurrent.{
   ExecutionContext,
@@ -29,7 +29,7 @@ import de.bwhc.mtb.data.entry.api.DataQualityReport
 
 import de.bwhc.catalogs.icd
 import de.bwhc.catalogs.icd._
-import de.bwhc.catalogs.hgnc.{HGNCGene,HGNCCatalog}
+import de.bwhc.catalogs.hgnc.{HGNCGene,HGNCCatalog,HGNCId}
 import de.bwhc.catalogs.med.MedicationCatalog
 
 
@@ -335,23 +335,6 @@ object DefaultDataValidator
 
   }
 
-/*
-  implicit def medicationValidator(
-    implicit
-    catalog: MedicationCatalog
-  ): DataQualityValidator[Medication.Coding] = {
-
-    case medication @ Medication.Coding(Medication.Code(code),system,_,_) =>
-
-      if (system == Medication.System.ATC)
-        code must be (in (catalog.entries.map(_.code.value))) otherwise (
-          Error(s"Ungültiger ATC Medications-Code '$code'") at Location("Medication Coding","","Code")
-        ) map (c => medication)
-      else
-        medication.validNel[Issue]
-  }
-*/
-
 
   implicit def diagnosisValidator(
     implicit
@@ -650,35 +633,29 @@ object DefaultDataValidator
   private val hgncCatalog = HGNCCatalog.getInstance.get
 
 
-  private def validGeneId(
+  private def validGeneCoding(
     location: => Location
-  ): DataQualityValidator[Coding[Variant.HgncId]] = {
-    coding =>
-      
-      val id = coding.code.value
+  ): DataQualityValidator[Gene.Coding] = {
 
-      hgncCatalog.gene(HGNCGene.Id(id)) mustBe defined otherwise (
-        Error(s"Ungültige HGNC Gen-Id $id") at location
-      ) map (_ => coding)
+    gene =>
 
-  }
-
-  private def validGeneSymbol(
-    location: => Location
-  ): DataQualityValidator[Coding[Variant.GeneSymbol]] = {
-    coding =>
-
-      val symbol = coding.code.value
-
-      val genes = hgncCatalog.geneWithSymbol(symbol)
-
-      genes.headOption mustBe defined otherwise (
-        Error(s"Ungültiges HGNC Gen-Symbol $symbol") at location
+      Ior.fromOptions(gene.ensemblId,gene.hgncId) mustBe defined otherwise (
+        Error("Eine von Ensembl ID oder HGNC ID muss definiert sein") at location
       ) andThen (
-        x => genes.size must equal (1) otherwise (
-          Warning(s"Gen-Symbol $symbol mehrdeutig (${genes.map(_.symbol).reduceLeft(_ + ", " + _)}) und daher vermutlich veraltet") at location
-        )
-      ) map (_ => coding)
+
+        ior => ior.get.toEither match {
+
+          case Left(Gene.EnsemblId(id)) =>
+            hgncCatalog.geneWithEnsemblId(id) mustBe defined otherwise (
+              Error(s"Ungültige Ensembl ID $id") at location
+            )
+
+          case Right(Gene.HgncId(id)) =>
+            hgncCatalog.gene(HGNCId(id)) mustBe defined otherwise (
+              Error(s"Ungültige HGNC ID $id") at location
+            )
+        }
+      ) map (_ => gene)
 
   }
 
@@ -717,9 +694,8 @@ object DefaultDataValidator
       val location = Location("Somatischer NGS-Befund",reportId.value,s"Einfache Variante ${snv.id.value}")
 
       (
-        ifDefined (snv.geneId) ensureThat (_ is (validGeneId(location))),
 
-        ifDefined (snv.gene) ensureThat (_ is (validGeneSymbol(location))),
+        ifDefined (snv.gene) ensureThat (_ is (validGeneCoding(location))),
 
         snv.startEnd must be (validStartEnd(location)),
 
@@ -753,26 +729,15 @@ object DefaultDataValidator
 
       (
 
-/*
-        ifDefined (Ior.fromOptions(cnv.reportedAffectedGeneIds,cnv.reportedAffectedGenes)){
-          case Ior.Left(hgncIds)  => all (hgncIds) must be (validGeneId(location))
-          case Ior.Right(symbols) => all (symbols) must be (validGeneSymbol(location))
-          case Ior.Both(_,_)      => (Fatal("Entweder HGNC Gen-IDs ODER Gen-Symbole aufführen, nicht beides") at location).invalidNel
-        }
-*/
+        ifDefined (cnv.reportedAffectedGenes) ensureThat (all(_) are (validGeneCoding(location))),
 
-        ifDefined (cnv.reportedAffectedGeneIds) ensureThat (all(_) are (validGeneId(location))),
-
-        ifDefined (cnv.reportedAffectedGenes) ensureThat (all(_) are (validGeneSymbol(location))),
-
-        ifDefined (cnv.copyNumberNeutralLoHIds) ensureThat (all(_) are (validGeneId(location))),
-
-        ifDefined (cnv.copyNumberNeutralLoH) ensureThat (all(_) are (validGeneSymbol(location))),
+        ifDefined (cnv.copyNumberNeutralLoH) ensureThat (all(_) are (validGeneCoding(location))),
 
       )
       .mapN { case _: Product => cnv }
 
   }
+
 
   implicit def ngsReportValidator(
     implicit
@@ -798,14 +763,27 @@ object DefaultDataValidator
         patient must be (validReference[Patient.Id](Location("Somatischer NGS-Befund",id,"Patient"))),
 
         specimen must be (validReference(specimens)(Location("Somatischer NGS-Befund",id,"Probe"))),
-
+/*
         tumorContent.method must equal (expectedMethod) otherwise (
           Error(s"Erwartete Tumorzellgehalt-Bestimmungsmethode '${ValueSet[TumorCellContent.Method.Value].displayOf(expectedMethod).get}'")
             at Location("Somatischer NGS-Befund",id,"Tumorzellgehalt")
         ),
 
         validate(tumorContent),
-       
+*/
+
+        ifDefined (tumorContent)(
+          tc => 
+            (
+              tc.method must equal (expectedMethod) otherwise (
+                Error(s"Erwartete Tumorzellgehalt-Bestimmungsmethode '${ValueSet[TumorCellContent.Method.Value].displayOf(expectedMethod).get}'")
+                  at Location("Somatischer NGS-Befund",id,"Tumorzellgehalt")
+              ),
+              validate(tc)
+            )
+            .mapN((_,_) => tc)  
+        ),   
+  
         brcaness shouldBe defined otherwise (
           Info("Fehlende Angabe: BRCAness Wert") at Location("Somatischer NGS-Befund",id,"BRCAness")
         ) andThen {
