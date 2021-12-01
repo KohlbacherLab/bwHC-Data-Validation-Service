@@ -34,24 +34,6 @@ trait HGNCOps
 
   }
 
-/*
-  final def complete(coding: Gene.Coding): Option[Gene.Coding] = {
-
-    import Gene._
-
-    hgnc.geneWithEnsemblId(coding.ensemblId.value)
-      .map(
-        gene =>
-          Gene.Coding(
-            coding.ensemblId,
-            Some(HgncId(gene.hgncId.value)),
-            Some(Symbol(gene.symbol)),
-            Some(gene.name)
-          )
-      )
-
-  }
-*/
 }
 
 object HGNCOps extends HGNCOps

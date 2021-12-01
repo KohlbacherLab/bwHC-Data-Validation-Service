@@ -23,6 +23,9 @@ object Medication
 
   implicit val format = Json.valueFormat[Code]
 
+  implicit val atcSystem =
+    de.bwhc.mtb.data.entry.dtos.Coding.System[Medication.Code]("ATC")
+
 
   object System extends Enumeration
   {

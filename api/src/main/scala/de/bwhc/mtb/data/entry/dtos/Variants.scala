@@ -35,6 +35,9 @@ object Gene
 
   case class HgncId(value: String) extends AnyVal
 
+  implicit val hgncSystem = de.bwhc.mtb.data.entry.dtos.Coding.System[HgncId]("HGNC")
+
+
   case class EntrezId(value: String) extends AnyVal
   
   case class EnsemblId(value: String) extends AnyVal

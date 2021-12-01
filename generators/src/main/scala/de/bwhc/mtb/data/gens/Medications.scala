@@ -90,7 +90,6 @@ object Medications
       "L01XX38" -> "Vorinostat"
    )
    .map { case (c,d) => Medication.Coding(Medication.Code(c),Medication.System.ATC,Some(d),Some("2020")) } 
-//   .map { case (c,d) => Medication.Coding(Medication.Code(c),Medication.System.ATC,Some(d),None) } 
   
   
   

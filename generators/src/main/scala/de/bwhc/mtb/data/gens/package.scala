@@ -562,8 +562,12 @@ package object gens
       meds  <- Gen.of[List[Medication.Coding]]
       prio  <- Gen.enum(TherapyRecommendation.Priority)
       loe   <- Gen.of[LevelOfEvidence]
-      //TODO: ref supporting variant
-      supportingVariantRefs <- Gen.subsets(ngsReport.variants).map(_.map(_.id))
+//      supportingVariantRefs <- Gen.subsets(ngsReport.variants).map(_.map(_.id))
+      supportingVariantRefs <-
+        Gen.subsets(
+          ngsReport.simpleVariants.get ++ ngsReport.copyNumberVariants.get
+        )
+        .map(_.map(_.id))
     } yield TherapyRecommendation(
       id,diag.patient,diag.id,Some(date),Some(meds),Some(prio),Some(loe),Some(ngsReport.id),Some(supportingVariantRefs)
     )
@@ -848,7 +852,6 @@ package object gens
                    )
 
       responses <- Gen.oneOfEach(
-//                     molThDocs.map(_.history.head.id).map(genResponseFor(patient,_))
                      molThDocs.map(_.history.head)
                        .filterNot(_.status == MolecularTherapy.Status.NotDone)
                        .map(th => genResponseFor(patient,th.id))

@@ -34,7 +34,6 @@ case class CarePlan
   recommendations: Option[List[TherapyRecommendation.Id]],
   geneticCounsellingRequest: Option[GeneticCounsellingRequest.Id],
   rebiopsyRequests: Option[List[RebiopsyRequest.Id]],
-//  studyInclusionRequest: Option[StudyInclusionRequest.Id]
   studyInclusionRequests: Option[List[StudyInclusionRequest.Id]]
 )
 

@@ -51,11 +51,9 @@ case class TherapyRecommendation
   patient: Patient.Id,
   diagnosis: Diagnosis.Id,
   issuedOn: Option[LocalDate],
-//  medication: Option[List[Coding[Medication]]],
   medication: Option[List[Medication.Coding]],
   priority: Option[TherapyRecommendation.Priority.Value],
   levelOfEvidence: Option[LevelOfEvidence],
-//  ngsReport: SomaticNGSReport.Id,
   ngsReport: Option[SomaticNGSReport.Id],
   supportingVariants: Option[List[Variant.Id]]
 )
