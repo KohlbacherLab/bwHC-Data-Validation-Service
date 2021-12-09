@@ -138,6 +138,33 @@ trait mappings
     meds =>
       MedicationDisplay(
         meds.map(
+          coding =>
+
+            coding.system match {
+
+              case Medication.System.ATC =>
+                medications
+                  .findWithCode(coding.code.value)
+                  .map(c => s"${c.name} (${c.code.value})")
+                  .getOrElse(s"${coding.display.getOrElse("N/A")} (${coding.code.value})")
+
+              case Medication.System.Unregistered =>
+                s"${coding.display.getOrElse("N/A")} (${coding.code.value})"
+
+            }
+        )
+        .reduceLeftOption(_ + ", " + _)
+        .getOrElse("N/A")
+      )
+  }
+
+/*
+  implicit def medicationCodingsToDisplay(
+    implicit medications: MedicationCatalog
+  ): List[Medication.Coding] => MedicationDisplay = {
+    meds =>
+      MedicationDisplay(
+        meds.map(
           m =>
             medications
               .findWithCode(m.code.value)
@@ -148,7 +175,7 @@ trait mappings
         .getOrElse("N/A")
       )
   }
-
+*/
 
   implicit val diagnosisToView: Diagnosis => DiagnosisView = {
     diag => 

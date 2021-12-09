@@ -16,6 +16,7 @@ import cats.data.Validated
 import cats.data.Ior
 
 import de.bwhc.util.spi._
+import de.bwhc.util.Logging
 import de.bwhc.util.data.ClosedInterval
 import de.bwhc.util.syntax.piping._
 import de.bwhc.util.data.Validation._
@@ -71,6 +72,7 @@ class DefaultDataValidator extends DataValidator
 
 
 object DefaultDataValidator
+extends Logging
 {
 
   import DataQualityReport._
@@ -316,7 +318,7 @@ object DefaultDataValidator
 
       val versions = catalog.availableVersions.map(_.toString)
 
-      if (system == Medication.System.ATC)
+      if (system == Medication.System.ATC){
         version mustBe defined otherwise (
           Error("Fehlende ATC Version") at Location("Medication Coding","","Version")
         ) map (_.get) andThen (
@@ -330,8 +332,11 @@ object DefaultDataValidator
               Error(s"Ungültiger ATC Medications-Code '$code'") at Location("Medication Coding","","Code")
             )
         ) map (c => medication)
-      else
+      } else {
+        log.info(s"By-passing validation on '$system' Medication '$code'")
         medication.validNel[Issue]
+
+      }
 
   }
 
