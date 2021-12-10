@@ -15,6 +15,12 @@ final case class Coding[C: Coding.System]
   display: Option[String],
   version: Option[String]
 )
+{
+  def withDisplay(implicit valueSet: ValueSet[C]) =
+    copy(
+      display = valueSet.displayOf(code)
+    )
+}
 
 
 object Coding
