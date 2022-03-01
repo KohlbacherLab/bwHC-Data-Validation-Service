@@ -71,13 +71,13 @@ object SimpleVariantView
 final case class CNVView
 (
   chromosome: Chromosome,
+  reportedAffectedGenes: NotAvailable Or GeneDisplay,
   startRange: StartEndDisplay,
   endRange: StartEndDisplay,
-  totalCopyNumber: Int,
-  relativeCopyNumber: Double,
+  totalCopyNumber: NotAvailable Or Int,
+  relativeCopyNumber: NotAvailable Or Double,
   cnA: NotAvailable Or Double,
   cnB: NotAvailable Or Double,
-  reportedAffectedGenes: NotAvailable Or GeneDisplay,
   reportedFocality: NotAvailable Or String,
   `type`: CNV.Type.Value,
   copyNumberNeutralLoH: NotAvailable Or GeneDisplay,
@@ -102,10 +102,6 @@ object DNAFusionView
 final case class RNAFusionView
 (
   representation: String,
-//  position5pr: RNAFusion.TranscriptPosition,
-//  strand5pr: RNAFusion.Strand.Value,
-//  position3pr: RNAFusion.TranscriptPosition,
-//  strand3pr: RNAFusion.Strand.Value,
   position5pr: Intergenic Or RNAFusion.TranscriptPosition,
   strand5pr: Intergenic Or RNAFusion.Strand.Value,
   position3pr: Intergenic Or RNAFusion.TranscriptPosition,
@@ -152,7 +148,7 @@ final case class NGSReportView
   tumorCellContent: NotAvailable Or TumorCellContentDisplay,
   brcaness: NotAvailable Or BRCAness,
   microSatelliteInstabilities: NotAvailable Or MSI,
-  tumorMutationalBurden: TMBDisplay,
+  tumorMutationalBurden: NotAvailable Or TMBDisplay,
   simpleVariants: List[SimpleVariantView],
   copyNumberVariants: List[CNVView],
   dnaFusions: List[DNAFusionView],

@@ -22,7 +22,7 @@ case class SomaticNGSReport
   tumorCellContent: Option[TumorCellContent],
   brcaness: Option[BRCAness],
   msi: Option[MSI],
-  tmb: TMB,
+  tmb: Option[TMB],
   simpleVariants: Option[List[SimpleVariant]],
   copyNumberVariants: Option[List[CNV]],
   dnaFusions: Option[List[DNAFusion]],

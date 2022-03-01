@@ -768,14 +768,6 @@ extends Logging
         patient must be (validReference[Patient.Id](Location("Somatischer NGS-Befund",id,"Patient"))),
 
         specimen must be (validReference(specimens)(Location("Somatischer NGS-Befund",id,"Probe"))),
-/*
-        tumorContent.method must equal (expectedMethod) otherwise (
-          Error(s"Erwartete Tumorzellgehalt-Bestimmungsmethode '${ValueSet[TumorCellContent.Method.Value].displayOf(expectedMethod).get}'")
-            at Location("Somatischer NGS-Befund",id,"Tumorzellgehalt")
-        ),
-
-        validate(tumorContent),
-*/
 
         ifDefined (tumorContent)(
           tc => 
@@ -807,9 +799,15 @@ extends Logging
             )
         ),
              
-        tmb.value must be (in (tmbRange)) otherwise (
-          Error(s"TMB Wert '${tmb.value}' nicht im Referenz-Bereich $tmbRange") at Location("Somatischer NGS-Befund",id,"TMB")
-        ),
+        ifDefined(tmb){
+          t => t.value must be (in (tmbRange)) otherwise (
+            Error(s"TMB Wert '${t.value}' nicht im Referenz-Bereich $tmbRange") at Location("Somatischer NGS-Befund",id,"TMB")
+          ) map (_ => t)
+        },
+
+//        tmb.value must be (in (tmbRange)) otherwise (
+//          Error(s"TMB Wert '${tmb.value}' nicht im Referenz-Bereich $tmbRange") at Location("Somatischer NGS-Befund",id,"TMB")
+//        ),
 
         snvs.fold(
           List.empty[SimpleVariant].validNel[Issue]

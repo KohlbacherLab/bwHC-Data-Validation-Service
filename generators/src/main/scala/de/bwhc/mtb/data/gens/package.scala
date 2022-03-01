@@ -330,7 +330,7 @@ package object gens
                       s"CNV_${genes.map(_.symbol.get.value).reduceLeft(_ + "_" + _)}_${typ.toString}"
                     ) 
     } yield CNV(
-      id,chr,startRange,endRange,totalCN,relCN,Some(cnA),Some(cnB),
+      id,chr,startRange,endRange,Some(totalCN),Some(relCN),Some(cnA),Some(cnB),
       Some(genes),Some(focality),typ,Some(lohGenes)
     )
 
@@ -430,7 +430,7 @@ package object gens
     } yield SomaticNGSReport(
       id,patId,spId,date,
       seqType,metadata,Some(tc),
-      Some(brcaness),Some(msi),tmb,
+      Some(brcaness),Some(msi),Some(tmb),
       Some(simpleVariants),Some(cnvs),Some(dnaFusions),Some(rnaFusions),Some(rnaSeqs)
     )
 

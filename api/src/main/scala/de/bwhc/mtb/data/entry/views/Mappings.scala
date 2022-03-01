@@ -426,15 +426,15 @@ trait mappings
     cnv =>
       CNVView(
         cnv.chromosome,
-        cnv.startRange.mapTo[StartEndDisplay],
-        cnv.endRange.mapTo[StartEndDisplay],
-        cnv.totalCopyNumber,
-        cnv.relativeCopyNumber,
-        cnv.cnA.toRight(NotAvailable),
-        cnv.cnB.toRight(NotAvailable),
         cnv.reportedAffectedGenes
           .flatMap(_.mapTo[Option[GeneDisplay]])
           .toRight(NotAvailable),
+        cnv.startRange.mapTo[StartEndDisplay],
+        cnv.endRange.mapTo[StartEndDisplay],
+        cnv.totalCopyNumber.toRight(NotAvailable),
+        cnv.relativeCopyNumber.toRight(NotAvailable),
+        cnv.cnA.toRight(NotAvailable),
+        cnv.cnB.toRight(NotAvailable),
         cnv.reportedFocality.toRight(NotAvailable),
         cnv.`type`,
         cnv.copyNumberNeutralLoH
@@ -492,8 +492,8 @@ trait mappings
 
       val symbol5pr = partner5pr.flatMap(_.gene.symbol.map(_.value)).getOrElse("intergenic")
       val symbol3pr = partner3pr.flatMap(_.gene.symbol.map(_.value)).getOrElse("intergenic")
-      val chrPos5pr = partner5pr.map(p => s"${p.chromosome.value}:${p.position}")
-      val chrPos3pr = partner3pr.map(p => s"${p.chromosome.value}:${p.position}")
+      val chrPos5pr = partner5pr.map(p => s"${p.chromosome.value}:${p.position}").getOrElse("-")
+      val chrPos3pr = partner3pr.map(p => s"${p.chromosome.value}:${p.position}").getOrElse("-")
 
       DNAFusionView(
         s"$symbol5pr :: $symbol3pr ($chrPos5pr :: $chrPos3pr)",
@@ -516,8 +516,8 @@ trait mappings
     val symbol5pr = partner5pr.flatMap(_.gene.symbol.map(_.value)).getOrElse("intergenic")
     val symbol3pr = partner3pr.flatMap(_.gene.symbol.map(_.value)).getOrElse("intergenic")
 
-    val transcriptExon5pr = partner5pr.map(p => s"${p.transcriptId.value}: ${p.exon.value}")
-    val transcriptExon3pr = partner3pr.map(p => s"${p.transcriptId.value}: ${p.exon.value}")
+    val transcriptExon5pr = partner5pr.map(p => s"${p.transcriptId.value}: ${p.exon.value}").getOrElse("-")
+    val transcriptExon3pr = partner3pr.map(p => s"${p.transcriptId.value}: ${p.exon.value}").getOrElse("-")
 
     RNAFusionView(
       s"$symbol5pr ($transcriptExon5pr) :: $symbol3pr ($transcriptExon3pr)",
@@ -561,7 +561,7 @@ trait mappings
         report.tumorCellContent.map(_.mapTo[TumorCellContentDisplay]).toRight(NotAvailable),
         report.brcaness.toRight(NotAvailable),
         report.msi.toRight(NotAvailable),
-        report.tmb.mapTo[TMBDisplay],
+        report.tmb.map(_.mapTo[TMBDisplay]).toRight(NotAvailable),
         report.simpleVariants.getOrElse(List.empty[SimpleVariant]).map(_.mapTo[SimpleVariantView]),
         report.copyNumberVariants.getOrElse(List.empty[CNV]).map(_.mapTo[CNVView]),
         report.dnaFusions.getOrElse(List.empty[DNAFusion]).map(_.mapTo[DNAFusionView]),
