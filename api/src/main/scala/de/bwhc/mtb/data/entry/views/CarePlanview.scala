@@ -4,7 +4,6 @@ package de.bwhc.mtb.data.entry.views
 
 import java.time.LocalDate
 
-import cats.data.NonEmptyList
 
 import play.api.libs.json.{Json,Writes, JsString}
 
@@ -47,6 +46,7 @@ final case class TherapyRecommendationView
   id: TherapyRecommendation.Id,
   patient: Patient.Id,
   icd10: NotAvailable Or ICD10Display,
+  ecogStatus: NotAvailable Or ECOGDisplay,
   medication: NotAvailable Or MedicationDisplay,
   priority: NotAvailable Or TherapyRecommendation.Priority.Value,
   levelOfEvidence: NotAvailable Or LevelOfEvidenceDisplay,
@@ -69,7 +69,6 @@ final case class CarePlanView
   protocol: NotAvailable Or String,
   geneticCounsellingRecommendation: No Or String,
   inclusionInStudyRecommendation: NotAvailable Or NCTNumbersDisplay,
-//  inclusionInStudyRecommendation: NotAvailable Or NCTNumber,
   targetAvailable: Yes Or No,
   therapyRecommendations: List[TherapyRecommendationView],
   rebiopsyRequests: NotAvailable Or List[RebiopsyRequest.Id],

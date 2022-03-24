@@ -25,6 +25,7 @@ final case class MolecularTherapyView
   status: String,
   recordedOn: LocalDate,
   recommendation: TherapyRecommendation.Id,
+  recommendationPriority: NotAvailable Or TherapyRecommendation.Priority.Value,
   period: NotAvailable Or PeriodDisplay[LocalDate],
   notDoneReason: NoValue Or String,
   medication: NoValue Or MedicationDisplay,

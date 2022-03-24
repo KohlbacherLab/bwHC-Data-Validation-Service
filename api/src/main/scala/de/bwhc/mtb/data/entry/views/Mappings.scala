@@ -443,44 +443,6 @@ trait mappings
       )
   }
 
-/*
-  implicit val dnaFusionToView: DNAFusion => DNAFusionView = {
-    case DNAFusion(
-      _,
-      DNAFusion.Partner(chr5pr,pos5pr,gene5pr),
-      DNAFusion.Partner(chr3pr,pos3pr,gene3pr),
-      numReads
-    ) =>
-
-      DNAFusionView(
-        s"${gene5pr.symbol.map(_.value).getOrElse("N/A")} :: ${gene3pr.symbol.map(_.value).getOrElse("N/A")} (${chr5pr.value}:${pos5pr} :: ${chr3pr.value}:${pos3pr})",
-        numReads.toRight(NotAvailable)
-      )
-
-  }
-
-  implicit val rnaFusionToView: RNAFusion => RNAFusionView = {
-    case RNAFusion(
-      _,
-      RNAFusion.Partner(gene5pr,transcript5pr,exon5pr,pos5pr,strand5pr),
-      RNAFusion.Partner(gene3pr,transcript3pr,exon3pr,pos3pr,strand3pr),
-      effect,
-      cosmicId,
-      numReads
-    ) =>
-
-    RNAFusionView(
-      s"${gene5pr.symbol.map(_.value).getOrElse("N/A")} (${transcript5pr.value}: ${exon5pr.value}) :: ${gene3pr.symbol.map(_.value).getOrElse("N/A")} (${transcript3pr.value}: ${exon3pr.value})",
-      pos5pr,
-      strand5pr,
-      pos3pr,
-      strand3pr,
-      effect.toRight(NotAvailable),
-      cosmicId.toRight(NotAvailable),
-      numReads.toRight(NotAvailable)
-    )
-  }
-*/
 
   implicit val dnaFusionToView: DNAFusion => DNAFusionView = {
     case DNAFusion(
@@ -614,11 +576,12 @@ trait mappings
   implicit val recommendationToDisplay:
     ((
      (TherapyRecommendation,NotAvailable Or ICD10Display),
+     Option[ECOGStatus],
      List[Variant]
     )) => TherapyRecommendationView = {
 
 
-    case ((rec,icd10),variants) =>
+    case ((rec,icd10),ecog,variants) =>
 
       val supportingVariants = rec.supportingVariants.getOrElse(List.empty[Variant.Id])
 
@@ -626,6 +589,7 @@ trait mappings
         rec.id,
         rec.patient,
         icd10,
+      ecog.map(_.value.mapTo[ECOGDisplay]).toRight(NotAvailable),
         rec.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
         rec.priority.toRight(NotAvailable),
         rec.levelOfEvidence.map(_.mapTo[LevelOfEvidenceDisplay]).toRight(NotAvailable),
@@ -638,6 +602,7 @@ trait mappings
     ((
      (CarePlan,
       Diagnosis,
+      List[ECOGStatus],
       List[TherapyRecommendation],
       List[StudyInclusionRequest],
       Option[GeneticCounsellingRequest]
@@ -645,9 +610,18 @@ trait mappings
      List[Variant]
     )) => CarePlanView = {
 
-    case ((carePlan,diagnosis,recommendations,studyInclusionRequests,geneticCounsellingRequest),variants) =>
+    case ((carePlan,diagnosis,ecogs,recommendations,studyInclusionRequests,geneticCounsellingRequest),variants) =>
 
-      val icd10 = diagnosis.icd10.map(_.mapTo[ICD10Display]).toRight(NotAvailable)
+      val icd10 =
+        diagnosis.icd10.map(_.mapTo[ICD10Display]).toRight(NotAvailable)
+
+      val ecog =
+        carePlan.issuedOn
+          .flatMap(
+            d =>
+              ecogs.filter(_.effectiveDate.isDefined)
+                .maxByOption(_.effectiveDate.get isBefore d)
+          )
 
       CarePlanView(
         carePlan.id,
@@ -657,8 +631,8 @@ trait mappings
         carePlan.description.toRight(NotAvailable),
         geneticCounsellingRequest.map(_.reason).toRight(No),
         studyInclusionRequests.map(_.nctNumber.value).reduceLeftOption(_ + ", " + _).map(NCTNumbersDisplay(_)).toRight(NotAvailable),
-        !carePlan.noTargetFinding.isDefined,  // NOTE: Target is available iff 'noTargetFinding' is NOT defined
-        recommendations.map(rec => ((rec,icd10),variants).mapTo[TherapyRecommendationView]),
+        carePlan.noTargetFinding.isEmpty,  // NOTE: Target is available iff 'noTargetFinding' is NOT defined
+        recommendations.map(rec => ((rec,icd10),ecog,variants).mapTo[TherapyRecommendationView]),
         carePlan.rebiopsyRequests.toRight(NotAvailable),
       )
 
@@ -669,6 +643,7 @@ trait mappings
     ((
      (List[CarePlan],
        List[Diagnosis],
+       List[ECOGStatus],
        List[TherapyRecommendation],
        List[StudyInclusionRequest],
        List[GeneticCounsellingRequest]
@@ -676,16 +651,15 @@ trait mappings
      List[SomaticNGSReport]
     )) => List[CarePlanView] = {
 
-      case ((carePlans,diagnoses,recommendations,studyInclusionReqs,geneticCounsellingReqs), ngsReports) =>
+      case ((carePlans,diagnoses,ecogs,recommendations,studyInclusionReqs,geneticCounsellingReqs), ngsReports) =>
 
         carePlans.map {
           cp =>
             ((
               cp,
               diagnoses.find(_.id == cp.diagnosis).get,  // safe to call, because validation enforces referential integrity
+              ecogs,
               cp.recommendations.fold(List.empty[TherapyRecommendation])(recs => recommendations.filter(rec => recs contains rec.id)),
-//              cp.studyInclusionRequest
-//                .flatMap(reqId => studyInclusionReqs.find(_.id == reqId)),
               cp.studyInclusionRequests
                 .map(refs => studyInclusionReqs.filter(req => refs contains (req.id))).getOrElse(List.empty),
               cp.geneticCounsellingRequest
@@ -736,13 +710,15 @@ trait mappings
   ((
     MolecularTherapy,
     Option[Diagnosis],
+    List[TherapyRecommendation],
     Option[Response])) => MolecularTherapyView = {
 
-    case (molTh,diag,resp) =>
+    case (molTh,diag,recs,resp) =>
 
     val status   = ValueSet[MolecularTherapy.Status.Value].displayOf(molTh.status).get
     val note     = molTh.note.getOrElse("-")
     val icd10    = diag.flatMap(_.icd10.map(_.mapTo[ICD10Display])).toRight(NotAvailable)
+    val priority = recs.find(_.id == molTh.basedOn).flatMap(_.priority).toRight(NotAvailable)
     val response = resp.map(_.mapTo[ResponseDisplay]).toRight(NotAvailable)
     val progressionDate = resp.filter(_.value.code == RECIST.PD).map(_.effectiveDate).toRight(Undefined)
 
@@ -756,6 +732,7 @@ trait mappings
           status,
           th.recordedOn,
           th.basedOn,
+          priority,
           NotAvailable.asLeft[PeriodDisplay[LocalDate]],
           ValueSet[MolecularTherapy.NotDoneReason.Value].displayOf(th.notDoneReason.code).toRight(NotAvailable),
           Undefined.asLeft[MedicationDisplay],
@@ -774,6 +751,7 @@ trait mappings
           status,
           th.recordedOn,
           th.basedOn,
+          priority,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
           Undefined.asLeft[String],
           th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
@@ -792,6 +770,7 @@ trait mappings
           status,
           th.recordedOn,
           th.basedOn,
+          priority,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
           Undefined.asLeft[String],
           th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
@@ -810,6 +789,7 @@ trait mappings
           status,
           th.recordedOn,
           th.basedOn,
+          priority,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
           Undefined.asLeft[String],
           th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
@@ -843,6 +823,7 @@ trait mappings
           (
            th,
            diagsByRec.get(th.basedOn).flatten,
+           recommendations,
            responses.find(_.therapy == th.id)
           )
           .mapTo[MolecularTherapyView]
@@ -903,6 +884,7 @@ trait mappings
         (
           (mtbfile.carePlans.getOrElse(List.empty),
           mtbfile.diagnoses.getOrElse(List.empty),
+          mtbfile.ecogStatus.getOrElse(List.empty),
           mtbfile.recommendations.getOrElse(List.empty),
           mtbfile.studyInclusionRequests.getOrElse(List.empty),
           mtbfile.geneticCounsellingRequests.getOrElse(List.empty)),

@@ -3,7 +3,6 @@ package de.bwhc.mtb.data.entry.dtos
 
 import java.time.LocalDate
 
-//import cats.data.NonEmptyList
 
 import play.api.libs.json.Json
 
