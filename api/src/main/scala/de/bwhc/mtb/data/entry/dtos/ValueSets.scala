@@ -81,6 +81,14 @@ object ValueSets
     )
 
 
+  implicit val recommendationPriorityValueSet: ValueSet[TherapyRecommendation.Priority.Value] =
+    ValueSet(
+      "Therapie-Empfehlung-Priorität",
+      TherapyRecommendation.Priority
+        .values
+        .toList
+        .map(p => ValueSet.Concept(p, p.toString))
+    )
 
 
   implicit val specimenTypeValueSet: ValueSet[Specimen.Type.Value] =
@@ -300,6 +308,7 @@ object ValueSets
       ValueSet[FamilyMember.Relationship.Value],
       ValueSet[TherapyLine],
       ValueSet[GuidelineTherapy.StopReason.Value],
+      ValueSet[TherapyRecommendation.Priority.Value],
       ValueSet[Specimen.Type.Value],
       ValueSet[Specimen.Collection.Localization.Value],
       ValueSet[Specimen.Collection.Method.Value],
