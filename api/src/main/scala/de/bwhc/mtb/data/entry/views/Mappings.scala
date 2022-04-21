@@ -142,12 +142,21 @@ trait mappings
 
             coding.system match {
 
-              case Medication.System.ATC =>
+              case Medication.System.ATC => 
+                (
+                 for {
+                   med    <- medications.findWithCode(coding.code.value)
+                   parent <- med.parent.flatMap(medications.find(_))
+                 } yield s"${med.name} (Klasse: ${parent.name})"
+                )
+                .getOrElse(s"${coding.display.getOrElse("N/A")} (${coding.code.value})")
+/*
+              case Medication.System.ATC => 
                 medications
                   .findWithCode(coding.code.value)
                   .map(c => s"${c.name} (${c.code.value})")
                   .getOrElse(s"${coding.display.getOrElse("N/A")} (${coding.code.value})")
-
+*/
               case Medication.System.Unregistered =>
                 s"${coding.display.getOrElse("N/A")} (${coding.code.value})"
 
@@ -844,7 +853,8 @@ trait mappings
            diagsByRec.get(th.basedOn).flatten,
            recommendations,
            variants,
-           responses.find(_.therapy == th.id)
+//           responses.find(_.therapy == th.id)
+           responses.filter(_.therapy == th.id).maxByOption(_.effectiveDate)
           )
           .mapTo[MolecularTherapyView]
       )
