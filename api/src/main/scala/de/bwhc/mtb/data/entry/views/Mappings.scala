@@ -4,7 +4,8 @@ package de.bwhc.mtb.data.entry.views
 import java.time.{
   Instant,
   LocalDate,
-  LocalDateTime
+  LocalDateTime,
+  Year
 }
 import java.time.temporal.Temporal
 import java.time.format.DateTimeFormatter
@@ -145,9 +146,10 @@ trait mappings
               case Medication.System.ATC => 
                 (
                  for {
-                   med    <- medications.findWithCode(coding.code.value)
-                   parent <- med.parent.flatMap(medications.find(_))
-                 } yield s"${med.name} (Klasse: ${parent.name})"
+                   version <- coding.version.map(_.toInt).map(Year.of)                  
+                   med     <- medications.findWithCode(coding.code.value,version)
+                   clss    <- med.parent.flatMap(medications.find(_,version))
+                 } yield s"${med.name} (Klasse: ${clss.name})"
                 )
                 .getOrElse(s"${coding.display.getOrElse("N/A")} (${coding.code.value})")
 /*
