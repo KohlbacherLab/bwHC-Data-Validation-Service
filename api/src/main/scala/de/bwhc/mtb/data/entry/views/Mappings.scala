@@ -152,13 +152,7 @@ trait mappings
                  } yield s"${med.name} (Klasse: ${clss.name})"
                 )
                 .getOrElse(s"${coding.display.getOrElse("N/A")} (${coding.code.value})")
-/*
-              case Medication.System.ATC => 
-                medications
-                  .findWithCode(coding.code.value)
-                  .map(c => s"${c.name} (${c.code.value})")
-                  .getOrElse(s"${coding.display.getOrElse("N/A")} (${coding.code.value})")
-*/
+
               case Medication.System.Unregistered =>
                 s"${coding.display.getOrElse("N/A")} (${coding.code.value})"
 
@@ -169,24 +163,47 @@ trait mappings
       )
   }
 
-/*
-  implicit def medicationCodingsToDisplay(
+
+  implicit def medicationCodingsToDisplayWithClasses(
     implicit medications: MedicationCatalog
-  ): List[Medication.Coding] => MedicationDisplay = {
+  ): List[Medication.Coding] => (MedicationDisplay,MedicationDisplay) = {
     meds =>
-      MedicationDisplay(
-        meds.map(
-          m =>
-            medications
-              .findWithCode(m.code.value)
-              .map(c => s"${c.name} (${c.code.value})")
-              .getOrElse(s"${m.display.getOrElse("N/A")} (${m.code.value})")
-        )
-        .reduceLeftOption(_ + ", " + _)
-        .getOrElse("N/A")
-      )
+
+      val (drugs,classes) = 
+        meds.foldLeft(
+          (List.empty[String],List.empty[String])
+        ){
+          case ((drgs,clsses),coding) =>
+        
+            coding.system match {
+        
+              case Medication.System.ATC => {
+                (
+                 for {
+                   version <- coding.version.map(_.toInt).map(Year.of)
+                   med     <- medications.findWithCode(coding.code.value,version)
+                   clss    =  med.parent.flatMap(medications.find(_,version))
+                 } yield {
+                   (drgs :+ med.name, clsses ++ clss.map(_.name))
+                 }
+                )
+                .getOrElse(
+                  (drgs :+ s"${coding.display.getOrElse("N/A")} (${coding.code.value})", clsses)
+                )
+              }
+        
+            case Medication.System.Unregistered =>
+              (drgs :+ s"${coding.display.getOrElse("N/A")} (${coding.code.value})", clsses)
+        
+          }
+        }
+
+    (
+     MedicationDisplay(Option(drugs).filter(_.nonEmpty).map(_.mkString(", ")).getOrElse("N/A")),
+     MedicationDisplay(Option(classes).filter(_.nonEmpty).map(_.mkString(", ")).getOrElse("N/A")),
+    )
+      
   }
-*/
 
   implicit val diagnosisToView: Diagnosis => DiagnosisView = {
     diag => 
@@ -253,6 +270,10 @@ trait mappings
 
     case (therapy,diagnosis,response) =>
 
+      val (medication,medicationClasses) =
+        therapy.medication
+          .map(_.mapTo[(MedicationDisplay,MedicationDisplay)]).unzip
+
       therapy match { 
       
         case th: PreviousGuidelineTherapy =>
@@ -262,7 +283,9 @@ trait mappings
             diagnosis.flatMap(_.icd10.map(_.mapTo[ICD10Display])).toRight(NotAvailable),
             th.therapyLine.toRight(NotAvailable),
             NotAvailable.asLeft[PeriodDisplay[LocalDate]],
-            th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
+//            th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
+            medication.toRight(NotAvailable),
+            medicationClasses.toRight(NotAvailable),
             NotAvailable.asLeft[String],
             response.map(_.mapTo[ResponseDisplay]).toRight(NotAvailable),
             response.filter(_.value.code == RECIST.PD).map(_.effectiveDate).toRight(Undefined),
@@ -275,7 +298,9 @@ trait mappings
             diagnosis.flatMap(_.icd10.map(_.mapTo[ICD10Display])).toRight(NotAvailable),
             th.therapyLine.toRight(NotAvailable),
             th.period.map(_.mapTo[PeriodDisplay[LocalDate]]).toRight(NotAvailable),
-            th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
+//            th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
+            medication.toRight(NotAvailable),
+            medicationClasses.toRight(NotAvailable),
             th.reasonStopped
               .flatMap(c => ValueSet[GuidelineTherapy.StopReason.Value].displayOf(c.code))
               .toRight(NotAvailable),
@@ -596,12 +621,18 @@ trait mappings
 
       val supportingVariants = rec.supportingVariants.getOrElse(List.empty[Variant.Id])
 
+      val (medication,medicationClasses) =
+        rec.medication
+          .map(_.mapTo[(MedicationDisplay,MedicationDisplay)]).unzip
+
       TherapyRecommendationView(
         rec.id,
         rec.patient,
         icd10,
         ecog.map(_.value.mapTo[ECOGDisplay]).toRight(NotAvailable),
-        rec.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
+//        rec.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
+        medication.toRight(NotAvailable),
+        medicationClasses.toRight(NotAvailable),
         rec.priority.toRight(NotAvailable),
         rec.levelOfEvidence.map(_.mapTo[LevelOfEvidenceDisplay]).toRight(NotAvailable),
         variants.filter(v => supportingVariants contains v.id).map(_.mapTo[SupportingVariantDisplay])
@@ -756,6 +787,7 @@ trait mappings
           NotAvailable.asLeft[PeriodDisplay[LocalDate]],
           ValueSet[MolecularTherapy.NotDoneReason.Value].displayOf(th.notDoneReason.code).toRight(NotAvailable),
           Undefined.asLeft[MedicationDisplay],
+        Undefined.asLeft[MedicationDisplay],
           suppVariantDisplay,
           Undefined.asLeft[String],
           NotAvailable.asLeft[Dosage.Value],
@@ -764,7 +796,12 @@ trait mappings
           progressionDate
         )
        
-      case th: StoppedTherapy => 
+      case th: StoppedTherapy => {
+
+        val (medication,medicationClasses) =
+          th.medication
+            .map(_.mapTo[(MedicationDisplay,MedicationDisplay)]).unzip
+
         MolecularTherapyView(
           th.id,
           th.patient,
@@ -775,7 +812,9 @@ trait mappings
           priority,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
           Undefined.asLeft[String],
-          th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
+//          th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
+        medication.toRight(NotAvailable),
+        medicationClasses.toRight(NotAvailable),
           suppVariantDisplay,
           ValueSet[MolecularTherapy.StopReason.Value].displayOf(th.reasonStopped.code).toRight(NotAvailable),
           th.dosage.toRight(NotAvailable),
@@ -783,47 +822,63 @@ trait mappings
           response,
           progressionDate
         )
+      }
         
-      case th: CompletedTherapy => 
-        MolecularTherapyView(
-          th.id,
-          th.patient,
-          icd10,
-          status,
-          th.recordedOn,
-          th.basedOn,
-          priority,
-          th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
-          Undefined.asLeft[String],
-          th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
-          suppVariantDisplay,
-          Undefined.asLeft[String],
-          th.dosage.toRight(NotAvailable),
-          note,
-          response,
-          progressionDate
-        )
-        
-      case th: OngoingTherapy => 
-        MolecularTherapyView(
-          th.id,
-          th.patient,
-          icd10,
-          status,
-          th.recordedOn,
-          th.basedOn,
-          priority,
-          th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
-          Undefined.asLeft[String],
-          th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
-          suppVariantDisplay,
-          Undefined.asLeft[String],
-          th.dosage.toRight(NotAvailable),
-          note,
-          response,
-          progressionDate
-        )
+      case th: CompletedTherapy => {
 
+        val (medication,medicationClasses) =
+          th.medication
+            .map(_.mapTo[(MedicationDisplay,MedicationDisplay)]).unzip
+
+        MolecularTherapyView(
+          th.id,
+          th.patient,
+          icd10,
+          status,
+          th.recordedOn,
+          th.basedOn,
+          priority,
+          th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
+          Undefined.asLeft[String],
+//          th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
+        medication.toRight(NotAvailable),
+        medicationClasses.toRight(NotAvailable),
+          suppVariantDisplay,
+          Undefined.asLeft[String],
+          th.dosage.toRight(NotAvailable),
+          note,
+          response,
+          progressionDate
+        )
+      }
+  
+      case th: OngoingTherapy => {
+
+        val (medication,medicationClasses) =
+          th.medication
+            .map(_.mapTo[(MedicationDisplay,MedicationDisplay)]).unzip
+
+        MolecularTherapyView(
+          th.id,
+          th.patient,
+          icd10,
+          status,
+          th.recordedOn,
+          th.basedOn,
+          priority,
+          th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
+          Undefined.asLeft[String],
+//          th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
+        medication.toRight(NotAvailable),
+        medicationClasses.toRight(NotAvailable),
+          suppVariantDisplay,
+          Undefined.asLeft[String],
+          th.dosage.toRight(NotAvailable),
+          note,
+          response,
+          progressionDate
+        )
+      }
     }
 
   }

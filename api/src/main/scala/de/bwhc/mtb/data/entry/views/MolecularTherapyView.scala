@@ -29,6 +29,7 @@ final case class MolecularTherapyView
   period: NotAvailable Or PeriodDisplay[LocalDate],
   notDoneReason: NoValue Or String,
   medication: NoValue Or MedicationDisplay,
+  medicationClasses: NoValue Or MedicationDisplay,
   supportingVariants: List[SupportingVariantDisplay],
   reasonStopped: NoValue Or String,
   dosage: NotAvailable Or Dosage.Value,

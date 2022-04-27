@@ -48,7 +48,7 @@ final case class TherapyRecommendationView
   icd10: NotAvailable Or ICD10Display,
   ecogStatus: NotAvailable Or ECOGDisplay,
   medication: NotAvailable Or MedicationDisplay,
-//  medicationCategory: NotAvailable Or MedicationDisplay,
+  medicationClasses: NotAvailable Or MedicationDisplay,
   priority: NotAvailable Or TherapyRecommendation.Priority.Value,
   levelOfEvidence: NotAvailable Or LevelOfEvidenceDisplay,
   supportingVariants: List[SupportingVariantDisplay]

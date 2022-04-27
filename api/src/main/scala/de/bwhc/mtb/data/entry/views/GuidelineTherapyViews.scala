@@ -29,6 +29,7 @@ case class GuidelineTherapyView
   therapyLine: NotAvailable Or TherapyLine,
   period: NotAvailable Or PeriodDisplay[LocalDate],
   medication: NotAvailable Or MedicationDisplay,
+  medicationClasses: NotAvailable Or MedicationDisplay,
   reasonStopped: NotAvailable Or String,
   response: NotAvailable Or ResponseDisplay,
   progressionDate: NoValue Or LocalDate
