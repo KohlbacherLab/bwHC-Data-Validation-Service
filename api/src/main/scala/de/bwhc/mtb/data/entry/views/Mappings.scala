@@ -315,7 +315,7 @@ trait mappings
 
   import scala.util.matching.Regex
 
-  private val ecog = "(ECOG\\s{1}\\d{1})".r//.unanchored
+  private val ecog = "(ECOG\\s\\d)".r.unanchored
  
   implicit val ecogToDisplay: Coding[ECOG.Value] => ECOGDisplay = {
     coding =>
