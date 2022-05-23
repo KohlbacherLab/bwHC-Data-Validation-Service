@@ -138,6 +138,16 @@ object ValueSets
     )
 
 
+  implicit val cnvTypeValueSet: ValueSet[CNV.Type.Value] =
+    ValueSet(
+      "CNV-Typ",
+      List(
+        ValueSet.Concept(CNV.Type.Loss,          "Loss"),
+        ValueSet.Concept(CNV.Type.LowLevelGain,  "Low-level Gain"),
+        ValueSet.Concept(CNV.Type.HighLevelGain, "High-level Gain"),
+      )
+    )
+
 
 
   implicit val molecularTherapyNotDoneReasonValueSet: ValueSet[MolecularTherapy.NotDoneReason.Value] =
@@ -312,6 +322,7 @@ object ValueSets
       ValueSet[Specimen.Type.Value],
       ValueSet[Specimen.Collection.Localization.Value],
       ValueSet[Specimen.Collection.Method.Value],
+      ValueSet[CNV.Type.Value],
       ValueSet[MolecularTherapy.NotDoneReason.Value],
       ValueSet[MolecularTherapy.StopReason.Value],
       ValueSet[MolecularTherapy.Status.Value],
