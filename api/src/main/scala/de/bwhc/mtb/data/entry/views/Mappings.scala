@@ -771,6 +771,7 @@ trait mappings
     val note     = molTh.note.getOrElse("-")
     val icd10    = diag.flatMap(_.icd10.map(_.mapTo[ICD10Display])).toRight(NotAvailable)
     val priority = recommendation.flatMap(_.priority).toRight(NotAvailable)
+    val levelOfEvidence = recommendation.flatMap(_.levelOfEvidence).map(_.grading.code).toRight(NotAvailable)
 
     val supportingVariants = recommendation.flatMap(_.supportingVariants).getOrElse(List.empty[Variant.Id])
     val suppVariantDisplay = variants.filter(v => supportingVariants contains v.id).map(_.mapTo[SupportingVariantDisplay])
@@ -789,6 +790,7 @@ trait mappings
           th.recordedOn,
           th.basedOn,
           priority,
+          levelOfEvidence,
           NotAvailable.asLeft[PeriodDisplay[LocalDate]],
           ValueSet[MolecularTherapy.NotDoneReason.Value].displayOf(th.notDoneReason.code).toRight(NotAvailable),
           Undefined.asLeft[MedicationDisplay],
@@ -815,6 +817,7 @@ trait mappings
           th.recordedOn,
           th.basedOn,
           priority,
+          levelOfEvidence,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
           Undefined.asLeft[String],
 //          th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
@@ -843,6 +846,7 @@ trait mappings
           th.recordedOn,
           th.basedOn,
           priority,
+          levelOfEvidence,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
           Undefined.asLeft[String],
 //          th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),
@@ -871,6 +875,7 @@ trait mappings
           th.recordedOn,
           th.basedOn,
           priority,
+          levelOfEvidence,
           th.period.mapTo[PeriodDisplay[LocalDate]].asRight[NotAvailable],
           Undefined.asLeft[String],
 //          th.medication.map(_.mapTo[MedicationDisplay]).toRight(NotAvailable),

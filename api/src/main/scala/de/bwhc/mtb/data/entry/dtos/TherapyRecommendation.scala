@@ -53,6 +53,7 @@ case class TherapyRecommendation
   medication: Option[List[Medication.Coding]],
   priority: Option[TherapyRecommendation.Priority.Value],
   levelOfEvidence: Option[LevelOfEvidence],
+//  ngsReports: Option[List[SomaticNGSReport.Id]],
   ngsReport: Option[SomaticNGSReport.Id],
   supportingVariants: Option[List[Variant.Id]]
 )

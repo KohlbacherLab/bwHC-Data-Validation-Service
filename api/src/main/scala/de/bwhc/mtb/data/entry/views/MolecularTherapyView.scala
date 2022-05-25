@@ -9,6 +9,7 @@ import play.api.libs.json.Json
 import de.bwhc.util.json._
 
 import de.bwhc.mtb.data.entry.dtos.{
+  LevelOfEvidence,
   TherapyId,
   TherapyRecommendation,
   Patient,
@@ -26,6 +27,7 @@ final case class MolecularTherapyView
   recordedOn: LocalDate,
   recommendation: TherapyRecommendation.Id,
   recommendationPriority: NotAvailable Or TherapyRecommendation.Priority.Value,
+  recommendationLoE: NotAvailable Or LevelOfEvidence.Grading.Value,
   period: NotAvailable Or PeriodDisplay[LocalDate],
   notDoneReason: NoValue Or String,
   medication: NoValue Or MedicationDisplay,
