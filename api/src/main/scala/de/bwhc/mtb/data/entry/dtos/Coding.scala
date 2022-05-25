@@ -34,6 +34,12 @@ object Coding
     Coding(code,display,None)
 
 
+  def of[C: Coding.System: ValueSet](
+    code: C
+  ): Coding[C] =
+    Coding(code,ValueSet[C].displayOf(code))
+     
+
 
   @annotation.implicitNotFound("Couldn't find Coding.System instance for ${C}")
   sealed trait System[C]{
