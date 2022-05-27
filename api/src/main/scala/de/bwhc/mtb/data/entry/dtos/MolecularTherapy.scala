@@ -30,6 +30,7 @@ object MolecularTherapy
     val Completed = Value("completed")
   
     implicit val format = Json.formatEnum(this)
+    implicit val system = Coding.System[Value]("Molekular-Therapie-Status")
   }
 
 

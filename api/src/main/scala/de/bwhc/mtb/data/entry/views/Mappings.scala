@@ -312,7 +312,14 @@ trait mappings
 
   }
 
-
+  implicit val ecogToDisplay: Coding[ECOG.Value] => ECOGDisplay = {
+    coding =>
+      ValueSet[ECOG.Value]
+        .displayOf(coding.code)
+        .map(ECOGDisplay(_))
+        .get  // safe to call 
+  }
+/*
   import scala.util.matching.Regex
 
   private val ecog = "(ECOG\\s\\d)".r.unanchored
@@ -325,7 +332,7 @@ trait mappings
         .map(ECOGDisplay(_))
         .get  // safe to call 
   }
-
+*/
 
   implicit val ecogsToDisplay: ((Patient,List[ECOGStatus])) => ECOGStatusView = {
     case (patient,ecogs) =>

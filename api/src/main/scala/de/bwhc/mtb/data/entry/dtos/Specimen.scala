@@ -35,6 +35,7 @@ object Specimen
     val Unknown      = Value("unknown")
 
     implicit val format = Json.formatEnum(this)
+    implicit val system = Coding.System[Value]("Proben-Art")
   }
 
 
@@ -55,6 +56,7 @@ object Specimen
       val Unknown      = Value("unknown")
  
       implicit val format = Json.formatEnum(this)
+      implicit val system = Coding.System[Value]("Proben-Lokalisierung")
     }
 
     object Method extends Enumeration
@@ -66,6 +68,7 @@ object Specimen
       val Unknown      = Value("unknown")
     
       implicit val format = Json.formatEnum(this)
+      implicit val system = Coding.System[Value]("Proben-Entnahme-Methode")
     }
 
     implicit val format = Json.format[Collection]

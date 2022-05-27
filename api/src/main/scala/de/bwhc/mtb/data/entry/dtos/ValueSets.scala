@@ -207,6 +207,19 @@ object ValueSets
     ValueSet(
       "ECOGPerformanceStatus",
       List(
+        Concept(ECOG.Zero , "ECOG 0"),
+        Concept(ECOG.One  , "ECOG 1"),
+        Concept(ECOG.Two  , "ECOG 2"),
+        Concept(ECOG.Three, "ECOG 3"),
+        Concept(ECOG.Four , "ECOG 4")
+      )
+    )
+
+/*
+  implicit val ecogValueSet: ValueSet[ECOG.Value] =
+    ValueSet(
+      "ECOGPerformanceStatus",
+      List(
         Concept(ECOG.Zero , "ECOG 0: (Normale, uneingeschränkte Aktivität wie vor der Erkrankung)"),
         Concept(ECOG.One  , "ECOG 1: (Einschränkung bei körperlicher Anstrengung, aber gehfähig; leichte körperliche Arbeit bzw. Arbeit im Sitzen)"),
         Concept(ECOG.Two  , "ECOG 2: (Gehfähig, Selbstversorgung möglich, aber nicht arbeitsfähig; kann mehr als 50% der Wachzeit aufstehen)"),
@@ -215,7 +228,6 @@ object ValueSets
       )
     )
 
-/*
   implicit val ecogValueSet: ValueSet[ECOG.Value] =
     ValueSet(
       "ECOGPerformanceStatus",
