@@ -652,12 +652,12 @@ extends Logging
 
           case Left(Gene.EnsemblId(id)) =>
             hgncCatalog.geneWithEnsemblId(id) mustBe defined otherwise (
-              Error(s"Ungültige Ensembl ID $id") at location
+              Error(s"Ungültige Ensembl ID '$id'") at location
             )
 
           case Right(Gene.HgncId(id)) =>
             hgncCatalog.gene(HGNCId(id)) mustBe defined otherwise (
-              Error(s"Ungültige HGNC ID $id") at location
+              Error(s"Ungültige HGNC ID '$id'") at location
             )
         }
       ) map (_ => gene)
