@@ -431,6 +431,23 @@ trait mappings
     implicit hgnc: HGNCCatalog[cats.Id]
   ): Gene.Coding => GeneDisplay = {
     coding =>
+      coding.hgncId
+        .flatMap(id => hgncCatalog.gene(HGNCId(id.value)))
+        .orElse(
+          coding.ensemblId
+            .map(_.value)
+            .flatMap(hgncCatalog.geneWithEnsemblId)
+        )
+        .map(g => GeneDisplay(g.symbol))
+        .getOrElse(GeneDisplay("N/A"))
+
+  }
+
+/*
+  implicit def geneCodingToDisplay(
+    implicit hgnc: HGNCCatalog[cats.Id]
+  ): Gene.Coding => GeneDisplay = {
+    coding =>
       coding.ensemblId
         .map(_.value)
         .flatMap(hgncCatalog.geneWithEnsemblId)
@@ -443,6 +460,7 @@ trait mappings
         .getOrElse(GeneDisplay("N/A"))
 
   }
+*/
 
   implicit def geneCodingsToDisplay: List[Gene.Coding] => Option[GeneDisplay] = {
     genes =>
