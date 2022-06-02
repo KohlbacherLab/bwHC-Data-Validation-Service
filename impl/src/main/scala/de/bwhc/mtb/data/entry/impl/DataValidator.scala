@@ -413,7 +413,8 @@ extends Logging
         ),
 
         medication.filterNot(_.isEmpty) shouldBe defined otherwise (
-          Warning("Fehlende Angabe: Wirkstoffe") at Location("Leitlinien-Therapie",id,"Medikation")
+          Error("Fehlende Angabe: Wirkstoffe") at Location("Leitlinien-Therapie",id,"Medikation")
+//          Warning("Fehlende Angabe: Wirkstoffe") at Location("Leitlinien-Therapie",id,"Medikation")
         ) andThen (
           _.get.validateEach
            .leftMap(_.map(_.copy(location = Location("Leitlinien-Therapie",id,"Medikation"))))
@@ -450,7 +451,8 @@ extends Logging
         ),
         
         medication.filterNot(_.isEmpty) shouldBe defined otherwise (
-          Warning("Fehlende Angabe: Wirkstoffe") at Location("Leitlinien-Therapie",id,"Medikation")
+          Error("Fehlende Angabe: Wirkstoffe") at Location("Leitlinien-Therapie",id,"Medikation")
+//          Warning("Fehlende Angabe: Wirkstoffe") at Location("Leitlinien-Therapie",id,"Medikation")
         ) andThen (
           _.get.validateEach
            .leftMap(_.map(_.copy(location = Location("Leitlinien-Therapie",id,"Medikation"))))
@@ -1092,7 +1094,8 @@ extends Logging
         basedOn must be (validReference(recommendationRefs)(Location("Molekulare Therapie",id,"Therapie-Empfehlung"))),
 
         medication.filterNot(_.isEmpty) shouldBe defined otherwise (
-          Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
+          Error("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
+//          Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
         ) andThen (
           _.get.validateEach
            .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
@@ -1110,7 +1113,8 @@ extends Logging
         basedOn must be (validReference(recommendationRefs)(Location("Molekulare Therapie",id,"Therapie-Empfehlung"))),
 
         medication.filterNot(_.isEmpty) shouldBe defined otherwise (
-          Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
+          Error("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
+//          Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
         ) andThen (
           _.get.validateEach
            .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
@@ -1129,6 +1133,7 @@ extends Logging
 
         medication.filterNot(_.isEmpty) shouldBe defined otherwise (
           Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
+//          Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
         ) andThen (
           _.get.validateEach
            .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))

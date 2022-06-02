@@ -26,6 +26,13 @@ object LevelOfEvidenceDisplay
   implicit val format = Json.valueWrites[LevelOfEvidenceDisplay]
 }
 
+/*
+final case class LevelOfEvidenceAddendums(value: String) extends AnyVal
+object LevelOfEvidenceAddendums
+{
+  implicit val format = Json.valueWrites[LevelOfEvidenceAddendums]
+}
+*/
 
 case class SupportingVariantDisplay(value: String) extends AnyVal
 object SupportingVariantDisplay
@@ -51,6 +58,8 @@ final case class TherapyRecommendationView
   medicationClasses: NotAvailable Or MedicationDisplay,
   priority: NotAvailable Or TherapyRecommendation.Priority.Value,
   levelOfEvidence: NotAvailable Or LevelOfEvidenceDisplay,
+//  levelOfEvidenceGrading: NotAvailable Or LevelOfEvidenceDisplay,
+//  levelOfEvidenceAddendums: NotAvailable Or LevelOfEvidenceDisplay,
   supportingVariants: List[SupportingVariantDisplay]
 )
 

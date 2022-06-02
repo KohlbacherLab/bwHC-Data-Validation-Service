@@ -15,7 +15,7 @@ object ValueSets
       List(
         Concept(Gender.Male   ,"Männlich"),
         Concept(Gender.Female ,"Weiblich"),
-        Concept(Gender.Other  ,"Sonstiges"),
+        Concept(Gender.Other  ,"Divers"),
         Concept(Gender.Unknown,"Unbekannt")
       )
     )

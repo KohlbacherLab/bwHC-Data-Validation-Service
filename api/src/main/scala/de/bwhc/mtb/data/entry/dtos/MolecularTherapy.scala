@@ -123,6 +123,12 @@ sealed trait MolecularTherapy
   val note: Option[String]
 }
 
+sealed trait StartedMolecularTherapy extends MolecularTherapy
+{
+  val medication: Option[List[Medication.Coding]]
+  val period: Period[LocalDate]
+}
+
 final case class NotDoneTherapy
 (
   id: TherapyId,
@@ -150,7 +156,8 @@ final case class StoppedTherapy
   reasonStopped: Coding[MolecularTherapy.StopReason.Value],
   note: Option[String]
 )
-  extends MolecularTherapy
+//extends MolecularTherapy
+extends StartedMolecularTherapy
 {
   val status = MolecularTherapy.Status.Stopped
 }
@@ -167,7 +174,8 @@ final case class CompletedTherapy
   dosage: Option[Dosage.Value],
   note: Option[String]
 )
-  extends MolecularTherapy
+//extends MolecularTherapy
+extends StartedMolecularTherapy
 {
   val status = MolecularTherapy.Status.Completed
 }
@@ -184,7 +192,8 @@ final case class OngoingTherapy
   dosage: Option[Dosage.Value],
   note: Option[String]
 )
-  extends MolecularTherapy
+//extends MolecularTherapy
+extends StartedMolecularTherapy
 {
   val status = MolecularTherapy.Status.Ongoing
 }
