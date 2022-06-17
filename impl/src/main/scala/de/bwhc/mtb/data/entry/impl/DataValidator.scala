@@ -48,7 +48,7 @@ trait DataValidator
 
 trait DataValidatorProvider extends SPI[DataValidator]
 
-object DataValidator extends SPILoader(classOf[DataValidatorProvider])
+object DataValidator extends SPILoader[DataValidatorProvider]
 
 
 

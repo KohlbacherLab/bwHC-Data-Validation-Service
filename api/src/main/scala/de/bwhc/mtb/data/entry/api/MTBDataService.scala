@@ -76,7 +76,7 @@ trait MTBDataService
 }
 
 
-object MTBDataService extends SPILoader(classOf[MTBDataServiceProvider])
+object MTBDataService extends SPILoader[MTBDataServiceProvider]
 {
 
   final case class Filter

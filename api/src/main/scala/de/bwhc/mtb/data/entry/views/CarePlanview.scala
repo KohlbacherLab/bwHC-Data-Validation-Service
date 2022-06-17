@@ -26,13 +26,6 @@ object LevelOfEvidenceDisplay
   implicit val format = Json.valueWrites[LevelOfEvidenceDisplay]
 }
 
-/*
-final case class LevelOfEvidenceAddendums(value: String) extends AnyVal
-object LevelOfEvidenceAddendums
-{
-  implicit val format = Json.valueWrites[LevelOfEvidenceAddendums]
-}
-*/
 
 case class SupportingVariantDisplay(value: String) extends AnyVal
 object SupportingVariantDisplay

@@ -70,5 +70,5 @@ trait MTBDataDB
 
 trait MTBDataDBProvider extends SPI[MTBDataDB]
 
-object MTBDataDB extends SPILoader(classOf[MTBDataDBProvider])
+object MTBDataDB extends SPILoader[MTBDataDBProvider]
 

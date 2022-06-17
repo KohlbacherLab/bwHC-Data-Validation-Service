@@ -33,7 +33,7 @@ trait QueryServiceProxy
 
 trait QueryServiceProxyProvider extends SPI[QueryServiceProxy]
 
-object QueryServiceProxy extends SPILoader(classOf[QueryServiceProxyProvider])
+object QueryServiceProxy extends SPILoader[QueryServiceProxyProvider]
 {
 
   sealed trait Command
