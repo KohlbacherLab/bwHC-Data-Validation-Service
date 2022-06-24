@@ -151,13 +151,9 @@ with Logging
     cmd match {
 
       //-----------------------------------------------------------------------
-//      case Upload(data) => {
       case Upload(mtbfile) => {
 
         log.info(s"Handling MTBFile upload for Patient ${mtbfile.patient.id.value}")
-
-        //: Assign managingZPM to Patient
-//        val mtbfile = data.copy(patient = data.patient.copy(managingZPM = Some(localSite)))       
 
         val result =
           for {
@@ -178,7 +174,6 @@ with Logging
                     case Errors() => {
                       log.warn(s"'ERROR'-level issues detected, storing DataQualityReport")
                       (
-//                        db save mtbfile,
                         db save postprocess(mtbfile),
                         db save qcReport
                       )
@@ -192,7 +187,6 @@ with Logging
 
                       val mtbfilePr = postprocess(mtbfile)
 
-//                      (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
                       (queryService ! QueryServiceProxy.Command.Upload(mtbfilePr))
                         .andThen {
                           case Success(_) => {
@@ -204,7 +198,7 @@ with Logging
 
                     }
 
-                    case OnlyInfos() => {
+                    case _ => {
                       log.info(s"No issues detected, forwarding data to QueryService")
                       processAcceptable(mtbfile)
                     }
@@ -255,7 +249,6 @@ with Logging
     implicit ec: ExecutionContext
   ): Future[Either[MTBDataService.Error,MTBDataService.Response]] = {
 
-//    (queryService ! QueryServiceProxy.Command.Upload(mtbfile))
     (queryService ! QueryServiceProxy.Command.Upload(postprocess(mtbfile)))
       .andThen {
         case Success(_) => db deleteAll mtbfile.patient.id
