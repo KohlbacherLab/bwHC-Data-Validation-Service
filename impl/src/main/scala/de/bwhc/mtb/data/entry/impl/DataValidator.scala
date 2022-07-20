@@ -761,7 +761,8 @@ extends Logging
       implicit val reportId = ngs.id
 
       val brcanessRange = ClosedInterval(0.0 -> 1.0)
-      val msiRange      = ClosedInterval(0.0 -> 2.0)
+//      val msiRange      = ClosedInterval(0.0 -> 2.0)
+      val msiRange      = ClosedInterval(0.0 -> Double.PositiveInfinity)
       val tmbRange      = ClosedInterval(0.0 -> 1e6)  // TMB in mut/MBase, so [0,1000000]
 
       val expectedMethod = TumorCellContent.Method.Bioinformatic
@@ -806,10 +807,6 @@ extends Logging
             Error(s"TMB Wert '${t.value}' nicht im Referenz-Bereich $tmbRange") at Location("Somatischer NGS-Befund",id,"TMB")
           ) map (_ => t)
         },
-
-//        tmb.value must be (in (tmbRange)) otherwise (
-//          Error(s"TMB Wert '${tmb.value}' nicht im Referenz-Bereich $tmbRange") at Location("Somatischer NGS-Befund",id,"TMB")
-//        ),
 
         snvs.fold(
           List.empty[SimpleVariant].validNel[Issue]
