@@ -18,7 +18,7 @@ import cats.data.Ior
 import de.bwhc.util.spi._
 import de.bwhc.util.Logging
 import de.bwhc.util.data.ClosedInterval
-import de.bwhc.util.syntax.piping._
+import de.bwhc.util.data.LeftClosedInterval
 import de.bwhc.util.data.Validation._
 import de.bwhc.util.data.Validation.dsl._
 //import de.ekut.tbi.validation._
@@ -762,7 +762,7 @@ extends Logging
 
       val brcanessRange = ClosedInterval(0.0 -> 1.0)
 //      val msiRange      = ClosedInterval(0.0 -> 2.0)
-      val msiRange      = ClosedInterval(0.0 -> Double.PositiveInfinity)
+      val msiRange      = LeftClosedInterval(0.0)
       val tmbRange      = ClosedInterval(0.0 -> 1e6)  // TMB in mut/MBase, so [0,1000000]
 
       val expectedMethod = TumorCellContent.Method.Bioinformatic
