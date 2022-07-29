@@ -146,7 +146,7 @@ trait mappings
               case Medication.System.ATC => 
                 (
                  for {
-                   version <- coding.version.map(_.toInt).map(Year.of)                  
+                   version <- coding.version
                    med     <- medications.findWithCode(coding.code.value,version)
                    clss    <- med.parent.flatMap(medications.find(_,version))
                  } yield s"${med.name} (Klasse: ${clss.name})"
@@ -180,7 +180,7 @@ trait mappings
               case Medication.System.ATC => {
                 (
                  for {
-                   version <- coding.version.map(_.toInt).map(Year.of)
+                   version <- coding.version
                    med     <- medications.findWithCode(coding.code.value,version)
                    clss    =  med.parent.flatMap(medications.find(_,version))
                  } yield {

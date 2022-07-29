@@ -1,7 +1,7 @@
 package de.bwhc.mtb.data.entry.impl
 
 
-import java.time.{LocalDate,YearMonth,Year}
+import java.time.{LocalDate,YearMonth}
 import java.time.temporal.Temporal
 
 import scala.util.{Either,Left,Right}
@@ -225,18 +225,12 @@ extends Logging
 
       version mustBe defined otherwise (
         Error("Fehlende ICD-10-GM Version") at Location("ICD-10-GM Coding","","Version")
-      ) andThen (
-        v =>
-          attempt(Year.of(v.get.toInt)) otherwise (
-            Error(s"Ungültige ICD-10-GM Version '${v.get}': Muss Jahres-Angabe sein") at Location("ICD-10-GM Coding","","Version")
-          ) andThen (
-            y => y must be (in (catalog.availableVersions)) otherwise (
-              Error(s"Nicht unterstützte ICD-10-GM Version '$y'") at Location("ICD-10-GM Coding","","Version")
-            )
-          )
+      ) map (_.get) andThen (
+        v => v must be (in (catalog.availableVersions)) otherwise (
+          Error(s"ICD-10-GM Version '$v' ist nicht in {${catalog.availableVersions.mkString(", ")}}") at Location("ICD-10-GM Coding","","Version")
+        )
     ) andThen (
       v =>
-//        code must be (in (catalog.codings(v).map(_.code.value))) otherwise (
         catalog.coding(icd.ICD10GM.Code(code),v) mustBe defined otherwise (
           Error(s"Ungültiger ICD-10-GM Code '$code'") at Location("ICD-10-GM Coding","","Code")
         )
@@ -263,7 +257,7 @@ extends Logging
               _ must be (in (years))
             ) map (y => versions(years.indexOf(y)))
           ) otherwise (
-            Error(s"ICD-O-3 Version '$v' ist nicht in {${versions.reduceLeft(_ + ", " + _)}} bzw. {${years.map(_.toString).reduceLeft(_ + ", " + _)}}")
+            Error(s"ICD-O-3 Version '$v' ist nicht in {${versions.mkString(", ")}} bzw. {${years.mkString(", ")}}")
               at Location("ICD-O-3-T Coding","","Version")
           )
       ) andThen (
@@ -328,7 +322,7 @@ extends Logging
           ) 
         ) andThen (
           v => 
-            catalog.findWithCode(code,Year.of(v.toInt)) mustBe defined otherwise (
+            catalog.findWithCode(code,v) mustBe defined otherwise (
               Error(s"Ungültiger ATC Medications-Code '$code'") at Location("Medication Coding","","Code")
             )
         ) map (c => medication)
@@ -414,7 +408,6 @@ extends Logging
 
         medication.filterNot(_.isEmpty) shouldBe defined otherwise (
           Error("Fehlende Angabe: Wirkstoffe") at Location("Leitlinien-Therapie",id,"Medikation")
-//          Warning("Fehlende Angabe: Wirkstoffe") at Location("Leitlinien-Therapie",id,"Medikation")
         ) andThen (
           _.get.validateEach
            .leftMap(_.map(_.copy(location = Location("Leitlinien-Therapie",id,"Medikation"))))
@@ -452,7 +445,6 @@ extends Logging
         
         medication.filterNot(_.isEmpty) shouldBe defined otherwise (
           Error("Fehlende Angabe: Wirkstoffe") at Location("Leitlinien-Therapie",id,"Medikation")
-//          Warning("Fehlende Angabe: Wirkstoffe") at Location("Leitlinien-Therapie",id,"Medikation")
         ) andThen (
           _.get.validateEach
            .leftMap(_.map(_.copy(location = Location("Leitlinien-Therapie",id,"Medikation"))))
@@ -761,7 +753,6 @@ extends Logging
       implicit val reportId = ngs.id
 
       val brcanessRange = ClosedInterval(0.0 -> 1.0)
-//      val msiRange      = ClosedInterval(0.0 -> 2.0)
       val msiRange      = LeftClosedInterval(0.0)
       val tmbRange      = ClosedInterval(0.0 -> 1e6)  // TMB in mut/MBase, so [0,1000000]
 
@@ -1092,7 +1083,6 @@ extends Logging
 
         medication.filterNot(_.isEmpty) shouldBe defined otherwise (
           Error("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
-//          Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
         ) andThen (
           _.get.validateEach
            .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
@@ -1111,7 +1101,6 @@ extends Logging
 
         medication.filterNot(_.isEmpty) shouldBe defined otherwise (
           Error("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
-//          Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
         ) andThen (
           _.get.validateEach
            .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
@@ -1130,7 +1119,6 @@ extends Logging
 
         medication.filterNot(_.isEmpty) shouldBe defined otherwise (
           Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
-//          Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
         ) andThen (
           _.get.validateEach
            .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
