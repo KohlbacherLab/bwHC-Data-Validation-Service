@@ -738,6 +738,10 @@ extends Logging
   }
 
 
+  private val brcanessRange = ClosedInterval(0.0 -> 1.0)
+  private val msiRange      = LeftClosedInterval(0.0)
+  private val tmbRange      = ClosedInterval(0.0 -> 1e6)  // TMB in mut/MegaBase, so [0,1000000]
+
   implicit def ngsReportValidator(
     implicit
     patId: Patient.Id,
@@ -751,10 +755,6 @@ extends Logging
       import SomaticNGSReport._
 
       implicit val reportId = ngs.id
-
-      val brcanessRange = ClosedInterval(0.0 -> 1.0)
-      val msiRange      = LeftClosedInterval(0.0)
-      val tmbRange      = ClosedInterval(0.0 -> 1e6)  // TMB in mut/MBase, so [0,1000000]
 
       val expectedMethod = TumorCellContent.Method.Bioinformatic
 
@@ -789,6 +789,7 @@ extends Logging
         ) andThen (
           opt =>
             opt.get.value must be (in (msiRange)) otherwise (
+//            opt.get.value must be (nonNegative[Double]) otherwise (
               Error(s"MSI Wert '${opt.get.value}' nicht im Referenz-Bereich $msiRange") at Location("Somatischer NGS-Befund",id,"MSI")
             )
         ),

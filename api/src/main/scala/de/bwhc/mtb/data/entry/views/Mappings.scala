@@ -577,6 +577,13 @@ trait mappings
       )
   }
 
+
+  implicit val brcanessToDisplay: BRCAness => BRCAnessDisplay = {
+    brcaness =>
+      BRCAnessDisplay(s"${(brcaness.value * 100).toInt} %")
+  }
+
+
   implicit val ngsReportToView: SomaticNGSReport => NGSReportView = {
     report =>
       NGSReportView(
@@ -587,7 +594,7 @@ trait mappings
         report.sequencingType,
         report.metadata,
         report.tumorCellContent.map(_.mapTo[TumorCellContentDisplay]).toRight(NotAvailable),
-        report.brcaness.toRight(NotAvailable),
+        report.brcaness.map(_.mapTo[BRCAnessDisplay]).toRight(NotAvailable),
         report.msi.toRight(NotAvailable),
         report.tmb.map(_.mapTo[TMBDisplay]).toRight(NotAvailable),
         report.simpleVariants.getOrElse(List.empty[SimpleVariant]).map(_.mapTo[SimpleVariantView]),

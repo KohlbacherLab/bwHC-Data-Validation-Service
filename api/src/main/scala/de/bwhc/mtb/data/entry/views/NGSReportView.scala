@@ -26,6 +26,12 @@ import Variant._
 
 
 
+case class BRCAnessDisplay(value: String) extends AnyVal
+object BRCAnessDisplay
+{
+  implicit val format = Json.valueFormat[BRCAnessDisplay]
+}
+
 case class TMBDisplay(value: String) extends AnyVal
 object TMBDisplay
 {
@@ -146,7 +152,8 @@ final case class NGSReportView
   sequencingType: SomaticNGSReport.SequencingType,
   metadata: List[SomaticNGSReport.MetaData],
   tumorCellContent: NotAvailable Or TumorCellContentDisplay,
-  brcaness: NotAvailable Or BRCAness,
+  brcaness: NotAvailable Or BRCAnessDisplay,
+//  brcaness: NotAvailable Or BRCAness,
   microSatelliteInstabilities: NotAvailable Or MSI,
   tumorMutationalBurden: NotAvailable Or TMBDisplay,
   simpleVariants: List[SimpleVariantView],
