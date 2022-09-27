@@ -168,7 +168,7 @@ extends Logging
         ),
 
         dod map (
-          date => date must be (before (YearMonth.now)) otherwise (
+          date => date must not (be (after (YearMonth.now))) otherwise (
             Error(s"Ungültiges Todesdatum '${date.toISOFormat}': liegt in der Zukunft")
               at Location("Patient",id,"Todesdatum")
           )
