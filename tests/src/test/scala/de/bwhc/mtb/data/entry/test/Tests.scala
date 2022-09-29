@@ -121,7 +121,7 @@ class Tests extends AsyncFlatSpec
 
       response <- service ! Upload(invalidMTBFile)
 
-      ok = response.toOption.value mustBe an [Imported]
+      ok = response.toOption.value mustBe an [IssuesDetected]
 
     } yield ok
 

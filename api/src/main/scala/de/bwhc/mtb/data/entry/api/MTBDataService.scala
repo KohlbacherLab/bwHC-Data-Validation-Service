@@ -105,14 +105,13 @@ object MTBDataService extends SPILoader[MTBDataServiceProvider]
       result: MTBFile,
       timestamp: Instant = Instant.now
     ) extends Response
-  
-/*
+/*  
     final case class AcceptedWithIssues
     (
       result: DataQualityReport,
       timestamp: Instant = Instant.now
     ) extends Response
-*/ 
+*/
 
     final case class IssuesDetected
     (

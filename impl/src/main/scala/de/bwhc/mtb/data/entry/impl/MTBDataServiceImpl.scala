@@ -194,7 +194,7 @@ with Logging
                             db save qcReport
                           }
                         }
-                        .map(_ => Imported(mtbfile).asRight[MTBDataService.Error])
+                        .map(_ => IssuesDetected(qcReport).asRight[MTBDataService.Error])
 
                     }
 

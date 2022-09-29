@@ -789,7 +789,6 @@ extends Logging
         ) andThen (
           opt =>
             opt.get.value must be (in (msiRange)) otherwise (
-//            opt.get.value must be (nonNegative[Double]) otherwise (
               Error(s"MSI Wert '${opt.get.value}' nicht im Referenz-Bereich $msiRange") at Location("Somatischer NGS-Befund",id,"MSI")
             )
         ),
