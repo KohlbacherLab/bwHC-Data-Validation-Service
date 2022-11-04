@@ -80,7 +80,6 @@ lazy val deps = project
     settings,
     libraryDependencies ++= Seq(
       dependencies.repo_utils,
-      dependencies.bwhc_query_api
     )
   )
   .dependsOn(impl)
@@ -128,7 +127,6 @@ lazy val dependencies =
     val hgnc_catalog_impl  = "de.bwhc"           %% "hgnc-impl"               % "1.0-SNAPSHOT" % Test
     val icd_catalogs_impl  = "de.bwhc"           %% "icd-catalogs-impl"       % "1.0-SNAPSHOT" % Test
     val med_catalog_impl   = "de.bwhc"           %% "medication-catalog-impl" % "1.0-SNAPSHOT" % Test
-    val bwhc_query_api     = "de.bwhc"           %% "query-service-api"       % "1.0-SNAPSHOT"
   }
 
 

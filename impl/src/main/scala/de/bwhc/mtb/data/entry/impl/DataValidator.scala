@@ -742,6 +742,22 @@ extends Logging
   private val msiRange      = LeftClosedInterval(0.0)
   private val tmbRange      = ClosedInterval(0.0 -> 1e6)  // TMB in mut/MegaBase, so [0,1000000]
 
+/*  
+  import SomaticNGSReport._
+
+  implicit val brcanessOrdering: Ordering[BRCAness] =
+    Ordering.by(_.value)
+
+  implicit val brcanessValidator: Validator[DataQualityReport.Issue.Builder,BRCAness] = {
+    val referenceRange = ClosedInterval(BRCAness(0.0) -> BRCAness(1.0))
+
+    brcaness =>
+      brcaness must be (in (referenceRange)) otherwise (
+        Error(s"BRCAness Wert '${brcaness.value}' nicht im Referenz-Bereich $referenceRange")
+      )
+  }
+*/
+
   implicit def ngsReportValidator(
     implicit
     patId: Patient.Id,
@@ -783,7 +799,7 @@ extends Logging
               Error(s"BRCAness Wert '${opt.get.value}' nicht im Referenz-Bereich $brcanessRange") at Location("Somatischer NGS-Befund",id,"BRCAness")
             )
         },
-             
+
         msi shouldBe defined otherwise (
           Info("Fehlende Angabe: MSI Wert") at Location("Somatischer NGS-Befund",id,"MSI")
         ) andThen (
