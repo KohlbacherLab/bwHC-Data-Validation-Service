@@ -32,6 +32,7 @@ import de.bwhc.catalogs.icd
 import de.bwhc.catalogs.icd._
 import de.bwhc.catalogs.hgnc.{HGNCGene,HGNCCatalog,HGNCId}
 import de.bwhc.catalogs.med.MedicationCatalog
+import de.bwhc.catalogs.med.Medication.Kind.Substance
 
 
 
@@ -324,7 +325,13 @@ extends Logging
           v => 
             catalog.findWithCode(code,v) mustBe defined otherwise (
               Error(s"Ungültiger ATC Medications-Code '$code'") at Location("Medication Coding","","Code")
+            ) map (_.get) andThen (
+              med =>
+                med.kind must equal (Substance) otherwise (
+                  Error(s"Ungültige ATC-Kodierung '$code': Wirkstoff-Klasse vorgefunden; Wirkstoff erwartet") at Location("Medication Coding","","Code")
+                )
             )
+           
         ) map (c => medication)
       } else {
         log.info(s"By-passing validation on '$system' Medication '$code'")
@@ -583,8 +590,13 @@ extends Logging
           Warning("Fehlende Angabe: Datum") at Location("Histologie-Bericht",id,"Datum")
         ),
 
+        Ior.fromOptions(morphology,tumorContent) mustBe defined otherwise (
+          Error("Histologie-Bericht enthält keine Ergebnis-Befunde! Muss mindestens Tumor-Morphologie-Befund (ICD-O-3-M) und/oder Tumorzellgehalt enthalten")
+            at Location("Histologie-Bericht",id,"")
+        ),
+
         morphology mustBe defined otherwise (
-          Error("Fehlende Angabe: Tumor-Morphologie-Befund (ICD-O-3-M)") at Location("Histologie-Bericht",id,"Tumor-Morphologie")
+          Warning("Fehlende Angabe: Tumor-Morphologie-Befund (ICD-O-3-M)") at Location("Histologie-Bericht",id,"Tumor-Morphologie")
         ) andThen (_.get validate),
 
         tumorContent mustBe defined otherwise (
@@ -599,7 +611,7 @@ extends Logging
               validate(tc)
             )
             .mapN { case _: Product => tc }
-          ),
+          )
       )
       .mapN { case _: Product => histo }
 
@@ -1073,7 +1085,115 @@ extends Logging
 
   }
 
+/*
+final case class MolecularTherapy
+(
+  id: TherapyId,
+  patient: Patient.Id,
+  recordedOn: LocalDate,
+  status: MolecularTherapy.Status.Value,
+  basedOn: TherapyRecommendation.Id,
+  period: Option[Period[LocalDate]],
+  medication: Option[List[Medication.Coding]],
+  dosage: Option[Dosage.Value],
+  //TODO: combine notDoneReason and reasonStopped to 'statusReason'
+  notDoneReason: Option[Coding[MolecularTherapy.NotDoneReason.Value]],
+  reasonStopped: Option[Coding[MolecularTherapy.StopReason.Value]],
+  note: Option[String]
+)
+*/
 
+  implicit def molecularTherapyValidator(
+    implicit
+    patId: Patient.Id,
+    recommendationRefs: Seq[TherapyRecommendation.Id]
+  ): DataQualityValidator[MolecularTherapy] = {
+
+    case th @ MolecularTherapy(TherapyId(id),patient,_,status,basedOn,period,medication,_,notDoneReason,reasonStopped,note) =>
+
+      import MolecularTherapy.Status._
+
+      status match {
+
+        case NotDone =>
+          (
+            patient must be (validReference[Patient.Id](Location("Molekulare Therapie",id,"Petient"))),
+          
+            basedOn must be (validReference(recommendationRefs)(Location("Molekulare Therapie",id,"Therapie-Empfehlung"))),
+
+            notDoneReason mustBe defined otherwise (
+              Warning("Fehlende Angabe: Nicht-Umsetzungsgrund") at Location("Molekulare Therapie",id,"Therapie-Empfehlung")
+            )
+
+          )
+          .mapN { case _: Product => th }
+
+
+        case Stopped =>
+          (
+            patient must be (validReference[Patient.Id](Location("Molekulare Therapie",id,"Patient"))),
+          
+            basedOn must be (validReference(recommendationRefs)(Location("Molekulare Therapie",id,"Therapie-Empfehlung"))),
+          
+            period mustBe defined otherwise (Error("Fehlende Angabe: Zeitraum") at Location("Molekulare Therapie",id,"Therapie-Empfehlung")),
+
+            medication.filterNot(_.isEmpty) shouldBe defined otherwise (
+              Error("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
+            ) map (_.get) andThen (
+              _.validateEach
+               .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
+            ),      
+          
+            reasonStopped mustBe defined otherwise (
+              Warning("Fehlende Angabe: Abbruchsgrund") at Location("Molekulare Therapie",id,"Therapie-Empfehlung")
+            )
+          )
+          .mapN { case _: Product => th }
+
+
+        case Completed =>
+        
+          (
+            patient must be (validReference[Patient.Id](Location("Molekulare Therapie",id,"Patient"))),
+        
+            basedOn must be (validReference(recommendationRefs)(Location("Molekulare Therapie",id,"Therapie-Empfehlung"))),
+        
+            period mustBe defined otherwise (Error("Fehlende Angabe: Zeitraum") at Location("Molekulare Therapie",id,"Therapie-Empfehlung")),
+
+            medication.filterNot(_.isEmpty) shouldBe defined otherwise (
+              Error("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
+            ) map (_.get) andThen (
+              _.validateEach
+               .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
+            )
+        
+          )
+          .mapN { case _: Product => th }
+
+
+        case Ongoing =>
+        
+          (
+            patient must be (validReference[Patient.Id](Location("Molekulare Therapie",id,"Patient"))),
+        
+            basedOn must be (validReference(recommendationRefs)(Location("Molekulare Therapie",id,"Therapie-Empfehlung"))),
+        
+            period mustBe defined otherwise (Error("Fehlende Angabe: Zeitraum") at Location("Molekulare Therapie",id,"Therapie-Empfehlung")),
+
+            medication.filterNot(_.isEmpty) shouldBe defined otherwise (
+              Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
+            ) map (_.get) andThen (
+              _.validateEach
+               .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
+            ),      
+        
+          )
+          .mapN { case _: Product => th }
+
+    }
+  }
+
+/*
   implicit def molecularTherapyValidator(
     implicit
     patId: Patient.Id,
@@ -1144,7 +1264,7 @@ extends Logging
       .mapN { case _: Product => th }
 
   }
-
+*/
 
   implicit def reponseValidator(
     implicit

@@ -30,7 +30,7 @@ object LevelOfEvidenceDisplay
 case class SupportingVariantDisplay(value: String) extends AnyVal
 object SupportingVariantDisplay
 {
-  implicit val format = Json.valueWrites[SupportingVariantDisplay]
+  implicit val format = Json.valueFormat[SupportingVariantDisplay]
 }
 
 

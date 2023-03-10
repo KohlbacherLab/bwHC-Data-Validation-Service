@@ -619,7 +619,7 @@ trait mappings
     v => 
       val repr = v match {
         case snv: SimpleVariant =>
-          s"SNV ${snv.gene.flatMap(_.symbol.map(_.value)).getOrElse("Gene undefined")} ${snv.dnaChange.map(_.code.value).getOrElse("cDNA change undefined")}"
+          s"SNV ${snv.gene.flatMap(_.symbol.map(_.value)).getOrElse("Gene undefined")} ${snv.aminoAcidChange.map(_.code.value).getOrElse("Protein change undefined")}"
       
         case cnv: CNV => {
           val genes =
@@ -818,6 +818,59 @@ trait mappings
     val response = resp.map(_.mapTo[ResponseDisplay]).toRight(NotAvailable)
     val progressionDate = resp.filter(_.value.code == RECIST.PD).map(_.effectiveDate).toRight(Undefined)
 
+    val (medication,medicationClasses) =
+      molTh.medication
+        .map(_.mapTo[(MedicationDisplay,MedicationDisplay)]).unzip
+ 
+    MolecularTherapyView(
+      molTh.id,
+      molTh.patient,
+      icd10,
+      status,
+      molTh.recordedOn,
+      molTh.basedOn,
+      priority,
+      levelOfEvidence,
+      molTh.period.map(_.mapTo[PeriodDisplay[LocalDate]]).toRight(NotAvailable),
+      molTh.notDoneReason.map(_.code).flatMap(ValueSet[MolecularTherapy.NotDoneReason.Value].displayOf).toRight(NotAvailable),
+      medication.toRight(NotAvailable),
+      medicationClasses.toRight(NotAvailable),
+      suppVariantDisplay,
+      molTh.reasonStopped.map(_.code).flatMap(ValueSet[MolecularTherapy.StopReason.Value].displayOf).toRight(NotAvailable),
+      molTh.dosage.toRight(NotAvailable),
+      note,
+      response,
+      progressionDate
+    )
+  }
+
+/*  
+  implicit val molecularTherapyToView:
+  (
+   (
+    MolecularTherapy,
+    Option[Diagnosis],
+    List[TherapyRecommendation],
+    List[Variant],
+    Option[Response]
+   )
+  ) => MolecularTherapyView = {
+
+    case (molTh,diag,recs,variants,resp) =>
+
+    val recommendation = recs.find(_.id == molTh.basedOn)
+    val status   = ValueSet[MolecularTherapy.Status.Value].displayOf(molTh.status).get
+    val note     = molTh.note.getOrElse("-")
+    val icd10    = diag.flatMap(_.icd10.map(_.mapTo[ICD10Display])).toRight(NotAvailable)
+    val priority = recommendation.flatMap(_.priority).toRight(NotAvailable)
+    val levelOfEvidence = recommendation.flatMap(_.levelOfEvidence).map(_.grading.code).toRight(NotAvailable)
+
+    val supportingVariants = recommendation.flatMap(_.supportingVariants).getOrElse(List.empty[Variant.Id])
+    val suppVariantDisplay = variants.filter(v => supportingVariants contains v.id).map(_.mapTo[SupportingVariantDisplay])
+
+    val response = resp.map(_.mapTo[ResponseDisplay]).toRight(NotAvailable)
+    val progressionDate = resp.filter(_.value.code == RECIST.PD).map(_.effectiveDate).toRight(Undefined)
+
     molTh match { 
  
       case th: NotDoneTherapy => 
@@ -928,7 +981,7 @@ trait mappings
     }
 
   }
-
+*/
 
   implicit val molecularTherapiesToView:
   (

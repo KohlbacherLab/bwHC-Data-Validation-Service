@@ -3,8 +3,7 @@ package de.bwhc.mtb.data.entry.dtos
 
 
 import java.time.temporal.Temporal
-
-import play.api.libs.json.{Format,Json}
+import play.api.libs.json.{Format,Json,Reads,Writes}
 
 
 sealed trait Period[T <: Temporal]
@@ -44,3 +43,19 @@ object OpenEndPeriod
     Json.format[OpenEndPeriod[T]]
 }
 
+object Period
+{
+
+  implicit def format[T <: Temporal: Format] =
+    Format[Period[T]](
+      Reads(
+        js =>
+          js.validate[ClosedPeriod[T]]
+            .orElse(js.validate[OpenEndPeriod[T]])
+      ),
+      Writes {
+        case op: OpenEndPeriod[T] => Json.toJson(op)
+        case cl: ClosedPeriod[T]  => Json.toJson(cl)
+      }
+    )
+}

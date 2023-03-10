@@ -3,16 +3,11 @@ package de.bwhc.mtb.data
 
 import java.net.URI
 import java.time.{LocalDate,YearMonth}
-
 import cats.data.NonEmptyList
-
 import de.ekut.tbi.generators.{
   Gen, DateTimeGens
 }
-
-
 import de.bwhc.mtb.data.entry.dtos._
-
 import de.bwhc.util.num._
 
 
@@ -692,7 +687,7 @@ package object gens
   implicit val genDosage: Gen[Dosage.Value] =
     Gen.enum(Dosage)
 
-
+/*
   def genNotDoneTherapyFor(
     rec: TherapyRecommendation
   ): Gen[NotDoneTherapy] =
@@ -750,6 +745,95 @@ package object gens
       dosage  <- Gen.of[Dosage.Value]
       note    =  "Notes on the Therapy..."
     } yield CompletedTherapy(id,patId,date,basedOn,period,meds,Some(dosage),Some(note))
+*/
+
+  def genNotDoneTherapyFor(
+    rec: TherapyRecommendation
+  ): Gen[MolecularTherapy] =
+    for {
+      id      <- Gen.of[TherapyId] 
+      reason  <- Gen.enum(MolecularTherapy.NotDoneReason).map(Coding(_,None))
+    } yield
+      MolecularTherapy(
+        id,
+        rec.patient,
+        LocalDate.now,
+        MolecularTherapy.Status.NotDone,
+        rec.id,
+        None,
+        None,
+        None,
+        Some(reason),
+        None,
+        Some("Notes on the Therapy...")
+      )
+
+
+  def genStoppedTherapyFor(
+    rec: TherapyRecommendation
+  ): Gen[MolecularTherapy] =
+    for {
+      id      <- Gen.of[TherapyId] 
+      dosage  <- Gen.of[Dosage.Value]
+      reason  <- Gen.enum(MolecularTherapy.StopReason).map(Coding(_,None))
+    } yield
+      MolecularTherapy(
+        id,
+        rec.patient,
+        LocalDate.now,
+        MolecularTherapy.Status.Stopped,
+        rec.id,
+        Some(ClosedPeriod(LocalDate.now,LocalDate.now)),
+        rec.medication,
+        Some(dosage),
+        None,
+        Some(reason),
+        Some("Notes on the Therapy...")
+      )
+
+
+  def genOngoingTherapyFor(
+    rec: TherapyRecommendation
+  ): Gen[MolecularTherapy] =
+    for {
+      id      <- Gen.of[TherapyId] 
+      dosage  <- Gen.of[Dosage.Value]
+    } yield
+      MolecularTherapy(
+        id,
+        rec.patient,
+        LocalDate.now,
+        MolecularTherapy.Status.Ongoing,
+        rec.id,
+        Some(OpenEndPeriod(LocalDate.now)),
+        rec.medication,
+        Some(dosage),
+        None,
+        None,
+        Some("Notes on the Therapy...")
+      )
+
+
+  def genCompletedTherapyFor(
+    rec: TherapyRecommendation
+  ): Gen[MolecularTherapy] =
+    for {
+      id      <- Gen.of[TherapyId] 
+      dosage  <- Gen.of[Dosage.Value]
+    } yield
+      MolecularTherapy(
+        id,
+        rec.patient,
+        LocalDate.now,
+        MolecularTherapy.Status.Completed,
+        rec.id,
+        Some(ClosedPeriod(LocalDate.now,LocalDate.now)),
+        rec.medication,
+        Some(dosage),
+        None,
+        None,
+        Some("Notes on the Therapy...")
+      )
 
 
 /*
@@ -780,8 +864,7 @@ package object gens
           case Stopped   => genStoppedTherapyFor(rec)
           case Completed => genCompletedTherapyFor(rec)
         }
-      seq     =  List(th)
-    } yield MolecularTherapyDocumentation(seq)
+    } yield MolecularTherapyDocumentation(List(th))
 
   }
 

@@ -3,22 +3,14 @@ package de.bwhc.mtb.data.entry.test
 
 
 import scala.util.{Either,Left,Right}
-
 import scala.concurrent.{
   ExecutionContext,
   Future
 }
-
 import de.bwhc.util.Logging
-
 import de.bwhc.mtb.data.entry.impl.{
   QueryServiceProxy,
   QueryServiceProxyProvider
-}
-
-import de.bwhc.mtb.query.api.{
-  QueryService,
-  DataOps
 }
 
 

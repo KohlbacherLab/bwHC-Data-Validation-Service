@@ -78,7 +78,7 @@ object MolecularTherapy
     implicit val system = Coding.System[StopReason.Value]("MTB-CDS:MolecularTherapy:StopReason")
   }
 
-
+/*
   implicit val formatNotDoneTherapy   = Json.format[NotDoneTherapy]
   implicit val formatOngoingTherapy   = Json.format[OngoingTherapy]
   implicit val formatStoppedTherapy   = Json.format[StoppedTherapy]
@@ -109,10 +109,29 @@ object MolecularTherapy
           js.as[JsObject] + ("status" -> Json.toJson(mth.status))
       }
     )
-
+*/
+  implicit val format = Json.format[MolecularTherapy]
 }
 
 
+final case class MolecularTherapy
+(
+  id: TherapyId,
+  patient: Patient.Id,
+  recordedOn: LocalDate,
+  status: MolecularTherapy.Status.Value,
+  basedOn: TherapyRecommendation.Id,
+  period: Option[Period[LocalDate]],
+  medication: Option[List[Medication.Coding]],
+  dosage: Option[Dosage.Value],
+  //TODO: combine notDoneReason and reasonStopped to 'statusReason'
+  notDoneReason: Option[Coding[MolecularTherapy.NotDoneReason.Value]],
+  reasonStopped: Option[Coding[MolecularTherapy.StopReason.Value]],
+  note: Option[String]
+)
+
+
+/*
 sealed trait MolecularTherapy
 {
   val id: TherapyId
@@ -197,7 +216,7 @@ extends StartedMolecularTherapy
 {
   val status = MolecularTherapy.Status.Ongoing
 }
-
+*/
 
 case class MolecularTherapyDocumentation
 (
