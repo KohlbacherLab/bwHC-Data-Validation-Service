@@ -472,6 +472,7 @@ trait mappings
   implicit val simpleVariantToView: SimpleVariant => SimpleVariantView = {
     sv =>
       SimpleVariantView(
+        sv.patient,
         sv.chromosome,
         sv.gene.map(_.mapTo[GeneDisplay]).toRight(NotAvailable),
         sv.startEnd.mapTo[StartEndDisplay],
@@ -491,6 +492,7 @@ trait mappings
   implicit val cnvToView: CNV => CNVView = {
     cnv =>
       CNVView(
+        cnv.patient,
         cnv.chromosome,
         cnv.reportedAffectedGenes
           .flatMap(_.mapTo[Option[GeneDisplay]])
@@ -511,7 +513,8 @@ trait mappings
 
 
   implicit val dnaFusionToView: DNAFusion => DNAFusionView = {
-    case DNAFusion(
+    case fus @ DNAFusion(
+      _,
       _,
       partner5pr,
       partner3pr,
@@ -524,6 +527,7 @@ trait mappings
       val chrPos3pr = partner3pr.map(p => s"${p.chromosome.value}:${p.position}").getOrElse("-")
 
       DNAFusionView(
+        fus.patient,
         s"$symbol5pr :: $symbol3pr ($chrPos5pr :: $chrPos3pr)",
         numReads.toRight(NotAvailable)
       )
@@ -532,7 +536,8 @@ trait mappings
 
 
   implicit val rnaFusionToView: RNAFusion => RNAFusionView = {
-    case RNAFusion(
+    case fus @ RNAFusion(
+      _,
       _,
       partner5pr,
       partner3pr,
@@ -548,6 +553,7 @@ trait mappings
     val transcriptExon3pr = partner3pr.map(p => s"${p.transcriptId.value}: ${p.exon.value}").getOrElse("-")
 
     RNAFusionView(
+      fus.patient,
       s"$symbol5pr ($transcriptExon5pr) :: $symbol3pr ($transcriptExon3pr)",
       partner5pr.map(_.position).toRight(Intergenic),
       partner5pr.map(_.strand).toRight(Intergenic),
@@ -564,6 +570,7 @@ trait mappings
   implicit val rnaSeqToView: RNASeq => RNASeqView = {
     rnaSeq =>
       RNASeqView(
+        rnaSeq.patient,
         rnaSeq.entrezId,
         rnaSeq.ensemblId,
         rnaSeq.gene.symbol.toRight(NotAvailable),
@@ -627,13 +634,13 @@ trait mappings
                .flatMap(_.map(_.symbol.map(_.value).getOrElse("N/A")).reduceOption(_ + ", " + _))
                .getOrElse("N/A")
       
-          s"CNV [${genes}], ${cnv.`type`}"
+          s"CNV [${genes}] ${cnv.`type`}"
         }
       
-        case DNAFusion(_,dom5pr,dom3pr,_) =>
+        case DNAFusion(_,_,dom5pr,dom3pr,_) =>
           s"DNA-Fusion ${dom5pr.flatMap(_.gene.symbol.map(_.value)).getOrElse("intergenic")} :: ${dom3pr.flatMap(_.gene.symbol.map(_.value)).getOrElse("intergenic")}"
       
-        case RNAFusion(_,dom5pr,dom3pr,_,_,_) =>
+        case RNAFusion(_,_,dom5pr,dom3pr,_,_,_) =>
           s"RNA-Fusion ${dom5pr.flatMap(_.gene.symbol.map(_.value)).getOrElse("intergenic")} :: ${dom3pr.flatMap(_.gene.symbol.map(_.value)).getOrElse("intergenic")}"
       
         case rnaSeq: RNASeq =>
@@ -714,7 +721,7 @@ trait mappings
         carePlan.description.toRight(NotAvailable),
         geneticCounsellingRequest.map(_.reason).toRight(No),
         studyInclusionRequests.map(_.nctNumber.value).reduceLeftOption(_ + ", " + _).map(NCTNumbersDisplay(_)).toRight(NotAvailable),
-        carePlan.noTargetFinding.isEmpty,  // NOTE: Target is available iff 'noTargetFinding' is NOT defined
+        carePlan.noTargetFinding.map(_ => No).toRight(Yes), // NOTE: Target is available iff 'noTargetFinding' is NOT defined
         recommendations.map(rec => (rec,icd10,ecog,variants).mapTo[TherapyRecommendationView]),
         carePlan.rebiopsyRequests.toRight(NotAvailable),
       )

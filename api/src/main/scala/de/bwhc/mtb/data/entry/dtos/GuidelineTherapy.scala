@@ -2,10 +2,7 @@ package de.bwhc.mtb.data.entry.dtos
 
 
 import java.time.LocalDate
-
 import play.api.libs.json.Json
-
-import de.bwhc.util.json._
 
 
 
@@ -48,7 +45,6 @@ sealed trait GuidelineTherapy
   val patient: Patient.Id
   val diagnosis: Diagnosis.Id
   val therapyLine: Option[TherapyLine]
-//  val medication: Option[List[Coding[Medication]]]
   val medication: Option[List[Medication.Coding]]
 }
 
@@ -59,7 +55,6 @@ case class PreviousGuidelineTherapy
   patient: Patient.Id,
   diagnosis: Diagnosis.Id,
   therapyLine: Option[TherapyLine],
-//  medication: Option[List[Coding[Medication]]]
   medication: Option[List[Medication.Coding]]
 )
 extends GuidelineTherapy
@@ -77,7 +72,6 @@ case class LastGuidelineTherapy
   diagnosis: Diagnosis.Id,
   therapyLine: Option[TherapyLine],
   period: Option[OpenEndPeriod[LocalDate]],
-//  medication: Option[List[Coding[Medication]]],
   medication: Option[List[Medication.Coding]],
   reasonStopped: Option[Coding[GuidelineTherapy.StopReason.Value]]
 )

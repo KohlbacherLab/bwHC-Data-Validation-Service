@@ -55,6 +55,7 @@ object StartEndDisplay
 
 final case class SimpleVariantView
 (
+  patient: Option[Patient.Id],
   chromosome: Chromosome,
   gene: NotAvailable Or GeneDisplay,
   startEnd: StartEndDisplay,
@@ -76,6 +77,7 @@ object SimpleVariantView
 
 final case class CNVView
 (
+  patient: Option[Patient.Id],
   chromosome: Chromosome,
   reportedAffectedGenes: NotAvailable Or GeneDisplay,
   startRange: StartEndDisplay,
@@ -96,6 +98,7 @@ object CNVView
 
 final case class DNAFusionView
 (
+  patient: Option[Patient.Id],
   representation: String,
   reportedNumReads: NotAvailable Or Int
 )
@@ -107,6 +110,7 @@ object DNAFusionView
 
 final case class RNAFusionView
 (
+  patient: Option[Patient.Id],
   representation: String,
   position5pr: Intergenic Or RNAFusion.TranscriptPosition,
   strand5pr: Intergenic Or RNAFusion.Strand.Value,
@@ -124,6 +128,7 @@ object RNAFusionView
 
 final case class RNASeqView
 (
+  patient: Option[Patient.Id],
   entrezId: Gene.EntrezId,
   ensemblId: Gene.EnsemblId,
   gene: NotAvailable Or Gene.Symbol,

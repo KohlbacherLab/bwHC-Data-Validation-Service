@@ -304,7 +304,7 @@ package object gens
       interpr   <- Gen.of[Coding[Interpretation]]
       id        <- Gen.uuidStrings.map(u => s"SNV_$u").map(Variant.Id)
     } yield SimpleVariant(
-      id,chr,Some(gene),se,refAllele,altAllele,Some(dnaChg),Some(aaChg),
+      id,None,chr,Some(gene),se,refAllele,altAllele,Some(dnaChg),Some(aaChg),
       readDpth,allelicFreq,Some(cosmicId),Some(dbSNPId),interpr
     )
 
@@ -325,7 +325,7 @@ package object gens
                       s"CNV_${genes.map(_.symbol.get.value).reduceLeft(_ + "_" + _)}_${typ.toString}"
                     ) 
     } yield CNV(
-      id,chr,startRange,endRange,Some(totalCN),Some(relCN),Some(cnA),Some(cnB),
+      id,None,chr,startRange,endRange,Some(totalCN),Some(relCN),Some(cnA),Some(cnB),
       Some(genes),Some(focality),typ,Some(lohGenes)
     )
 
@@ -345,7 +345,7 @@ package object gens
       p3pr  <- Gen.of[DNAFusion.Partner]
       reads <- Gen.intsBetween(20,50)
       id    =  Variant.Id(s"DNAFusion_${p5pr.gene.symbol.get.value}_${p3pr.gene.symbol.get.value}") 
-    } yield DNAFusion(id,Some(p5pr),Some(p3pr),Some(reads))
+    } yield DNAFusion(id,None,Some(p5pr),Some(p3pr),Some(reads))
 
 
   implicit val genRNAFusionPartner: Gen[RNAFusion.Partner] = {
@@ -369,7 +369,7 @@ package object gens
       cosmicId <- Gen.of[CosmicId]
       reads    <- Gen.intsBetween(20,50)
       id       =  Variant.Id(s"RNAFusion_${p5pr.gene.symbol.get.value}_${p3pr.gene.symbol.get.value}") 
-    } yield RNAFusion(id,Some(p5pr),Some(p3pr),Some(effect),Some(cosmicId),Some(reads))
+    } yield RNAFusion(id,None,Some(p5pr),Some(p3pr),Some(effect),Some(cosmicId),Some(reads))
 
 
 
@@ -388,7 +388,7 @@ package object gens
       id            =  Variant.Id(s"RNASeq_${entrezId.value}")
  
     } yield RNASeq(
-      id,entrezId,ensemblId,gene,transcript,fpkm,fromNGS,tsCorrExp,
+      id,None,entrezId,ensemblId,gene,transcript,fpkm,fromNGS,tsCorrExp,
       rawCounts,librarySize,Some(cohortRanking)
     )
 
@@ -487,6 +487,7 @@ package object gens
 
   implicit val genMedications: Gen[List[Medication.Coding]] =
     Gen.list(Gen.intsBetween(1,4), Gen.of[Medication.Coding])
+      .map(_.distinctBy(_.code))
 
 
 
@@ -763,6 +764,7 @@ package object gens
         None,
         None,
         None,
+        None,
         Some(reason),
         None,
         Some("Notes on the Therapy...")
@@ -783,6 +785,7 @@ package object gens
         LocalDate.now,
         MolecularTherapy.Status.Stopped,
         rec.id,
+        None,
         Some(ClosedPeriod(LocalDate.now,LocalDate.now)),
         rec.medication,
         Some(dosage),
@@ -805,6 +808,7 @@ package object gens
         LocalDate.now,
         MolecularTherapy.Status.Ongoing,
         rec.id,
+        None,
         Some(OpenEndPeriod(LocalDate.now)),
         rec.medication,
         Some(dosage),
@@ -827,6 +831,7 @@ package object gens
         LocalDate.now,
         MolecularTherapy.Status.Completed,
         rec.id,
+        None,
         Some(ClosedPeriod(LocalDate.now,LocalDate.now)),
         rec.medication,
         Some(dosage),

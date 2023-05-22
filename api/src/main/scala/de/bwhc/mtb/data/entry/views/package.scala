@@ -53,12 +53,12 @@ package object views
     implicit val format = Writes { (n: No) => JsString("Nein") }
   }
 
-
+/*
   import scala.language.implicitConversions
 
   implicit def yesOrNofromBoolean(b: Boolean): Yes Or No =
     if (true) Yes.asLeft[No] else No.asRight[Yes]
-
+*/
 
 
 

@@ -2,12 +2,7 @@ package de.bwhc.mtb.data.entry.dtos
 
 
 import java.time.LocalDate
-
-
 import play.api.libs.json.Json
-
-import de.bwhc.util.json._
-
 
 
 case class LevelOfEvidence

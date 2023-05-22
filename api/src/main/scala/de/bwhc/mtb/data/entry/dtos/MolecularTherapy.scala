@@ -2,12 +2,8 @@ package de.bwhc.mtb.data.entry.dtos
 
 
 import java.time.LocalDate
-
-
 import cats.data.NonEmptyList
-
 import play.api.libs.json._
-import de.bwhc.util.json._
 
 
 object Dosage extends Enumeration
@@ -78,38 +74,6 @@ object MolecularTherapy
     implicit val system = Coding.System[StopReason.Value]("MTB-CDS:MolecularTherapy:StopReason")
   }
 
-/*
-  implicit val formatNotDoneTherapy   = Json.format[NotDoneTherapy]
-  implicit val formatOngoingTherapy   = Json.format[OngoingTherapy]
-  implicit val formatStoppedTherapy   = Json.format[StoppedTherapy]
-  implicit val formatCompletedTherapy = Json.format[CompletedTherapy]
-
-  import MolecularTherapy.Status._
-
-  implicit val format: Format[MolecularTherapy] =
-    Format[MolecularTherapy](
-      Reads(js =>
-        (js \ "status")
-          .validate[MolecularTherapy.Status.Value]
-          .flatMap {
-            case NotDone   => js.validate[NotDoneTherapy]
-            case Stopped   => js.validate[StoppedTherapy]
-            case Completed => js.validate[CompletedTherapy]
-            case Ongoing   => js.validate[OngoingTherapy]
-          }
-      ),
-      Writes {
-        mth =>
-          val js = mth match {
-            case th: NotDoneTherapy   => Json.toJson(th)
-            case th: StoppedTherapy   => Json.toJson(th)
-            case th: CompletedTherapy => Json.toJson(th)
-            case th: OngoingTherapy   => Json.toJson(th)
-          }
-          js.as[JsObject] + ("status" -> Json.toJson(mth.status))
-      }
-    )
-*/
   implicit val format = Json.format[MolecularTherapy]
 }
 
@@ -121,6 +85,7 @@ final case class MolecularTherapy
   recordedOn: LocalDate,
   status: MolecularTherapy.Status.Value,
   basedOn: TherapyRecommendation.Id,
+  reason: Option[Coding[ICD10GM]],
   period: Option[Period[LocalDate]],
   medication: Option[List[Medication.Coding]],
   dosage: Option[Dosage.Value],
@@ -130,93 +95,6 @@ final case class MolecularTherapy
   note: Option[String]
 )
 
-
-/*
-sealed trait MolecularTherapy
-{
-  val id: TherapyId
-  val patient: Patient.Id
-  val status: MolecularTherapy.Status.Value
-  val recordedOn: LocalDate
-  val basedOn: TherapyRecommendation.Id
-  val note: Option[String]
-}
-
-sealed trait StartedMolecularTherapy extends MolecularTherapy
-{
-  val medication: Option[List[Medication.Coding]]
-  val period: Period[LocalDate]
-}
-
-final case class NotDoneTherapy
-(
-  id: TherapyId,
-  patient: Patient.Id,
-  recordedOn: LocalDate,
-  basedOn: TherapyRecommendation.Id,
-  notDoneReason: Coding[MolecularTherapy.NotDoneReason.Value],
-  note: Option[String]
-)
-  extends MolecularTherapy
-{
-  val status = MolecularTherapy.Status.NotDone
-}
-
-
-final case class StoppedTherapy
-(
-  id: TherapyId,
-  patient: Patient.Id,
-  recordedOn: LocalDate,
-  basedOn: TherapyRecommendation.Id,
-  period: ClosedPeriod[LocalDate],
-  medication: Option[List[Medication.Coding]],
-  dosage: Option[Dosage.Value],
-  reasonStopped: Coding[MolecularTherapy.StopReason.Value],
-  note: Option[String]
-)
-//extends MolecularTherapy
-extends StartedMolecularTherapy
-{
-  val status = MolecularTherapy.Status.Stopped
-}
-
-
-final case class CompletedTherapy
-(
-  id: TherapyId,
-  patient: Patient.Id,
-  recordedOn: LocalDate,
-  basedOn: TherapyRecommendation.Id,
-  period: ClosedPeriod[LocalDate],
-  medication: Option[List[Medication.Coding]],
-  dosage: Option[Dosage.Value],
-  note: Option[String]
-)
-//extends MolecularTherapy
-extends StartedMolecularTherapy
-{
-  val status = MolecularTherapy.Status.Completed
-}
-
-
-final case class OngoingTherapy
-(
-  id: TherapyId,
-  patient: Patient.Id,
-  recordedOn: LocalDate,
-  basedOn: TherapyRecommendation.Id,
-  period: OpenEndPeriod[LocalDate],
-  medication: Option[List[Medication.Coding]],
-  dosage: Option[Dosage.Value],
-  note: Option[String]
-)
-//extends MolecularTherapy
-extends StartedMolecularTherapy
-{
-  val status = MolecularTherapy.Status.Ongoing
-}
-*/
 
 case class MolecularTherapyDocumentation
 (

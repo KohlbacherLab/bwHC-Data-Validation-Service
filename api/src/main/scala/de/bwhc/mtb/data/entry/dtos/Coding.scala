@@ -39,13 +39,6 @@ object Coding
   ): Coding[C] =
     Coding(code,ValueSet[C].displayOf(code))
     
-/* 
-  implicit def ordering[C](implicit ord: Ordering[C]): Ordering[Coding[C]] =
-    new Ordering[Coding[C]]{
-      override def compare(x: Coding[C], y: Coding[C]): Int =
-        ord.compare(x.code,y.code)
-    }
-*/
 
   @annotation.implicitNotFound("Couldn't find Coding.System instance for ${C}")
   sealed trait System[C]{

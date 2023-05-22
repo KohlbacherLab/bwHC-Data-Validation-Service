@@ -6,11 +6,7 @@ import play.api.libs.json.{
   Json,JsError,JsString,JsSuccess,
   Format,Reads,Writes
 }
-
-
 import cats.data.NonEmptyList
-
-import de.bwhc.util.data.Interval
 
 
 
@@ -68,6 +64,7 @@ object Gene
 sealed abstract class Variant
 {
   val id: Variant.Id
+  val patient: Option[Patient.Id]
 }
 
 object Variant
@@ -125,6 +122,7 @@ import Variant._
 case class SimpleVariant
 (
   id: Variant.Id,
+  patient: Option[Patient.Id],
   chromosome: Chromosome,
   gene: Option[Gene.Coding],
   startEnd: StartEnd,
@@ -173,6 +171,7 @@ object SimpleVariant
 final case class CNV
 (
   id: Variant.Id,
+  patient: Option[Patient.Id],
   chromosome: Chromosome,
   startRange: StartEnd,
   endRange: StartEnd,
@@ -225,6 +224,7 @@ final case object Intergenic extends Intergenic
 final case class DNAFusion
 (
   id: Variant.Id,
+  patient: Option[Patient.Id],
   fusionPartner5prime: Option[DNAFusion.Partner],
   fusionPartner3prime: Option[DNAFusion.Partner],
   reportedNumReads: Option[Int]
@@ -251,6 +251,7 @@ object DNAFusion
 final case class RNAFusion
 (
   id: Variant.Id,
+  patient: Option[Patient.Id],
   fusionPartner5prime: Option[RNAFusion.Partner],
   fusionPartner3prime: Option[RNAFusion.Partner],
   effect: Option[RNAFusion.Effect],
@@ -305,6 +306,7 @@ object RNAFusion
 final case class RNASeq
 (
   id: Variant.Id,
+  patient: Option[Patient.Id],
   entrezId: Gene.EntrezId,
   ensemblId: Gene.EnsemblId,
   gene: Gene.Coding,

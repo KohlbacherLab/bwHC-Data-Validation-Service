@@ -341,6 +341,12 @@ extends Logging
 
   }
 
+ 
+  private def notDuplicated(loc: => Location): DataQualityValidator[List[Medication.Coding]] =
+    meds => meds.distinctBy(_.code).size must equal (meds.size) otherwise (
+      Warning("Medikations-Liste enthält Duplikate") at loc
+    ) map (_ => meds)
+
 
   implicit def diagnosisValidator(
     implicit
@@ -420,6 +426,8 @@ extends Logging
            .leftMap(_.map(_.copy(location = Location("Leitlinien-Therapie",id,"Medikation"))))
         ),
         
+        ifDefined (medication) ensureThat { _ is notDuplicated(Location("Leitlinien-Therapie",id,"Medikation")) }
+        
       )
       .mapN { case _: Product => th }
   }
@@ -454,8 +462,10 @@ extends Logging
           Error("Fehlende Angabe: Wirkstoffe") at Location("Leitlinien-Therapie",id,"Medikation")
         ) andThen (
           _.get.validateEach
-           .leftMap(_.map(_.copy(location = Location("Leitlinien-Therapie",id,"Medikation"))))
+           .leftMap(_.map(_.copy(location = Location("Letzte Leitlinien-Therapie",id,"Medikation"))))
         ),      
+
+        ifDefined (medication) ensureThat { _ is notDuplicated(Location("Letzte Leitlinien-Therapie",id,"Medikation")) },
 
         reasonStopped shouldBe defined otherwise (
           Warning("Fehlende Angabe: Abbruchsgrund") at Location("Letzte Leitlinien-Therapie",id,"Abbruchsgrund")
@@ -502,7 +512,7 @@ extends Logging
         validate(icd10) andThen (
           icd =>
             icd.code must be (in (icd10codes)) otherwise (
-              Fatal(s"Ungültige Referenz auf Entität ${icd.code.value}") at Location("Tumor-Probe",id,"Entität")
+              Warning(s"Entität ${icd.code.value} konnte nicht unter den kodierten Diagnosen aufgelöst werden") at Location("Tumor-Probe",id,"Entität")
             )
         ),
   
@@ -925,6 +935,8 @@ extends Logging
            .leftMap(_.map(_.copy(location = Location("Therapie-Empfehlung",id,"Medikation"))))
         ),      
 
+        ifDefined (medication) ensureThat { _ is notDuplicated(Location("Therapie-Empfehlung",id,"Medikation")) },
+
         priority shouldBe defined otherwise (
           Warning("Fehlende Angabe: Priorität") at Location("Therapie-Empfehlung",id,"Priorität")
         ),
@@ -1085,23 +1097,6 @@ extends Logging
 
   }
 
-/*
-final case class MolecularTherapy
-(
-  id: TherapyId,
-  patient: Patient.Id,
-  recordedOn: LocalDate,
-  status: MolecularTherapy.Status.Value,
-  basedOn: TherapyRecommendation.Id,
-  period: Option[Period[LocalDate]],
-  medication: Option[List[Medication.Coding]],
-  dosage: Option[Dosage.Value],
-  //TODO: combine notDoneReason and reasonStopped to 'statusReason'
-  notDoneReason: Option[Coding[MolecularTherapy.NotDoneReason.Value]],
-  reasonStopped: Option[Coding[MolecularTherapy.StopReason.Value]],
-  note: Option[String]
-)
-*/
 
   implicit def molecularTherapyValidator(
     implicit
@@ -1109,7 +1104,7 @@ final case class MolecularTherapy
     recommendationRefs: Seq[TherapyRecommendation.Id]
   ): DataQualityValidator[MolecularTherapy] = {
 
-    case th @ MolecularTherapy(TherapyId(id),patient,_,status,basedOn,period,medication,_,notDoneReason,reasonStopped,note) =>
+    case th @ MolecularTherapy(TherapyId(id),patient,_,status,basedOn,_,period,medication,_,notDoneReason,reasonStopped,note) =>
 
       import MolecularTherapy.Status._
 
@@ -1144,6 +1139,8 @@ final case class MolecularTherapy
                .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
             ),      
           
+            ifDefined (medication) ensureThat { _ is notDuplicated(Location("Molekulare Therapie",id,"Medikation")) },
+
             reasonStopped mustBe defined otherwise (
               Warning("Fehlende Angabe: Abbruchsgrund") at Location("Molekulare Therapie",id,"Therapie-Empfehlung")
             )
@@ -1165,7 +1162,9 @@ final case class MolecularTherapy
             ) map (_.get) andThen (
               _.validateEach
                .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
-            )
+            ),
+          
+            ifDefined (medication) ensureThat { _ is notDuplicated(Location("Molekulare Therapie",id,"Medikation")) },
         
           )
           .mapN { case _: Product => th }
@@ -1186,6 +1185,8 @@ final case class MolecularTherapy
               _.validateEach
                .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
             ),      
+          
+            ifDefined (medication) ensureThat { _ is notDuplicated(Location("Molekulare Therapie",id,"Medikation")) },
         
           )
           .mapN { case _: Product => th }
@@ -1193,78 +1194,6 @@ final case class MolecularTherapy
     }
   }
 
-/*
-  implicit def molecularTherapyValidator(
-    implicit
-    patId: Patient.Id,
-    recommendationRefs: Seq[TherapyRecommendation.Id]
-  ): DataQualityValidator[MolecularTherapy] = {
-
-    case th @ NotDoneTherapy(TherapyId(id),patient,recordedOn,basedOn,notDoneReason,note) =>
-
-      (
-        patient must be (validReference[Patient.Id](Location("Molekulare Therapie",id,"Petient"))),
-
-        basedOn must be (validReference(recommendationRefs)(Location("Molekulare Therapie",id,"Therapie-Empfehlung")))
-      )
-      .mapN { case _: Product => th }
-
-
-    case th @ StoppedTherapy(TherapyId(id),patient,_,basedOn,_,medication,_,_,_) =>
-
-      (
-        patient must be (validReference[Patient.Id](Location("Molekulare Therapie",id,"Patient"))),
-
-        basedOn must be (validReference(recommendationRefs)(Location("Molekulare Therapie",id,"Therapie-Empfehlung"))),
-
-        medication.filterNot(_.isEmpty) shouldBe defined otherwise (
-          Error("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
-        ) andThen (
-          _.get.validateEach
-           .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
-        ),      
-
-      )
-      .mapN { case _: Product => th }
-
-
-    case th @ CompletedTherapy(TherapyId(id),patient,_,basedOn,_,medication,_,_) =>
-
-      (
-        patient must be (validReference[Patient.Id](Location("Molekulare Therapie",id,"Patient"))),
-
-        basedOn must be (validReference(recommendationRefs)(Location("Molekulare Therapie",id,"Therapie-Empfehlung"))),
-
-        medication.filterNot(_.isEmpty) shouldBe defined otherwise (
-          Error("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
-        ) andThen (
-          _.get.validateEach
-           .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
-        ),      
-
-      )
-      .mapN { case _: Product => th }
-
-
-    case th @ OngoingTherapy(TherapyId(id),patient,_,basedOn,_,medication,_,_) =>
-
-      (
-        patient must be (validReference[Patient.Id](Location("Molekulare Therapie",id,"Patient"))),
-
-        basedOn must be (validReference(recommendationRefs)(Location("Molekulare Therapie",id,"Therapie-Empfehlung"))),
-
-        medication.filterNot(_.isEmpty) shouldBe defined otherwise (
-          Warning("Fehlende Angabe: Wirkstoffe") at Location("Molekulare Therapie",id,"Medikation")
-        ) andThen (
-          _.get.validateEach
-           .leftMap(_.map(_.copy(location = Location("Molekulare Therapie",id,"Medikation"))))
-        ),      
-
-      )
-      .mapN { case _: Product => th }
-
-  }
-*/
 
   implicit def reponseValidator(
     implicit
