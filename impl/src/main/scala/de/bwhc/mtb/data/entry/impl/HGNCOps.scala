@@ -22,6 +22,9 @@ trait HGNCOps
     .orElse(
       coding.hgncId.flatMap(id => hgnc.gene(HGNCId(id.value)))
     )
+    .orElse(
+      coding.symbol.flatMap(symbol => hgnc.geneWithApprovedSymbol(symbol.value))
+    )
     .map(
       gene =>
         Gene.Coding(
