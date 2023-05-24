@@ -182,6 +182,17 @@ class ValidatorTests extends AnyFlatSpec
       validate(medicationCoding).isValid mustBe true
     }
 
+    it must "work as expected for Unregistered code without version and display" in {
+      val medicationCoding = Medication.Coding.apply(
+        code = Medication.Code("ASS"),
+        system = Medication.System.Unregistered,
+        display = None,
+        version = None
+      )
+
+      validate(medicationCoding).isValid mustBe true
+    }
+
     it must "result in errors for ATC code without version" in {
       val medicationCoding = Medication.Coding.apply(
         code = Medication.Code("N02BA01"),
@@ -204,15 +215,37 @@ class ValidatorTests extends AnyFlatSpec
       validate(medicationCoding).isValid mustBe false
     }
 
-    it must "result in errors for empty unregistered medication code" in {
+    it must "result in errors for blank Unregistered medication code and no display" in {
       val medicationCoding = Medication.Coding.apply(
-        code = Medication.Code(""),
+        code = Medication.Code("  "),
+        system = Medication.System.Unregistered,
+        display = None,
+        version = None
+      )
+
+      validate(medicationCoding).isValid mustBe false
+    }
+
+    it must "result in errors for blank Unregistered medication code and blank display" in {
+      val medicationCoding = Medication.Coding.apply(
+        code = Medication.Code("  "),
+        system = Medication.System.Unregistered,
+        display = Some("  "),
+        version = None
+      )
+
+      validate(medicationCoding).isValid mustBe false
+    }
+
+    it must "work as expected for blank Unregistered medication code but non blank display" in {
+      val medicationCoding = Medication.Coding.apply(
+        code = Medication.Code("  "),
         system = Medication.System.Unregistered,
         display = Some("Whatever"),
         version = None
       )
 
-      validate(medicationCoding).isValid mustBe false
+      validate(medicationCoding).isValid mustBe true
     }
 
 }
