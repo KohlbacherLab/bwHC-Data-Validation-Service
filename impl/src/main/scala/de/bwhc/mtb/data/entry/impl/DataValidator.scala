@@ -341,9 +341,7 @@ extends Logging
         display mustBe defined otherwise (
           Warning(s"Fehlender Medikationsname bei nicht-ATC-Wirkstoff '$code'") at Location("Medication Coding","","Display")
         ) map (c => medication)
-
       }
-
   }
 
  
