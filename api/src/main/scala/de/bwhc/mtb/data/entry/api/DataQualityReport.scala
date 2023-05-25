@@ -9,7 +9,7 @@ import play.api.libs.json._
 
 import de.bwhc.util.json._
 
-import de.bwhc.mtb.data.entry.dtos.Patient
+import de.bwhc.mtb.dtos.Patient
 
 
 

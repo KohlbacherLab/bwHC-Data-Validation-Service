@@ -1,6 +1,6 @@
 package de.bwhc.mtb.data.entry.impl
 
-import de.bwhc.mtb.data.entry.dtos.Gene
+import de.bwhc.mtb.dtos.Gene
 import org.scalatest.funspec.AnyFunSpec
 
 class HGNCOpsTest extends AnyFunSpec {

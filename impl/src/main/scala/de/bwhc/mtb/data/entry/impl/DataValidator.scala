@@ -24,8 +24,8 @@ import de.bwhc.util.data.Validation.dsl._
 //import de.ekut.tbi.validation._
 //import de.ekut.tbi.validation.dsl._
 
-import de.bwhc.mtb.data.entry.dtos
-import de.bwhc.mtb.data.entry.dtos._
+import de.bwhc.mtb.dtos
+import de.bwhc.mtb.dtos._
 import de.bwhc.mtb.data.entry.api.DataQualityReport
 
 import de.bwhc.catalogs.icd
@@ -309,9 +309,9 @@ extends Logging
     catalog: MedicationCatalog
   ): DataQualityValidator[Medication.Coding] = {
 
-    case medication @ Medication.Coding(Medication.Code(code),system,_,version) =>
+    case medication @ Medication.Coding(Medication.Code(code),system,display,version) =>
 
-      val versions = catalog.availableVersions.map(_.toString)
+      lazy val versions = catalog.availableVersions.map(_.toString)
 
       if (system == Medication.System.ATC){
         version mustBe defined otherwise (
@@ -325,17 +325,22 @@ extends Logging
           v => 
             catalog.findWithCode(code,v) mustBe defined otherwise (
               Error(s"Ungültiger ATC Medications-Code '$code'") at Location("Medication Coding","","Code")
-            ) map (_.get) andThen (
+            )
+            /*
+              map (_.get) andThen (
               med =>
                 med.kind must equal (Substance) otherwise (
                   Error(s"Ungültige ATC-Kodierung '$code': Wirkstoff-Klasse vorgefunden; Wirkstoff erwartet") at Location("Medication Coding","","Code")
                 )
-            )
+            )*/
            
         ) map (c => medication)
+
       } else {
-        log.info(s"By-passing validation on '$system' Medication '$code'")
-        medication.validNel[Issue]
+
+        display mustBe defined otherwise (
+          Warning(s"Fehlender Medikationsname bei nicht-ATC-Wirkstoff '$code'") at Location("Medication Coding","","Display")
+        ) map (c => medication)
 
       }
 

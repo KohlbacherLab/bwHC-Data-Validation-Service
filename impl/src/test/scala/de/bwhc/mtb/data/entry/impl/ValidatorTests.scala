@@ -4,16 +4,12 @@ package de.bwhc.mtb.data.entry.impl
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.must.Matchers._
 import org.scalatest.OptionValues._
-
 import cats.data.ValidatedNel
-
 import de.ekut.tbi.generators.Gen
-
-import de.bwhc.mtb.data.entry.dtos._
-import de.bwhc.mtb.data.gens._
+import de.bwhc.mtb.dtos._
+import de.bwhc.mtb.dto.gens._
 import de.bwhc.util.data.Validation.Validator
 import de.bwhc.util.data.Validation.validate
-
 import de.bwhc.mtb.data.entry.api.DataQualityReport.Issue
 import de.bwhc.mtb.data.entry.api.DataQualityReport.Issue.Severity._
 

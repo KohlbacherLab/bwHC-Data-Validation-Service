@@ -13,7 +13,7 @@ import scala.concurrent.{
 import de.bwhc.util.ddd.Event
 import de.bwhc.util.spi._
 
-import de.bwhc.mtb.data.entry.dtos._
+import de.bwhc.mtb.dtos._
 
 
 

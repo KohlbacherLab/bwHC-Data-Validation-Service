@@ -3,7 +3,7 @@ package de.bwhc.mtb.data.entry.impl
 
 import de.bwhc.catalogs.hgnc.{HGNCCatalog,HGNCGene,HGNCId}
 
-import de.bwhc.mtb.data.entry.dtos.Gene
+import de.bwhc.mtb.dtos.Gene
 
 trait HGNCOps
 {

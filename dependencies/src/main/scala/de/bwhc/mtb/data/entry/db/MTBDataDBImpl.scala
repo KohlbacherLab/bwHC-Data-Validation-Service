@@ -2,19 +2,14 @@ package de.bwhc.mtb.data.entry.db
 
 
 import java.io.File
-
 import scala.concurrent.{
   ExecutionContext,
   Future
 }
-
-//import de.ekut.tbi.repo.Repository
-//import de.ekut.tbi.repo.fs.FSBackedRepository
 import de.ekut.tbi.repo.AsyncRepository
 import de.ekut.tbi.repo.fs.AsyncFSBackedRepository
 import de.ekut.tbi.repo.fs.AsyncFSBackedInMemRepository
-
-import de.bwhc.mtb.data.entry.dtos._
+import de.bwhc.mtb.dtos._
 import de.bwhc.mtb.data.entry.api.DataQualityReport
 import de.bwhc.mtb.data.entry.impl.{
   MTBDataDB,
@@ -65,23 +60,6 @@ object MTBDataDBImpl
       _.value
     )
 
-/*
-  private val mtbfileDB: Repository[Future,MTBFile,Patient.Id] =
-    FSBackedRepository(
-      new File(dataDir,"mtbfiles/"),
-      "MTBFile",
-      _.patient.id,
-      _.value
-    )
-
-  private val dataReportDB: Repository[Future,DataQualityReport,Patient.Id] =
-    FSBackedRepository(
-      new File(dataDir,"dataQualityReports/"),
-      "DataQualityReport",
-      _.patient,
-      _.value
-    )
-*/
 
   val instance =
     new MTBDataDBImpl(
@@ -96,8 +74,6 @@ object MTBDataDBImpl
 
 class MTBDataDBImpl
 (
-//  val mtbfileDB: Repository[Future,MTBFile,Patient.Id],
-//  val dataReportDB: Repository[Future,DataQualityReport,Patient.Id],
   val mtbfileDB: AsyncRepository[MTBFile,Patient.Id],
   val patientDB: AsyncRepository[Patient,Patient.Id],
   val dataReportDB: AsyncRepository[DataQualityReport,Patient.Id],
@@ -121,15 +97,6 @@ extends MTBDataDB
     .mapN((_,_) => mtbfile)
   }
 
-/*
-  def save(
-    mtbfile: MTBFile
-  )(
-    implicit ec: ExecutionContext
-  ): Future[MTBFile] = {
-    mtbfileDB.save(mtbfile)
-  }
-*/
 
   def patients(
     implicit ec: ExecutionContext
@@ -137,13 +104,6 @@ extends MTBDataDB
     patientDB.query(_ => true)
   }
 
-/*
-  def mtbfiles(
-    implicit ec: ExecutionContext
-  ): Future[Iterable[MTBFile]] = {
-    mtbfileDB.query(_ => true)
-  }
-*/
 
   def mtbfile(
     id: Patient.Id,

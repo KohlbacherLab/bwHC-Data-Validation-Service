@@ -2,19 +2,15 @@ package de.bwhc.mtb.data.entry.test
 
 
 import java.nio.file.Files.createTempDirectory
-
 import scala.util.Left
 import scala.concurrent.Future
-
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.must.Matchers._
 import org.scalatest.OptionValues._
-
 import de.ekut.tbi.generators.Gen
-
 import de.bwhc.mtb.data.entry.api._
-import de.bwhc.mtb.data.entry.dtos.MTBFile
-import de.bwhc.mtb.data.gens._
+import de.bwhc.mtb.dtos.MTBFile
+import de.bwhc.mtb.dto.gens._
 
 
 object Setup

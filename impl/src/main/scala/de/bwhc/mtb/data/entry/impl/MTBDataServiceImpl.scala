@@ -2,29 +2,34 @@ package de.bwhc.mtb.data.entry.impl
 
 
 import java.time.Instant
-
 import scala.util._
-
 import scala.concurrent.{
   ExecutionContext,
   Future
 }
-
 import cats.data.NonEmptyList
 import cats.data.Validated._
-
 import cats.instances.future._
 import cats.syntax.apply._
 import cats.syntax.either._
-
 import de.bwhc.util.Logging
-
-import de.bwhc.mtb.data.entry.api._
+import de.bwhc.mtb.data.entry.api.{
+  DataQualityReport,
+  MTBDataService,
+  MTBDataServiceProvider,
+  PatientDataInfo
+}
 import DataQualityReport.Issue.Severity
-
-import de.bwhc.mtb.data.entry.dtos._
-import de.bwhc.mtb.data.entry.views.{MTBFileView,NotAvailable}
-import de.bwhc.mtb.data.entry.views.mappings._
+import de.bwhc.mtb.dtos._
+import de.bwhc.mtb.views.{
+  MTBFileView,
+  NotAvailable
+}
+import de.bwhc.mtb.views.mappings._
+import de.bwhc.mtb.query.api.{
+  DataOps,
+  QueryService
+}
 
 
 
@@ -50,7 +55,7 @@ object MTBDataServiceImpl
     MTBDataDB.getInstance.get
 
   private val queryService =
-   QueryServiceProxy.getInstance.get
+   QueryService.getInstance.get
 
 
   private val validator: DataValidator = new DefaultDataValidator
@@ -108,7 +113,7 @@ class MTBDataServiceImpl
   private val localSite: ZPM,
   private val validator: DataValidator,
   private val db: MTBDataDB,
-  private val queryService: QueryServiceProxy
+  private val queryService: QueryService
 )
 extends MTBDataService
 with Logging
@@ -187,7 +192,7 @@ with Logging
 
                       val mtbfilePr = postprocess(mtbfile)
 
-                      (queryService ! QueryServiceProxy.Command.Upload(mtbfilePr))
+                      (queryService ! DataOps.Command.Upload(mtbfilePr))
                         .andThen {
                           case Success(_) => {
                             db save mtbfilePr
@@ -229,7 +234,7 @@ with Logging
 
         (
           db.deleteAll(patId),
-          queryService ! QueryServiceProxy.Command.Delete(patId)
+          queryService ! DataOps.Command.Delete(patId)
         )
         .mapN(
           (_,_) => Deleted(patId).asRight[MTBDataService.Error]
@@ -249,7 +254,7 @@ with Logging
     implicit ec: ExecutionContext
   ): Future[Either[MTBDataService.Error,MTBDataService.Response]] = {
 
-    (queryService ! QueryServiceProxy.Command.Upload(postprocess(mtbfile)))
+    (queryService ! DataOps.Command.Upload(postprocess(mtbfile)))
       .andThen {
         case Success(_) => db deleteAll mtbfile.patient.id
       }

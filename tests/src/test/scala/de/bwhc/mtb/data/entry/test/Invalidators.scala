@@ -1,8 +1,7 @@
 package de.bwhc.mtb.data.entry.test
 
 
-
-import de.bwhc.mtb.data.entry.dtos._
+import de.bwhc.mtb.dtos._
 
 
 object Invalidators

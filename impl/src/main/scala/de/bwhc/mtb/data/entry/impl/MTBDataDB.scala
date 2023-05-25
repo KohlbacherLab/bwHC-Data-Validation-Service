@@ -9,7 +9,7 @@ import scala.concurrent.{
 
 import de.bwhc.util.spi._
 
-import de.bwhc.mtb.data.entry.dtos._
+import de.bwhc.mtb.dtos._
 import de.bwhc.mtb.data.entry.api.DataQualityReport
 
 

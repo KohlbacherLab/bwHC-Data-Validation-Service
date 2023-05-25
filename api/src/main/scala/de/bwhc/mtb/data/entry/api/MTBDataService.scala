@@ -16,13 +16,13 @@ import de.bwhc.util.ddd.Event
 import de.bwhc.util.spi._
 import de.bwhc.util.json._
 
-import de.bwhc.mtb.data.entry.dtos.{
+import de.bwhc.mtb.dtos.{
   Patient,
   Gender,
   MTBFile
 }
 
-import de.bwhc.mtb.data.entry.views.MTBFileView
+import de.bwhc.mtb.views.MTBFileView
 
 
 
