@@ -5,7 +5,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 import de.bwhc.catalogs.hgnc.{HGNCCatalog,HGNCGene}
 
-import de.bwhc.mtb.data.entry.dtos.{Coding,Variant}
+import de.bwhc.mtb.dtos.{Coding,Variant}
 
 
 
