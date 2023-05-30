@@ -182,7 +182,7 @@ class ValidatorTests extends AnyFlatSpec
       validate(medicationCoding).isValid mustBe true
     }
 
-    it must "work as expected for Unregistered code without version and display" in {
+    it must "result in error for Unregistered code without version and display" in {
       val medicationCoding = Medication.Coding.apply(
         code = Medication.Code("ASS"),
         system = Medication.System.Unregistered,
@@ -190,7 +190,7 @@ class ValidatorTests extends AnyFlatSpec
         version = None
       )
 
-      validate(medicationCoding).isValid mustBe true
+      validate(medicationCoding).isValid mustBe false
     }
 
     it must "result in errors for ATC code without version" in {
