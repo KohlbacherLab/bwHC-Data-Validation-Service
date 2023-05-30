@@ -338,12 +338,10 @@ extends Logging
 
       } else {
 
-        display mustBe defined otherwise (
+        display.getOrElse("").isBlank mustNot equal(true) otherwise (
           Warning(s"Fehlender Medikationsname bei nicht-ATC-Wirkstoff '$code'") at Location("Medication Coding","","Display")
-        ) map (c => medication)
-
+        ) map (_ => medication)
       }
-
   }
 
  
