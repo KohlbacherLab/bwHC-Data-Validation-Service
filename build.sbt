@@ -22,7 +22,6 @@ lazy val global = project
   )
   .aggregate(
      api,
-//     generators,
      impl,
      deps,
      tests
@@ -34,27 +33,10 @@ lazy val api = project
     name := "data-entry-service-api",
     settings,
     libraryDependencies ++= Seq(
-//      dependencies.bwhc_utils,
-//      dependencies.hgnc_catalog_api,
-//      dependencies.icd_catalogs_api,
-//      dependencies.med_catalog_api
       dependencies.query_api
     )
   )
 
-/*
-lazy val generators = project
-  .settings(
-    name := "mtb-dto-generators",
-    settings,
-    libraryDependencies ++= Seq(
-      dependencies.generators
-    )
-  )
-  .dependsOn(
-    api
-  )
-*/
 
 lazy val impl = project
   .settings(
@@ -70,7 +52,6 @@ lazy val impl = project
   )
   .dependsOn(
     api,
-//    generators % Test,
   )
 
 
@@ -103,7 +84,6 @@ lazy val tests = project
   )
   .dependsOn(
     api,
-//    generators % Test,
     impl % Test,
     deps % Test,
   )
@@ -119,15 +99,10 @@ lazy val dependencies =
     val slf4j              = "org.slf4j"         %  "slf4j-api"               % "1.7.32"
     val play_json          = "com.typesafe.play" %% "play-json"               % "2.8.1"
     val repo_utils         = "de.ekut.tbi"       %% "repository-utils"        % "1.0-SNAPSHOT" 
-//    val generators         = "de.ekut.tbi"       %% "generators"              % "0.1-SNAPSHOT"
-//    val bwhc_utils         = "de.bwhc"           %% "utils"                   % "1.1"
-//    val hgnc_catalog_api   = "de.bwhc"           %% "hgnc-api"                % "1.0"
-//    val icd_catalogs_api   = "de.bwhc"           %% "icd-catalogs-api"        % "1.0"
-//    val med_catalog_api    = "de.bwhc"           %% "medication-catalog-api"  % "1.0"
     val mtb_dto_gens       = "de.bwhc"           %% "mtb-dto-generators"      % "1.0-SNAPSHOT" % Test
     val query_api          = "de.bwhc"           %% "query-service-api"       % "1.1-SNAPSHOT"
     val hgnc_catalog_impl  = "de.bwhc"           %% "hgnc-impl"               % "1.0" % Test
-    val icd_catalogs_impl  = "de.bwhc"           %% "icd-catalogs-impl"       % "1.0" % Test
+    val icd_catalogs_impl  = "de.bwhc"           %% "icd-catalogs-impl"       % "1.1" % Test
     val med_catalog_impl   = "de.bwhc"           %% "medication-catalog-impl" % "1.0" % Test
   }
 

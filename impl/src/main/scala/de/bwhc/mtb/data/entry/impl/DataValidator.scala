@@ -32,7 +32,7 @@ import de.bwhc.catalogs.icd
 import de.bwhc.catalogs.icd._
 import de.bwhc.catalogs.hgnc.{HGNCGene,HGNCCatalog,HGNCId}
 import de.bwhc.catalogs.med.MedicationCatalog
-import de.bwhc.catalogs.med.Medication.Kind.Substance
+import de.bwhc.catalogs.med.Medication.Kind
 
 
 
@@ -304,6 +304,54 @@ extends Logging
   implicit val medicationCatalog = MedicationCatalog.getInstance.get
 
 
+  def validMedication(
+    kind: Kind.Value,
+    kinds: Kind.Value*,
+  )(
+    implicit
+    catalog: MedicationCatalog
+  ): DataQualityValidator[Medication.Coding] = {
+
+    case medication @ Medication.Coding(Medication.Code(code),system,display,version) =>
+
+      lazy val versions = catalog.availableVersions.map(_.toString)
+
+      lazy val medicationKinds = (kind +: kinds).toSet
+
+      if (system == Medication.System.ATC){
+        version mustBe defined otherwise (
+          Error("Fehlende ATC Version") at Location("Medication Coding","","Version")
+        ) map (_.get) andThen (
+          v => v must be (in (versions)) otherwise (
+            Error(s"ATC Version '$v' ist nicht in {${versions.mkString(",")}}")
+             at Location("Medication Coding","","Version")
+          ) 
+        ) andThen (
+          v => 
+            catalog.findWithCode(code,v) mustBe defined otherwise (
+              Error(s"Ungültiger ATC Medications-Code '$code'") at Location("Medication Coding","","Code")
+            ) map (_.get) andThen (
+              med =>
+                med.kind must be (in (medicationKinds)) otherwise (
+                  Error(
+                    s"Ungültige ATC-Kodierung '$code': Wirkstoff-Typ ${med.kind} vorgefunden; ${medicationKinds.mkString(",")} erwartet"
+                  ) at Location("Medication Coding","","Code")
+                )
+            )
+           
+        ) map (c => medication)
+
+      } else {
+        display.getOrElse("").isBlank mustNot equal(true) otherwise (
+          Warning(s"Fehlender Medikationsname bei nicht-ATC-Wirkstoff '$code'") at Location("Medication Coding","","Display")
+        ) map (_ => medication)
+      }
+  }
+
+  implicit def substanceValidator: DataQualityValidator[Medication.Coding] = 
+    validMedication(Kind.Substance)
+
+/*    
   implicit def medicationValidator(
     implicit
     catalog: MedicationCatalog
@@ -318,7 +366,7 @@ extends Logging
           Error("Fehlende ATC Version") at Location("Medication Coding","","Version")
         ) map (_.get) andThen (
           v => v must be (in (versions)) otherwise (
-            Error(s"ATC Version '$v' ist nicht in {${versions.reduceLeft(_ + ", " + _)}}")
+            Error(s"ATC Version '$v' ist nicht in {${versions.mkString(", ")}}")
              at Location("Medication Coding","","Version")
           ) 
         ) andThen (
@@ -326,13 +374,6 @@ extends Logging
             catalog.findWithCode(code,v) mustBe defined otherwise (
               Error(s"Ungültiger ATC Medications-Code '$code'") at Location("Medication Coding","","Code")
             )
-            /*
-              map (_.get) andThen (
-              med =>
-                med.kind must equal (Substance) otherwise (
-                  Error(s"Ungültige ATC-Kodierung '$code': Wirkstoff-Klasse vorgefunden; Wirkstoff erwartet") at Location("Medication Coding","","Code")
-                )
-            )*/
            
         ) map (c => medication)
 
@@ -343,7 +384,7 @@ extends Logging
         ) map (_ => medication)
       }
   }
-
+*/
  
   private def notDuplicated(loc: => Location): DataQualityValidator[List[Medication.Coding]] =
     meds => meds.distinctBy(_.code).size must equal (meds.size) otherwise (
@@ -934,7 +975,8 @@ extends Logging
         medication.filterNot(_.isEmpty) shouldBe defined otherwise (
           Warning("Fehlende Angabe: Wirkstoffe") at Location("Therapie-Empfehlung",id,"Medikation")
         ) andThen (
-          _.get.validateEach
+          _.get
+          .validateEach(validMedication(Kind.Group,Kind.Substance))
            .leftMap(_.map(_.copy(location = Location("Therapie-Empfehlung",id,"Medikation"))))
         ),      
 
