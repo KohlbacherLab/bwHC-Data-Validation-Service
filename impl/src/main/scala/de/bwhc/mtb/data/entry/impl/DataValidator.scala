@@ -140,6 +140,7 @@ extends Logging
       )
   }
 
+
   private def validReferences[Ref](
     location: => Location,
   )(
@@ -228,14 +229,15 @@ extends Logging
         Error("Fehlende ICD-10-GM Version") at Location("ICD-10-GM Coding","","Version")
       ) map (_.get) andThen (
         v => v must be (in (catalog.availableVersions)) otherwise (
-          Error(s"ICD-10-GM Version '$v' ist nicht in {${catalog.availableVersions.mkString(", ")}}") at Location("ICD-10-GM Coding","","Version")
+          Error(s"ICD-10-GM Version '$v' ist nicht in {${catalog.availableVersions.mkString(", ")}}")
+            at Location("ICD-10-GM Coding","","Version")
         )
-    ) andThen (
-      v =>
-        catalog.coding(icd.ICD10GM.Code(code),v) mustBe defined otherwise (
-          Error(s"Ungültiger ICD-10-GM Code '$code'") at Location("ICD-10-GM Coding","","Code")
-        )
-    ) map (c => icd10)
+      ) andThen (
+        v =>
+          catalog.coding(icd.ICD10GM.Code(code),v) mustBe defined otherwise (
+            Error(s"Ungültiger ICD-10-GM Code '$code'") at Location("ICD-10-GM Coding","","Code")
+          )
+      ) map (c => icd10)
 
   }
 
@@ -289,7 +291,7 @@ extends Logging
               _ must be (in (years))
             ) map (y => versions(years.indexOf(y)))
           ) otherwise (
-            Error(s"ICD-O-3 Version '$v' ist nicht in {${versions.reduceLeft(_ + ", " + _)}} bzw. {${years.map(_.toString).reduceLeft(_ + ", " + _)}}")
+            Error(s"ICD-O-3 Version '$v' ist nicht in {${versions.mkString(", ")}} bzw. {${years.mkString(", ")}}")
               at Location("ICD-O-3-T Coding","","Version")
           )
       ) andThen (
@@ -318,73 +320,42 @@ extends Logging
 
       lazy val medicationKinds = (kind +: kinds).toSet
 
-      if (system == Medication.System.ATC){
-        version mustBe defined otherwise (
-          Error("Fehlende ATC Version") at Location("Medication Coding","","Version")
-        ) map (_.get) andThen (
-          v => v must be (in (versions)) otherwise (
-            Error(s"ATC Version '$v' ist nicht in {${versions.mkString(",")}}")
-             at Location("Medication Coding","","Version")
-          ) 
-        ) andThen (
-          v => 
-            catalog.findWithCode(code,v) mustBe defined otherwise (
-              Error(s"Ungültiger ATC Medications-Code '$code'") at Location("Medication Coding","","Code")
-            ) map (_.get) andThen (
-              med =>
-                med.kind must be (in (medicationKinds)) otherwise (
-                  Error(
-                    s"Ungültige ATC-Kodierung '$code': Wirkstoff-Typ ${med.kind} vorgefunden; ${medicationKinds.mkString(",")} erwartet"
-                  ) at Location("Medication Coding","","Code")
-                )
-            )
-           
-        ) map (c => medication)
+      system match {
+        case Medication.System.ATC =>
 
-      } else {
-        display.getOrElse("").isBlank mustNot equal(true) otherwise (
-          Warning(s"Fehlender Medikationsname bei nicht-ATC-Wirkstoff '$code'") at Location("Medication Coding","","Display")
-        ) map (_ => medication)
+          version mustBe defined otherwise (
+            Error("Fehlende ATC Version") at Location("Medication Coding","","Version")
+          ) map (_.get) andThen (
+            v => v must be (in (versions)) otherwise (
+              Error(s"ATC Version '$v' ist nicht in {${versions.mkString(",")}}")
+               at Location("Medication Coding","","Version")
+            ) 
+          ) andThen (
+            v => 
+              catalog.findWithCode(code,v) mustBe defined otherwise (
+                Error(s"Ungültiger ATC Medications-Code '$code'") at Location("Medication Coding","","Code")
+              ) map (_.get) andThen (
+                med =>
+                  med.kind must be (in (medicationKinds)) otherwise (
+                    Error(
+                      s"Ungültige ATC-Kodierung '$code': Wirkstoff-Typ ${med.kind} vorgefunden; ${medicationKinds.mkString(",")} erwartet"
+                    ) at Location("Medication Coding","","Code")
+                  )
+              )
+             
+          ) map (c => medication)
+
+        case _ =>
+          display.getOrElse("").isBlank mustNot equal (true) otherwise (
+            Warning(s"Fehlender Medikationsname bei nicht-ATC-Wirkstoff '$code'") at Location("Medication Coding","","Display")
+          ) map (_ => medication)
+
       }
   }
 
   implicit def substanceValidator: DataQualityValidator[Medication.Coding] = 
     validMedication(Kind.Substance)
 
-/*    
-  implicit def medicationValidator(
-    implicit
-    catalog: MedicationCatalog
-  ): DataQualityValidator[Medication.Coding] = {
-
-    case medication @ Medication.Coding(Medication.Code(code),system,display,version) =>
-
-      lazy val versions = catalog.availableVersions.map(_.toString)
-
-      if (system == Medication.System.ATC){
-        version mustBe defined otherwise (
-          Error("Fehlende ATC Version") at Location("Medication Coding","","Version")
-        ) map (_.get) andThen (
-          v => v must be (in (versions)) otherwise (
-            Error(s"ATC Version '$v' ist nicht in {${versions.mkString(", ")}}")
-             at Location("Medication Coding","","Version")
-          ) 
-        ) andThen (
-          v => 
-            catalog.findWithCode(code,v) mustBe defined otherwise (
-              Error(s"Ungültiger ATC Medications-Code '$code'") at Location("Medication Coding","","Code")
-            )
-           
-        ) map (c => medication)
-
-      } else {
-
-        display.getOrElse("").isBlank mustNot equal(true) otherwise (
-          Warning(s"Fehlender Medikationsname bei nicht-ATC-Wirkstoff '$code'") at Location("Medication Coding","","Display")
-        ) map (_ => medication)
-      }
-  }
-*/
  
   private def notDuplicated(loc: => Location): DataQualityValidator[List[Medication.Coding]] =
     meds => meds.distinctBy(_.code).size must equal (meds.size) otherwise (
@@ -422,9 +393,7 @@ extends Logging
           _.get.validate.leftMap(_.map(_.copy(location = Location("Diagnose",id,"ICD-O-3-T"))))
         ),
 
-        histologyReportRefs
-          .map(_ must be (validReferences[HistologyReport.Id](Location("Diagnose",id,"Histologie-Berichte"))))
-          .getOrElse(List.empty[HistologyReport.Id].validNel[Issue]), 
+        ifDefined (histologyReportRefs)(all(_) must be (validReference(histologyRefs)(Location("Diagnose",id,"Histologie-Berichte")))),
 
         glTreatmentStatus mustBe defined otherwise (
           Warning("Fehlende Angabe: Leitlinienbehandlungs-Status") at Location("Diagnose",id,"Leitlinienbehandlungs-Status")
@@ -732,12 +701,10 @@ extends Logging
           Warning(s"Negativer Wert '$start' bei Start-Position") at location
         ),
 
-        end.map(
-          e => e must be (positive[Long]) otherwise (
-            Warning(s"Negativer Wert '$e' bei End-Position") at location
-          )
-        )
-        .getOrElse(0L.validNel[Issue])
+        ifDefined(end) ensureThat( e => e is (positive[Long]) otherwise (
+          Warning(s"Negativer Wert '$e' bei End-Position") at location
+        ))
+
       )
       .mapN((_,_) => startEnd)
   }
@@ -790,7 +757,7 @@ extends Logging
 
     cnv => 
 
-      val location = Location("Somatischer NGS-Befund",reportId.value,s"CNV ${cnv.id.value}")
+      lazy val location = Location("Somatischer NGS-Befund",reportId.value,s"CNV ${cnv.id.value}")
 
       (
 
@@ -881,19 +848,11 @@ extends Logging
           ) map (_ => t)
         },
 
-        snvs.fold(
-          List.empty[SimpleVariant].validNel[Issue]
-        )(
-          _ validateEach
-        ),
+        ifDefined(snvs)(_ validateEach),
 
-        //TODO: validate other variants, at least gene symbols
-        cnvs.fold(
-          List.empty[CNV].validNel[Issue]
-        )(
-          _ validateEach
-        )
+        ifDefined(cnvs)(_ validateEach),
 
+        //TODO: validate other variants, at least HGNC-IDs
       )
       .mapN { case _: Product => ngs }
 

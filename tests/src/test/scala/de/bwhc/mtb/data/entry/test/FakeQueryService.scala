@@ -241,6 +241,8 @@ extends QueryService
    ): Future[EitherNel[String,PreparedQuery]] = ???
    
    def compileGlobalMedicationDistribution(
+     medicationUsage: Option[Query.DrugUsage.Value]
+   )(
      implicit
      querier: Querier,
      ec: ExecutionContext

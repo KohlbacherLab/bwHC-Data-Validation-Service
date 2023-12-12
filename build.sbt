@@ -7,7 +7,7 @@
 name := "bwhc-data-entry-service"
 ThisBuild / organization := "de.bwhc"
 ThisBuild / scalaVersion := "2.13.8"
-ThisBuild / version      := "1.1-SNAPSHOT"
+ThisBuild / version      := "1.1"
 
 
 //-----------------------------------------------------------------------------
@@ -99,11 +99,11 @@ lazy val dependencies =
     val slf4j              = "org.slf4j"         %  "slf4j-api"               % "1.7.32"
     val play_json          = "com.typesafe.play" %% "play-json"               % "2.8.1"
     val repo_utils         = "de.ekut.tbi"       %% "repository-utils"        % "1.0-SNAPSHOT" 
-    val mtb_dto_gens       = "de.bwhc"           %% "mtb-dto-generators"      % "1.0-SNAPSHOT" % Test
-    val query_api          = "de.bwhc"           %% "query-service-api"       % "1.1-SNAPSHOT"
+    val mtb_dto_gens       = "de.bwhc"           %% "mtb-dto-generators"      % "1.0" % Test
+    val query_api          = "de.bwhc"           %% "query-service-api"       % "1.1"
     val hgnc_catalog_impl  = "de.bwhc"           %% "hgnc-impl"               % "1.0" % Test
     val icd_catalogs_impl  = "de.bwhc"           %% "icd-catalogs-impl"       % "1.1" % Test
-    val med_catalog_impl   = "de.bwhc"           %% "medication-catalog-impl" % "1.0" % Test
+    val med_catalog_impl   = "de.bwhc"           %% "medication-catalog-impl" % "1.1" % Test
   }
 
 
